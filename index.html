@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowura AI | Education</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root { --accent: #6366f1; --bg: #0f172a; --panel: rgba(255,255,255,0.1); }
+        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; overflow: hidden; }
+        
+        .container { 
+            width: 95%; max-width: 850px; height: 90vh; 
+            background: var(--panel); backdrop-filter: blur(20px); 
+            border-radius: 28px; border: 1px solid rgba(255,255,255,0.2);
+            display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        header { 
+            padding: 20px; background: rgba(0,0,0,0.3); 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #user-info { display: none; align-items: center; gap: 12px; }
+        #user-pic { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--accent); }
+        #welcome-text { font-weight: 600; font-size: 16px; }
+
+        .logo { font-weight: 800; font-size: 22px; color: var(--accent); letter-spacing: 1px; }
+
+        #chat { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 14px 20px; border-radius: 20px; max-width: 80%; line-height: 1.5; font-size: 15px; white-space: pre-wrap; }
+        .ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .user { background: var(--accent); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+
+        .input-area { padding: 20px; display: flex; gap: 12px; background: rgba(0,0,0,0.2); }
+        input { 
+            flex: 1; padding: 15px; border-radius: 15px; border: none; outline: none; 
+            background: white; color: black; font-size: 16px;
+        }
+        button#sendBtn { 
+            padding: 0 25px; border-radius: 15px; border: none; 
+            background: var(--accent); color: white; font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo">KNOWURA</div>
+        
+        <div id="login-container">
+            <div id="g_id_onload"
+                 data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com"
+                 data-callback="onSignIn">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
+        </div>
+
+        <div id="user-info">
+            <span id="welcome-text"></span>
+            <img id="user-pic" src="">
+        </div>
+    </header>
+
+    <div id="chat">
+        <div class="msg ai">Welcome to Knowura. Please sign in to personalize your experience, or start asking questions below.</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Ask Knowura...">
+        <button id="sendBtn" onclick="ask()">Send</button>
+    </div>
+</div>
+
+<script>
+    const GROQ_KEY = "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";
+    let currentUser = "User";
+
+    // 1. Handle Google Login
+    function onSignIn(response) {
+        const base64Url = response.credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const user = JSON.parse(window.atob(base64));
+
+        currentUser = user.given_name;
+        
+        // UI Updates
+        document.getElementById("login-container").style.display = "none";
+        document.getElementById("user-info").style.display = "flex";
+        document.getElementById("welcome-text").innerText = "Welcome, " + currentUser;
+        document.getElementById("user-pic").src = user.picture;
+
+        addBubble(`System: You are now logged in as ${user.name}.`, 'ai');
+    }
+
+    // 2. Chat Logic (Groq)
+    async function ask() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addBubble(text, 'user');
+        input.value = '';
+        const thinking = addBubble("Knowura is thinking...", 'ai');
+
+        try {
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: { 
+                    "Authorization": `Bearer ${GROQ_KEY}`, 
+                    "Content-Type": "application/json" 
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [
+                        { role: "system", content: `Your name is Knowura. You are an AI tutor helping ${currentUser}.` },
+                        { role: "user", content: text }
+                    ]
+                })
+            });
+            const data = await res.json();
+            thinking.innerText = data.choices[0].message.content;
+        } catch (e) {
+            thinking.innerText = "Connection Error. Please check your internet.";
+        }
+    }
+
+    function addBubble(t, c) {
+        const chat = document.getElementById('chat');
+        const d = document.createElement('div');
+        d.className = `msg ${c}`;
+        d.innerText = t;
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+        return d;
+    }
+
+    document.getElementById('userInput').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') ask();
+    });
+</script>
+
+</body>
+</html>
