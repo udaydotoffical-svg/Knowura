@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowura AI</title>
+    <title>Knowura AI | Intelligence & Style</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         :root {
@@ -30,8 +30,8 @@
             border-radius: 35px; padding: 40px; text-align: center; width: 90%; max-width: 450px;
         }
 
-        /* APP UI */
-        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 10px; }
+        /* MAIN APP UI */
+        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 10px; max-width: 1200px; }
         .chat-container {
             flex: 1; background: var(--glass); backdrop-filter: blur(40px);
             border: 1px solid var(--glass-border); border-radius: 25px; display: flex; flex-direction: column; overflow: hidden;
@@ -43,32 +43,30 @@
         }
 
         /* CONTROLS AREA */
-        .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .music-nav { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.08); padding: 5px 12px; border-radius: 50px; }
+        .controls { display: flex; align-items: center; gap: 12px; }
+        .music-nav { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); padding: 5px 15px; border-radius: 50px; }
         button.small-btn { background: none; border: none; color: var(--bright-teal); cursor: pointer; font-size: 18px; }
-        input[type="range"] { accent-color: var(--bright-teal); width: 60px; height: 4px; cursor: pointer; }
+        input[type="range"] { accent-color: var(--bright-teal); width: 70px; cursor: pointer; }
 
         /* CHAT BOX */
-        #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
         .msg { padding: 14px 20px; border-radius: 22px; max-width: 85%; font-size: 15px; line-height: 1.6; word-wrap: break-word; }
         .ai { background: rgba(255,255,255,0.06); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid var(--glass-border); }
-        .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; }
 
-        /* FORMATTING SUPPORT */
-        .msg b { color: var(--bright-teal); font-weight: 700; }
-        .msg i { opacity: 0.9; font-style: italic; }
+        /* FORMATTING & BOLD/ITALIC */
+        .msg b, .msg strong { color: var(--bright-teal); font-weight: 700; }
+        .msg i, .msg em { opacity: 0.9; font-style: italic; }
         pre { background: #0a1112; color: #78e2c8; padding: 15px; border-radius: 12px; margin: 10px 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 13px; border: 1px solid var(--deep-teal); }
 
         /* INPUT AREA */
         .input-area { padding: 15px; display: flex; gap: 10px; background: rgba(0,0,0,0.5); }
         input#userInput { flex: 1; padding: 14px 22px; border-radius: 50px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; font-size: 16px; }
-        #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 50px; font-weight: 800; cursor: pointer; transition: 0.2s; }
-        #sendBtn:active { transform: scale(0.95); }
+        #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 50px; font-weight: 800; cursor: pointer; }
 
         @media (max-width: 600px) {
-            header { justify-content: center; }
-            .msg { max-width: 90%; font-size: 14px; }
-            .controls { justify-content: center; width: 100%; }
+            header { justify-content: center; flex-direction: column; text-align: center; }
+            .msg { max-width: 92%; font-size: 14px; }
         }
     </style>
 </head>
@@ -91,7 +89,7 @@
     <div id="app">
         <div class="chat-container">
             <header>
-                <div style="font-weight: 900; color: var(--bright-teal); font-size: 1.2rem;">KNOWURA</div>
+                <div style="font-weight: 900; color: var(--bright-teal); font-size: 1.2rem; letter-spacing: 2px;">KNOWURA</div>
                 <div class="controls">
                     <div class="music-nav">
                         <button class="small-btn" onclick="switchTrack()">⏮️</button>
@@ -103,7 +101,7 @@
             </header>
             <div id="chat-box"></div>
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="Ask Knowura something...">
+                <input type="text" id="userInput" placeholder="Type to chat...">
                 <button id="sendBtn" onclick="ask()">SEND</button>
             </div>
         </div>
@@ -134,6 +132,7 @@
 
     function enterApp(mode) {
         if(mode === 'Guest') currentUser = "Guest";
+        audio.volume = 0.2;
         audio.play().catch(() => {});
         document.getElementById('startup').style.opacity = '0';
         setTimeout(() => {
@@ -143,27 +142,28 @@
         }, 800);
     }
 
-    // --- AI FORMATTING & HISTORY ---
     function formatAIResponse(text) {
-        // Bold: **text** -> <b>text</b>
+        // Markdown Bold & Italic support
         text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-        // Italic: *text* -> <i>text</i>
         text = text.replace(/\*(.*?)\*/g, '<i>$1</i>');
-        // Code blocks: ```code``` -> <pre>code</pre>
+        // Code Blocks
         text = text.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
         return text;
     }
 
     function saveMsg(text, type) {
-        let history = JSON.parse(localStorage.getItem('knowura_v3')) || [];
+        let history = JSON.parse(localStorage.getItem('knowura_final_v1')) || [];
         history.push({ text, type });
-        localStorage.setItem('knowura_v3', JSON.stringify(history));
+        localStorage.setItem('knowura_final_v1', JSON.stringify(history));
     }
 
     function loadHistory() {
-        let history = JSON.parse(localStorage.getItem('knowura_v3')) || [];
-        if (history.length === 0) addBubble("Hello! I am <b>Knowura</b>. How can I help you today?", 'ai', false);
-        else history.forEach(m => addBubble(m.text, m.type, false));
+        let history = JSON.parse(localStorage.getItem('knowura_final_v1')) || [];
+        if (history.length === 0) {
+            addBubble(`Hello <b>${currentUser}</b>! I am Knowura. How can I help you today?`, 'ai', false);
+        } else {
+            history.forEach(m => addBubble(m.text, m.type, false));
+        }
     }
 
     async function ask() {
@@ -181,22 +181,24 @@
                 headers: { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                     model: "llama-3.3-70b-versatile",
-                    messages: [{ role: "system", content: `You are Knowura. You can use **bold** and *italics*. Format code in triple backticks.` }, { role: "user", content: text }]
+                    messages: [
+                        { role: "system", content: `You are Knowura. The user is ${currentUser}. Use **bold** for key terms and triple backticks for code.` },
+                        { role: "user", content: text }
+                    ]
                 })
             });
             const data = await res.json();
-            const rawText = data.choices[0].message.content;
-            const formatted = formatAIResponse(rawText);
+            const formatted = formatAIResponse(data.choices[0].message.content);
             thinking.innerHTML = formatted;
             saveMsg(formatted, 'ai');
-        } catch (e) { thinking.innerText = "Error connecting."; }
+        } catch (e) { thinking.innerText = "Connection error."; }
     }
 
     function addBubble(t, c, save) {
         const box = document.getElementById('chat-box');
         const div = document.createElement('div');
         div.className = `msg ${c}`;
-        div.innerHTML = (c === 'ai') ? t : t; // Formatting already applied for AI
+        div.innerHTML = t;
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
         if (save) saveMsg(t, c);
@@ -206,4 +208,4 @@
     document.getElementById('userInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') ask(); });
 </script>
 </body>
-</html>
+</html>`
