@@ -3,144 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowura AI | Education</title>
+    <title>Knowura AI</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        :root { --accent: #6366f1; --bg: #0f172a; --panel: rgba(255,255,255,0.1); }
-        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; overflow: hidden; }
-        
-        .container { 
-            width: 95%; max-width: 850px; height: 90vh; 
-            background: var(--panel); backdrop-filter: blur(20px); 
-            border-radius: 28px; border: 1px solid rgba(255,255,255,0.2);
-            display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        :root {
+            --dark: #15292E; --deep-teal: #074047; --mid-teal: #1C8585;
+            --bright-teal: #1DA27E; --glass: rgba(21, 41, 46, 0.88);
+            --glass-border: rgba(29, 162, 126, 0.3); --text: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            height: 100vh;
+            background: url('https://raw.githubusercontent.com/udaydotoffical-svg/Knowura/main/4K%20High%20Resolution%20Dark%20Geometric%20Shards%20Wallpaper%20for%20Windows%2011.jpg') no-repeat center center fixed;
+            background-size: cover; display: flex; align-items: center; justify-content: center; color: var(--text); overflow: hidden;
+        }
+
+        /* STARTUP PAGE */
+        #startup {
+            position: fixed; inset: 0; z-index: 100; background: rgba(7, 64, 71, 0.95);
+            backdrop-filter: blur(20px); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.8s ease;
+        }
+        .glass-card {
+            background: var(--glass); backdrop-filter: blur(25px); border: 1px solid var(--glass-border);
+            border-radius: 35px; padding: 40px; text-align: center; width: 90%; max-width: 450px;
+        }
+
+        /* APP UI */
+        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 10px; }
+        .chat-container {
+            flex: 1; background: var(--glass); backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border); border-radius: 25px; display: flex; flex-direction: column; overflow: hidden;
         }
 
         header { 
-            padding: 20px; background: rgba(0,0,0,0.3); 
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 20px; background: rgba(0,0,0,0.5); display: flex; flex-wrap: wrap; 
+            justify-content: space-between; align-items: center; gap: 10px;
         }
 
-        #user-info { display: none; align-items: center; gap: 12px; }
-        #user-pic { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--accent); }
-        #welcome-text { font-weight: 600; font-size: 16px; }
+        /* CONTROLS AREA */
+        .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .music-nav { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.08); padding: 5px 12px; border-radius: 50px; }
+        button.small-btn { background: none; border: none; color: var(--bright-teal); cursor: pointer; font-size: 18px; }
+        input[type="range"] { accent-color: var(--bright-teal); width: 60px; height: 4px; cursor: pointer; }
 
-        .logo { font-weight: 800; font-size: 22px; color: var(--accent); letter-spacing: 1px; }
+        /* CHAT BOX */
+        #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 14px 20px; border-radius: 22px; max-width: 85%; font-size: 15px; line-height: 1.6; word-wrap: break-word; }
+        .ai { background: rgba(255,255,255,0.06); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid var(--glass-border); }
+        .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
 
-        #chat { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .msg { padding: 14px 20px; border-radius: 20px; max-width: 80%; line-height: 1.5; font-size: 15px; white-space: pre-wrap; }
-        .ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 4px; }
-        .user { background: var(--accent); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+        /* FORMATTING SUPPORT */
+        .msg b { color: var(--bright-teal); font-weight: 700; }
+        .msg i { opacity: 0.9; font-style: italic; }
+        pre { background: #0a1112; color: #78e2c8; padding: 15px; border-radius: 12px; margin: 10px 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 13px; border: 1px solid var(--deep-teal); }
 
-        .input-area { padding: 20px; display: flex; gap: 12px; background: rgba(0,0,0,0.2); }
-        input { 
-            flex: 1; padding: 15px; border-radius: 15px; border: none; outline: none; 
-            background: white; color: black; font-size: 16px;
-        }
-        button#sendBtn { 
-            padding: 0 25px; border-radius: 15px; border: none; 
-            background: var(--accent); color: white; font-weight: bold; cursor: pointer;
+        /* INPUT AREA */
+        .input-area { padding: 15px; display: flex; gap: 10px; background: rgba(0,0,0,0.5); }
+        input#userInput { flex: 1; padding: 14px 22px; border-radius: 50px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; font-size: 16px; }
+        #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 50px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        #sendBtn:active { transform: scale(0.95); }
+
+        @media (max-width: 600px) {
+            header { justify-content: center; }
+            .msg { max-width: 90%; font-size: 14px; }
+            .controls { justify-content: center; width: 100%; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <div class="logo">KNOWURA</div>
-        
-        <div id="login-container">
-            <div id="g_id_onload"
-                 data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com"
-                 data-callback="onSignIn">
-            </div>
+    <audio id="bg-music" loop>
+        <source id="music-source" src="Lukrembo - Sunflower (freetouse.com).mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="startup">
+        <div class="glass-card">
+            <h1 style="color: var(--bright-teal); font-size: 3rem; letter-spacing: -3px; margin-bottom: 5px;">KNOWURA</h1>
+            <p style="color: #a1b8bc; margin-bottom: 35px; font-size: 0.9rem;">The Intelligent Study Partner</p>
+            <div id="g_id_onload" data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com" data-callback="onSignIn"></div>
             <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
+            <button style="width:100%; padding:15px; margin-top:20px; border-radius:50px; border:1px solid var(--mid-teal); background:transparent; color:white; font-weight:700; cursor:pointer;" onclick="enterApp('Guest')">Continue as Guest</button>
         </div>
-
-        <div id="user-info">
-            <span id="welcome-text"></span>
-            <img id="user-pic" src="">
-        </div>
-    </header>
-
-    <div id="chat">
-        <div class="msg ai">Welcome to Knowura. Please sign in to personalize your experience, or start asking questions below.</div>
     </div>
 
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="Ask Knowura...">
-        <button id="sendBtn" onclick="ask()">Send</button>
+    <div id="app">
+        <div class="chat-container">
+            <header>
+                <div style="font-weight: 900; color: var(--bright-teal); font-size: 1.2rem;">KNOWURA</div>
+                <div class="controls">
+                    <div class="music-nav">
+                        <button class="small-btn" onclick="switchTrack()">⏮️</button>
+                        <input type="range" min="0" max="1" step="0.1" value="0.2" oninput="updateVol(this.value)">
+                        <button class="small-btn" onclick="switchTrack()">⏭️</button>
+                    </div>
+                    <div id="user-info"></div>
+                </div>
+            </header>
+            <div id="chat-box"></div>
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="Ask Knowura something...">
+                <button id="sendBtn" onclick="ask()">SEND</button>
+            </div>
+        </div>
     </div>
-</div>
 
 <script>
-    const GROQ_KEY = "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";
-    let currentUser = "User";
+    const API_KEY = "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";
+    let currentUser = "Learner";
+    const audio = document.getElementById('bg-music');
+    const tracks = ["Lukrembo - Sunflower (freetouse.com).mp3", "Lukrembo - Bean (freetouse.com).mp3"];
+    let currentTrackIdx = 0;
 
-    // 1. Handle Google Login
-    function onSignIn(response) {
-        const base64Url = response.credential.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const user = JSON.parse(window.atob(base64));
+    function updateVol(v) { audio.volume = v; }
 
-        currentUser = user.given_name;
-        
-        // UI Updates
-        document.getElementById("login-container").style.display = "none";
-        document.getElementById("user-info").style.display = "flex";
-        document.getElementById("welcome-text").innerText = "Welcome, " + currentUser;
-        document.getElementById("user-pic").src = user.picture;
-
-        addBubble(`System: You are now logged in as ${user.name}.`, 'ai');
+    function switchTrack() {
+        currentTrackIdx = (currentTrackIdx + 1) % tracks.length;
+        document.getElementById('music-source').src = tracks[currentTrackIdx];
+        audio.load();
+        audio.play();
     }
 
-    // 2. Chat Logic (Groq)
+    function onSignIn(response) {
+        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        currentUser = payload.given_name;
+        document.getElementById('user-info').innerHTML = `<img src="${payload.picture}" style="width:28px; border-radius:50%; border:1px solid var(--bright-teal);">`;
+        enterApp();
+    }
+
+    function enterApp(mode) {
+        if(mode === 'Guest') currentUser = "Guest";
+        audio.play().catch(() => {});
+        document.getElementById('startup').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('startup').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            loadHistory();
+        }, 800);
+    }
+
+    // --- AI FORMATTING & HISTORY ---
+    function formatAIResponse(text) {
+        // Bold: **text** -> <b>text</b>
+        text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        // Italic: *text* -> <i>text</i>
+        text = text.replace(/\*(.*?)\*/g, '<i>$1</i>');
+        // Code blocks: ```code``` -> <pre>code</pre>
+        text = text.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
+        return text;
+    }
+
+    function saveMsg(text, type) {
+        let history = JSON.parse(localStorage.getItem('knowura_v3')) || [];
+        history.push({ text, type });
+        localStorage.setItem('knowura_v3', JSON.stringify(history));
+    }
+
+    function loadHistory() {
+        let history = JSON.parse(localStorage.getItem('knowura_v3')) || [];
+        if (history.length === 0) addBubble("Hello! I am <b>Knowura</b>. How can I help you today?", 'ai', false);
+        else history.forEach(m => addBubble(m.text, m.type, false));
+    }
+
     async function ask() {
         const input = document.getElementById('userInput');
         const text = input.value.trim();
         if (!text) return;
 
-        addBubble(text, 'user');
+        addBubble(text, 'user', true);
         input.value = '';
-        const thinking = addBubble("Knowura is thinking...", 'ai');
+        const thinking = addBubble("Thinking...", 'ai', false);
 
         try {
             const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
-                headers: { 
-                    "Authorization": `Bearer ${GROQ_KEY}`, 
-                    "Content-Type": "application/json" 
-                },
+                headers: { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                     model: "llama-3.3-70b-versatile",
-                    messages: [
-                        { role: "system", content: `Your name is Knowura. You are an AI tutor helping ${currentUser}.` },
-                        { role: "user", content: text }
-                    ]
+                    messages: [{ role: "system", content: `You are Knowura. You can use **bold** and *italics*. Format code in triple backticks.` }, { role: "user", content: text }]
                 })
             });
             const data = await res.json();
-            thinking.innerText = data.choices[0].message.content;
-        } catch (e) {
-            thinking.innerText = "Connection Error. Please check your internet.";
-        }
+            const rawText = data.choices[0].message.content;
+            const formatted = formatAIResponse(rawText);
+            thinking.innerHTML = formatted;
+            saveMsg(formatted, 'ai');
+        } catch (e) { thinking.innerText = "Error connecting."; }
     }
 
-    function addBubble(t, c) {
-        const chat = document.getElementById('chat');
-        const d = document.createElement('div');
-        d.className = `msg ${c}`;
-        d.innerText = t;
-        chat.appendChild(d);
-        chat.scrollTop = chat.scrollHeight;
-        return d;
+    function addBubble(t, c, save) {
+        const box = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.className = `msg ${c}`;
+        div.innerHTML = (c === 'ai') ? t : t; // Formatting already applied for AI
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+        if (save) saveMsg(t, c);
+        return div;
     }
 
-    document.getElementById('userInput').addEventListener('keypress', (e) => {
-        if(e.key === 'Enter') ask();
-    });
+    document.getElementById('userInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') ask(); });
 </script>
-
 </body>
 </html>
