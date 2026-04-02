@@ -16,7 +16,7 @@
             --text: #ffffff;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
 
         body {
             height: 100vh;
@@ -26,10 +26,10 @@
             color: var(--text); overflow: hidden;
         }
 
-        /* Startup */
+        /* Startup Screen */
         #startup {
             position: fixed; inset: 0; z-index: 100; 
-            background: rgba(0, 5, 15, 0.9);
+            background: rgba(0, 5, 15, 0.95);
             backdrop-filter: blur(30px); 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
             transition: 0.8s;
@@ -39,12 +39,12 @@
             background: var(--glass); 
             backdrop-filter: blur(40px); 
             border: 1px solid var(--glass-border);
-            border-radius: 28px; padding: 40px; text-align: center; width: 90%; max-width: 420px;
+            border-radius: 28px; padding: 40px; text-align: center; width: 90%; max-width: 400px;
         }
 
-        .main-logo { width: 180px; margin-bottom: 20px; filter: drop-shadow(0 0 10px var(--bright-teal)); }
+        .main-logo { width: 160px; margin-bottom: 20px; filter: drop-shadow(0 0 10px var(--bright-teal)); }
 
-        /* App */
+        /* Main App Interface */
         #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1100px; opacity: 0; transition: 0.5s; }
         
         .chat-container {
@@ -54,36 +54,37 @@
         }
 
         header { 
-            padding: 15px 25px; background: rgba(0,0,0,0.4); 
+            padding: 15px 25px; background: rgba(0,0,0,0.5); 
             display: flex; justify-content: space-between; align-items: center; 
             border-bottom: 1px solid var(--glass-border); 
         }
 
-        .header-logo { height: 30px; }
+        .header-logo { height: 28px; }
 
         .controls { display: flex; gap: 10px; align-items: center; }
 
         .btn-ui {
             background: transparent; border: 1px solid var(--bright-teal);
-            color: var(--bright-teal); padding: 6px 12px; border-radius: 50px;
+            color: var(--bright-teal); padding: 6px 14px; border-radius: 50px;
             cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s;
         }
-        .btn-ui:hover { background: rgba(29, 162, 126, 0.2); }
         .btn-ui.active { background: var(--bright-teal); color: white; }
 
-        /* Chat */
+        /* Chat Area */
         #chat-box { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .msg { padding: 14px 20px; border-radius: 18px; max-width: 80%; font-size: 15px; line-height: 1.6; animation: fadeInUp 0.3s ease; }
+        .msg { padding: 14px 20px; border-radius: 18px; max-width: 80%; font-size: 15px; line-height: 1.6; animation: fadeInUp 0.3s ease; word-wrap: break-word; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .ai { background: rgba(255,255,255,0.08); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
         .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; }
 
-        pre { background: #070b14; color: #78e2c8; padding: 15px; border-radius: 12px; margin: 10px 0; overflow-x: auto; font-family: monospace; border: 1px solid var(--mid-teal); }
-
+        /* Typing Area */
         .input-area { padding: 20px; display: flex; gap: 12px; background: rgba(0,0,0,0.3); border-top: 1px solid var(--glass-border); }
         input#userInput { flex: 1; padding: 14px 20px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; }
         #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 14px; font-weight: 700; cursor: pointer; }
+
+        /* Track Switcher Style */
+        select#trackSelect { background: #0a0f1e; color: var(--bright-teal); border: 1px solid var(--bright-teal); border-radius: 50px; padding: 5px; font-size: 11px; outline: none; }
     </style>
 </head>
 <body>
@@ -93,7 +94,7 @@
     <div id="startup">
         <div class="glass-card">
             <img src="Know (1).png" class="main-logo">
-            <p style="margin-bottom: 20px; color: #aaa;">Created by <b>Uday Singh</b> (2013)</p>
+            <p style="margin-bottom: 25px; color: #aaa;"><b>Knowura AI</b><br>Engineered by Uday Singh</p>
             <div id="g_id_onload" data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com" data-callback="onSignIn"></div>
             <div class="g_id_signin" data-type="standard"></div>
             <button class="btn-ui" style="width:100%; margin-top:15px; padding:12px;" onclick="enterApp('Guest')">Continue as Guest</button>
@@ -106,16 +107,16 @@
                 <img src="Know (1).png" class="header-logo">
                 <div class="controls">
                     <button id="musicBtn" class="btn-ui" onclick="toggleMusic()">🎵 Music: OFF</button>
-                    <select id="trackSelect" class="btn-ui" onchange="changeTrack()" style="background: var(--dark);">
+                    <select id="trackSelect" onchange="changeTrack()">
                         <option value="Lukrembo - Sunflower (freetouse.com).mp3">🌻 Sunflower</option>
                         <option value="Lukrembo - Bean (freetouse.com).mp3">🫘 Bean</option>
                     </select>
-                    <div id="user-display" style="font-size: 13px; color: var(--bright-teal); font-weight: bold;"></div>
+                    <div id="user-display" style="font-size: 13px; color: var(--bright-teal); font-weight: bold; margin-left: 10px;"></div>
                 </div>
             </header>
             <div id="chat-box"></div>
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="Ask Knowura..." autocomplete="off">
+                <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
                 <button id="sendBtn" onclick="ask()">SEND</button>
             </div>
         </div>
@@ -138,7 +139,7 @@
             currentUser = "Guest";
             document.getElementById('user-display').innerText = "Guest";
         }
-        // Set initial track
+        
         music.src = trackSelect.value;
         
         document.getElementById('startup').style.opacity = '0';
@@ -157,7 +158,7 @@
             music.play().then(() => {
                 btn.innerText = "🎵 Music: ON";
                 btn.classList.add('active');
-            }).catch(() => alert("Please click anywhere on the page first!"));
+            }).catch(() => alert("Click the screen first to enable audio!"));
         } else {
             music.pause();
             btn.innerText = "🎵 Music: OFF";
@@ -171,12 +172,6 @@
         if (wasPlaying) music.play();
     }
 
-    function formatAIResponse(text) {
-        text = text.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
-        text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-        return text.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('');
-    }
-
     async function ask() {
         const input = document.getElementById('userInput');
         const text = input.value.trim();
@@ -187,18 +182,29 @@
         const thinking = addBubble("Thinking...", 'ai', false);
 
         try {
+            // Using the direct Netlify function path
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: text, user: currentUser })
             });
 
+            if (!res.ok) throw new Error("Network issue");
+
             const data = await res.json();
-            const reply = data.choices[0].message.content;
-            thinking.innerHTML = formatAIResponse(reply);
-            saveMsg(thinking.innerHTML, 'ai');
+            
+            // Critical: Accessing Groq's JSON structure correctly
+            if (data && data.choices && data.choices[0]) {
+                const reply = data.choices[0].message.content;
+                thinking.innerHTML = reply.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                saveMsg(thinking.innerHTML, 'ai');
+            } else {
+                throw new Error("Empty response");
+            }
+
         } catch (e) {
-            thinking.innerText = "Connection lost. Ensure Netlify Functions are active.";
+            console.error(e);
+            thinking.innerText = "Connection lost. Ensure your Netlify Secret Key is set.";
         }
     }
 
@@ -214,15 +220,15 @@
     }
 
     function saveMsg(text, type) {
-        let history = JSON.parse(localStorage.getItem('knowura_vfinal')) || [];
+        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
         history.push({ text, type });
-        localStorage.setItem('knowura_vfinal', JSON.stringify(history.slice(-15)));
+        localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-20)));
     }
 
     function loadHistory() {
-        let history = JSON.parse(localStorage.getItem('knowura_vfinal')) || [];
+        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
         if (history.length === 0) {
-            addBubble(`Welcome <b>${currentUser}</b>. I am Knowura, created by <b>Uday Singh</b>. Ready to study?`, 'ai', false);
+            addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
         } else {
             history.forEach(m => addBubble(m.text, m.type, false));
         }
