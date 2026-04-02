@@ -16,7 +16,7 @@
             --text: #ffffff;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 
         body {
             height: 100vh;
@@ -26,13 +26,13 @@
             color: var(--text); overflow: hidden;
         }
 
-        /* Startup Screen */
+        /* Startup */
         #startup {
             position: fixed; inset: 0; z-index: 100; 
             background: rgba(0, 5, 15, 0.9);
             backdrop-filter: blur(30px); 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            transition: 0.8s ease;
+            transition: 0.8s;
         }
 
         .glass-card {
@@ -40,13 +40,12 @@
             backdrop-filter: blur(40px); 
             border: 1px solid var(--glass-border);
             border-radius: 28px; padding: 40px; text-align: center; width: 90%; max-width: 420px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        .main-logo { width: 200px; height: auto; margin-bottom: 20px; filter: drop-shadow(0 0 15px var(--bright-teal)); }
+        .main-logo { width: 180px; margin-bottom: 20px; filter: drop-shadow(0 0 10px var(--bright-teal)); }
 
-        /* App Layout */
-        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1200px; opacity: 0; transition: 0.5s; }
+        /* App */
+        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1100px; opacity: 0; transition: 0.5s; }
         
         .chat-container {
             flex: 1; background: var(--glass); backdrop-filter: blur(50px);
@@ -60,50 +59,44 @@
             border-bottom: 1px solid var(--glass-border); 
         }
 
-        .header-logo { height: 32px; width: auto; }
+        .header-logo { height: 30px; }
 
-        /* Music Button */
-        #musicBtn {
+        .controls { display: flex; gap: 10px; align-items: center; }
+
+        .btn-ui {
             background: transparent; border: 1px solid var(--bright-teal);
-            color: var(--bright-teal); padding: 6px 15px; border-radius: 50px;
-            cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.3s;
+            color: var(--bright-teal); padding: 6px 12px; border-radius: 50px;
+            cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s;
         }
-        #musicBtn.on { background: var(--bright-teal); color: white; }
+        .btn-ui:hover { background: rgba(29, 162, 126, 0.2); }
+        .btn-ui.active { background: var(--bright-teal); color: white; }
 
-        /* Chat Area */
-        #chat-box { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scrollbar-width: thin; scrollbar-color: var(--bright-teal) transparent; }
-        
-        .msg { padding: 15px 20px; border-radius: 20px; max-width: 80%; font-size: 15px; line-height: 1.6; animation: slideUp 0.3s ease forwards; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Chat */
+        #chat-box { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 14px 20px; border-radius: 18px; max-width: 80%; font-size: 15px; line-height: 1.6; animation: fadeInUp 0.3s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .ai { background: rgba(255,255,255,0.07); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
-        .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .ai { background: rgba(255,255,255,0.08); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
+        .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; }
 
-        .msg b { color: var(--bright-teal); }
-        .msg ol, .msg ul { padding-left: 25px; margin: 10px 0; }
-        pre { background: #070b14; color: #78e2c8; padding: 15px; border-radius: 12px; margin: 10px 0; overflow-x: auto; font-family: 'Consolas', monospace; border: 1px solid var(--mid-teal); }
+        pre { background: #070b14; color: #78e2c8; padding: 15px; border-radius: 12px; margin: 10px 0; overflow-x: auto; font-family: monospace; border: 1px solid var(--mid-teal); }
 
-        /* Input Bar */
         .input-area { padding: 20px; display: flex; gap: 12px; background: rgba(0,0,0,0.3); border-top: 1px solid var(--glass-border); }
-        input#userInput { flex: 1; padding: 14px 20px; border-radius: 15px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; font-size: 16px; }
-        
-        #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 15px; font-weight: 700; cursor: pointer; transition: 0.3s; }
-        #sendBtn:hover { transform: scale(1.03); box-shadow: 0 0 15px var(--bright-teal); }
+        input#userInput { flex: 1; padding: 14px 20px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; }
+        #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 14px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <audio id="bgMusic" loop>
-        <source src="https://www.bensound.com/bensound-music/bensound-slowmotion.mp3" type="audio/mpeg">
-    </audio>
+    <audio id="bgMusic" loop preload="auto"></audio>
 
     <div id="startup">
         <div class="glass-card">
-            <img src="Know (1).png" class="main-logo" alt="Knowura Logo">
-            <p style="margin-bottom: 25px; color: #ccc;">Designed by <b>Uday Singh</b></p>
+            <img src="Know (1).png" class="main-logo">
+            <p style="margin-bottom: 20px; color: #aaa;">Created by <b>Uday Singh</b> (2013)</p>
             <div id="g_id_onload" data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com" data-callback="onSignIn"></div>
             <div class="g_id_signin" data-type="standard"></div>
-            <button style="width:100%; padding:14px; margin-top:15px; border-radius:50px; border:1px solid var(--mid-teal); background:transparent; color:white; font-weight:700; cursor:pointer;" onclick="enterApp('Guest')">Continue as Guest</button>
+            <button class="btn-ui" style="width:100%; margin-top:15px; padding:12px;" onclick="enterApp('Guest')">Continue as Guest</button>
         </div>
     </div>
 
@@ -111,14 +104,18 @@
         <div class="chat-container">
             <header>
                 <img src="Know (1).png" class="header-logo">
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <button id="musicBtn" onclick="toggleMusic()">🎵 Music: OFF</button>
-                    <div id="user-display" style="font-weight: 600; font-size: 14px; color: var(--bright-teal);"></div>
+                <div class="controls">
+                    <button id="musicBtn" class="btn-ui" onclick="toggleMusic()">🎵 Music: OFF</button>
+                    <select id="trackSelect" class="btn-ui" onchange="changeTrack()" style="background: var(--dark);">
+                        <option value="Lukrembo - Sunflower (freetouse.com).mp3">🌻 Sunflower</option>
+                        <option value="Lukrembo - Bean (freetouse.com).mp3">🫘 Bean</option>
+                    </select>
+                    <div id="user-display" style="font-size: 13px; color: var(--bright-teal); font-weight: bold;"></div>
                 </div>
             </header>
             <div id="chat-box"></div>
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="Ask Knowura something..." autocomplete="off">
+                <input type="text" id="userInput" placeholder="Ask Knowura..." autocomplete="off">
                 <button id="sendBtn" onclick="ask()">SEND</button>
             </div>
         </div>
@@ -126,22 +123,8 @@
 
 <script>
     let currentUser = "Learner";
-    let musicPlaying = false;
-
-    function toggleMusic() {
-        const music = document.getElementById('bgMusic');
-        const btn = document.getElementById('musicBtn');
-        if (!musicPlaying) {
-            music.play();
-            btn.innerText = "🎵 Music: ON";
-            btn.classList.add('on');
-        } else {
-            music.pause();
-            btn.innerText = "🎵 Music: OFF";
-            btn.classList.remove('on');
-        }
-        musicPlaying = !musicPlaying;
-    }
+    const music = document.getElementById('bgMusic');
+    const trackSelect = document.getElementById('trackSelect');
 
     function onSignIn(response) {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
@@ -155,6 +138,9 @@
             currentUser = "Guest";
             document.getElementById('user-display').innerText = "Guest";
         }
+        // Set initial track
+        music.src = trackSelect.value;
+        
         document.getElementById('startup').style.opacity = '0';
         setTimeout(() => { 
             document.getElementById('startup').style.display = 'none'; 
@@ -165,24 +151,30 @@
         }, 800);
     }
 
+    function toggleMusic() {
+        const btn = document.getElementById('musicBtn');
+        if (music.paused) {
+            music.play().then(() => {
+                btn.innerText = "🎵 Music: ON";
+                btn.classList.add('active');
+            }).catch(() => alert("Please click anywhere on the page first!"));
+        } else {
+            music.pause();
+            btn.innerText = "🎵 Music: OFF";
+            btn.classList.remove('active');
+        }
+    }
+
+    function changeTrack() {
+        const wasPlaying = !music.paused;
+        music.src = trackSelect.value;
+        if (wasPlaying) music.play();
+    }
+
     function formatAIResponse(text) {
         text = text.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
         text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-        const lines = text.split('\n');
-        let html = '';
-        let inList = false;
-        lines.forEach(line => {
-            const listMatch = line.match(/^\d+\.\s(.*)/);
-            if (listMatch) {
-                if (!inList) { html += '<ol>'; inList = true; }
-                html += `<li>${listMatch[1]}</li>`;
-            } else {
-                if (inList) { html += '</ol>'; inList = false; }
-                if (line.trim()) html += `<p>${line}</p>`;
-            }
-        });
-        if (inList) html += '</ol>';
-        return html;
+        return text.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('');
     }
 
     async function ask() {
@@ -203,12 +195,10 @@
 
             const data = await res.json();
             const reply = data.choices[0].message.content;
-            const formatted = formatAIResponse(reply);
-            
-            thinking.innerHTML = formatted;
-            saveMsg(formatted, 'ai');
+            thinking.innerHTML = formatAIResponse(reply);
+            saveMsg(thinking.innerHTML, 'ai');
         } catch (e) {
-            thinking.innerText = "Knowura's connection was interrupted. Check your Netlify logs.";
+            thinking.innerText = "Connection lost. Ensure Netlify Functions are active.";
         }
     }
 
@@ -232,7 +222,7 @@
     function loadHistory() {
         let history = JSON.parse(localStorage.getItem('knowura_vfinal')) || [];
         if (history.length === 0) {
-            addBubble(`Hello <b>${currentUser}</b>! I am Knowura, created by <b>Uday Singh</b>. How can I help you study?`, 'ai', false);
+            addBubble(`Welcome <b>${currentUser}</b>. I am Knowura, created by <b>Uday Singh</b>. Ready to study?`, 'ai', false);
         } else {
             history.forEach(m => addBubble(m.text, m.type, false));
         }
