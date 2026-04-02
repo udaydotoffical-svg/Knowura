@@ -1,7 +1,4 @@
-const fetch = require("node-fetch");
-
 exports.handler = async (event, context) => {
-  // Only allow POST requests
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -9,6 +6,7 @@ exports.handler = async (event, context) => {
   try {
     const { prompt, user } = JSON.parse(event.body);
 
+    // We are using the built-in 'fetch' now, no imports needed!
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
