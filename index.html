@@ -3,174 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowura AI | Public Cloud</title>
+    <title>Knowura AI | By Uday Singh</title>
     <link rel="icon" type="image/png" href="Know (1).png">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         :root {
             --dark: #0a0f1e; 
-            --deep-teal: #074047; 
             --mid-teal: #1C8585;
             --bright-teal: #1DA27E; 
-            --glass: rgba(10, 15, 30, 0.82);
+            --glass: rgba(10, 15, 30, 0.85);
             --glass-border: rgba(29, 162, 126, 0.4); 
             --text: #ffffff;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
 
         body {
             height: 100vh;
-            /* Using your uploaded Windows 11 Bloom wallpaper */
             background: url('f63d0bcba1ab007ce529c7496639acb9.jpg') no-repeat center center fixed;
             background-size: cover; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            color: var(--text); 
-            overflow: hidden;
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--text); overflow: hidden;
         }
 
-        /* Startup Overlay */
+        /* Startup Screen */
         #startup {
             position: fixed; inset: 0; z-index: 100; 
-            background: rgba(0, 5, 15, 0.8);
+            background: rgba(0, 5, 15, 0.9);
             backdrop-filter: blur(30px); 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            transition: opacity 0.8s ease;
+            transition: 0.8s ease;
         }
 
         .glass-card {
             background: var(--glass); 
             backdrop-filter: blur(40px); 
             border: 1px solid var(--glass-border);
-            border-radius: 28px; 
-            padding: 40px; 
-            text-align: center; 
-            width: 90%; 
-            max-width: 420px;
+            border-radius: 28px; padding: 40px; text-align: center; width: 90%; max-width: 420px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        .main-logo { width: 200px; height: auto; margin-bottom: 25px; filter: drop-shadow(0 0 10px var(--bright-teal)); }
+        .main-logo { width: 200px; height: auto; margin-bottom: 20px; filter: drop-shadow(0 0 15px var(--bright-teal)); }
 
-        /* Main App Layout */
-        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1200px; opacity: 0; transition: opacity 0.5s; }
+        /* App Layout */
+        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1200px; opacity: 0; transition: 0.5s; }
         
         .chat-container {
-            flex: 1; 
-            background: var(--glass); 
-            backdrop-filter: blur(50px);
-            border: 1px solid var(--glass-border); 
-            border-radius: 24px; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            flex: 1; background: var(--glass); backdrop-filter: blur(50px);
+            border: 1px solid var(--glass-border); border-radius: 24px; 
+            display: flex; flex-direction: column; overflow: hidden;
         }
 
         header { 
-            padding: 15px 25px; 
-            background: rgba(0,0,0,0.3); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
+            padding: 15px 25px; background: rgba(0,0,0,0.4); 
+            display: flex; justify-content: space-between; align-items: center; 
             border-bottom: 1px solid var(--glass-border); 
         }
 
-        .header-logo { height: 30px; width: auto; }
+        .header-logo { height: 32px; width: auto; }
 
-        /* Chat UI */
-        #chat-box { 
-            flex: 1; 
-            padding: 25px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
-            scrollbar-width: thin;
-            scrollbar-color: var(--bright-teal) transparent;
+        /* Music Button */
+        #musicBtn {
+            background: transparent; border: 1px solid var(--bright-teal);
+            color: var(--bright-teal); padding: 6px 15px; border-radius: 50px;
+            cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.3s;
         }
+        #musicBtn.on { background: var(--bright-teal); color: white; }
 
-        .msg { 
-            padding: 14px 20px; 
-            border-radius: 18px; 
-            max-width: 80%; 
-            font-size: 15px; 
-            line-height: 1.6; 
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Chat Area */
+        #chat-box { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scrollbar-width: thin; scrollbar-color: var(--bright-teal) transparent; }
+        
+        .msg { padding: 15px 20px; border-radius: 20px; max-width: 80%; font-size: 15px; line-height: 1.6; animation: slideUp 0.3s ease forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .ai { background: rgba(255,255,255,0.07); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
         .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
 
-        /* Formatting for AI responses */
         .msg b { color: var(--bright-teal); }
         .msg ol, .msg ul { padding-left: 25px; margin: 10px 0; }
-        pre { 
-            background: #070b14; 
-            color: #78e2c8; 
-            padding: 15px; 
-            border-radius: 12px; 
-            margin: 10px 0; 
-            overflow-x: auto; 
-            font-family: 'Consolas', monospace; 
-            border: 1px solid var(--deep-teal); 
-        }
+        pre { background: #070b14; color: #78e2c8; padding: 15px; border-radius: 12px; margin: 10px 0; overflow-x: auto; font-family: 'Consolas', monospace; border: 1px solid var(--mid-teal); }
 
-        /* Input Area */
-        .input-area { 
-            padding: 20px; 
-            display: flex; 
-            gap: 12px; 
-            background: rgba(0,0,0,0.2); 
-            border-top: 1px solid var(--glass-border); 
-        }
-
-        input#userInput { 
-            flex: 1; 
-            padding: 14px 20px; 
-            border-radius: 14px; 
-            border: 1px solid var(--glass-border); 
-            background: rgba(255,255,255,0.05); 
-            color: white; 
-            outline: none; 
-            font-size: 16px; 
-            transition: 0.3s;
-        }
-
-        input#userInput:focus { background: rgba(255,255,255,0.1); border-color: var(--bright-teal); }
-
-        #sendBtn { 
-            background: var(--bright-teal); 
-            color: white; 
-            border: none; 
-            padding: 0 25px; 
-            border-radius: 14px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            transition: 0.3s; 
-        }
-
-        #sendBtn:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--bright-teal); }
-
-        @media (max-width: 600px) { #app { padding: 10px; } .msg { max-width: 90%; } }
+        /* Input Bar */
+        .input-area { padding: 20px; display: flex; gap: 12px; background: rgba(0,0,0,0.3); border-top: 1px solid var(--glass-border); }
+        input#userInput { flex: 1; padding: 14px 20px; border-radius: 15px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; font-size: 16px; }
+        
+        #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 15px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        #sendBtn:hover { transform: scale(1.03); box-shadow: 0 0 15px var(--bright-teal); }
     </style>
 </head>
 <body>
 
+    <audio id="bgMusic" loop>
+        <source src="https://www.bensound.com/bensound-music/bensound-slowmotion.mp3" type="audio/mpeg">
+    </audio>
+
     <div id="startup">
         <div class="glass-card">
             <img src="Know (1).png" class="main-logo" alt="Knowura Logo">
-            <p style="margin-bottom: 20px; color: #ccc;">Your Public AI Study Companion</p>
-            <div id="g_id_onload" 
-                 data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com" 
-                 data-callback="onSignIn">
-            </div>
-            <div class="g_id_signin" data-type="standard" data-shape="pill"></div>
-            <button style="width:100%; padding:14px; margin-top:15px; border-radius:50px; border: 1px solid var(--mid-teal); background:transparent; color:white; font-weight:700; cursor:pointer;" onclick="enterApp('Guest')">Continue as Guest</button>
+            <p style="margin-bottom: 25px; color: #ccc;">Designed by <b>Uday Singh</b></p>
+            <div id="g_id_onload" data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com" data-callback="onSignIn"></div>
+            <div class="g_id_signin" data-type="standard"></div>
+            <button style="width:100%; padding:14px; margin-top:15px; border-radius:50px; border:1px solid var(--mid-teal); background:transparent; color:white; font-weight:700; cursor:pointer;" onclick="enterApp('Guest')">Continue as Guest</button>
         </div>
     </div>
 
@@ -178,7 +111,10 @@
         <div class="chat-container">
             <header>
                 <img src="Know (1).png" class="header-logo">
-                <div id="user-display" style="font-weight: 600; font-size: 14px; color: var(--bright-teal);"></div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <button id="musicBtn" onclick="toggleMusic()">🎵 Music: OFF</button>
+                    <div id="user-display" style="font-weight: 600; font-size: 14px; color: var(--bright-teal);"></div>
+                </div>
             </header>
             <div id="chat-box"></div>
             <div class="input-area">
@@ -190,20 +126,35 @@
 
 <script>
     let currentUser = "Learner";
+    let musicPlaying = false;
+
+    function toggleMusic() {
+        const music = document.getElementById('bgMusic');
+        const btn = document.getElementById('musicBtn');
+        if (!musicPlaying) {
+            music.play();
+            btn.innerText = "🎵 Music: ON";
+            btn.classList.add('on');
+        } else {
+            music.pause();
+            btn.innerText = "🎵 Music: OFF";
+            btn.classList.remove('on');
+        }
+        musicPlaying = !musicPlaying;
+    }
 
     function onSignIn(response) {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
         currentUser = payload.given_name;
-        document.getElementById('user-display').innerText = `Hello, ${currentUser}`;
+        document.getElementById('user-display').innerText = currentUser;
         enterApp();
     }
 
     function enterApp(mode) {
         if(mode === 'Guest') {
             currentUser = "Guest";
-            document.getElementById('user-display').innerText = "Guest Mode";
+            document.getElementById('user-display').innerText = "Guest";
         }
-        
         document.getElementById('startup').style.opacity = '0';
         setTimeout(() => { 
             document.getElementById('startup').style.display = 'none'; 
@@ -215,16 +166,11 @@
     }
 
     function formatAIResponse(text) {
-        // 1. Handle Code Blocks
         text = text.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
-        // 2. Bold Text
         text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-        
-        // 3. Handle Lists
         const lines = text.split('\n');
         let html = '';
         let inList = false;
-
         lines.forEach(line => {
             const listMatch = line.match(/^\d+\.\s(.*)/);
             if (listMatch) {
@@ -249,23 +195,20 @@
         const thinking = addBubble("Thinking...", 'ai', false);
 
         try {
-            // THE CLOUD BRIDGE: Points to your Netlify Function
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: text, user: currentUser })
             });
 
-            if (!res.ok) throw new Error("Server error");
-
             const data = await res.json();
-            const rawReply = data.choices[0].message.content;
-            const formatted = formatAIResponse(rawReply);
+            const reply = data.choices[0].message.content;
+            const formatted = formatAIResponse(reply);
             
             thinking.innerHTML = formatted;
             saveMsg(formatted, 'ai');
         } catch (e) {
-            thinking.innerText = "Knowura's connection was interrupted. Please try again.";
+            thinking.innerText = "Knowura's connection was interrupted. Check your Netlify logs.";
         }
     }
 
@@ -281,23 +224,21 @@
     }
 
     function saveMsg(text, type) {
-        let history = JSON.parse(localStorage.getItem('knowura_chat_v2')) || [];
+        let history = JSON.parse(localStorage.getItem('knowura_vfinal')) || [];
         history.push({ text, type });
-        localStorage.setItem('knowura_chat_v2', JSON.stringify(history.slice(-20))); // Keep last 20
+        localStorage.setItem('knowura_vfinal', JSON.stringify(history.slice(-15)));
     }
 
     function loadHistory() {
-        let history = JSON.parse(localStorage.getItem('knowura_chat_v2')) || [];
+        let history = JSON.parse(localStorage.getItem('knowura_vfinal')) || [];
         if (history.length === 0) {
-            addBubble(`Welcome to <b>Knowura</b>, ${currentUser}. I'm ready to help you study.`, 'ai', false);
+            addBubble(`Hello <b>${currentUser}</b>! I am Knowura, created by <b>Uday Singh</b>. How can I help you study?`, 'ai', false);
         } else {
             history.forEach(m => addBubble(m.text, m.type, false));
         }
     }
 
-    document.getElementById('userInput').addEventListener('keypress', (e) => { 
-        if(e.key === 'Enter') ask(); 
-    });
+    document.getElementById('userInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') ask(); });
 </script>
 </body>
 </html>
