@@ -182,11 +182,17 @@
         const thinking = addBubble("Thinking...", 'ai', false);
 
         try {
+            const history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
+            const messages = history.map(item => ({
+                role: item.type === 'user' ? 'user' : 'assistant',
+                content: item.text.replace(/<br>/g, '\n').replace(/<\/?b>/g, '')
+            }));
+
             // Using the direct Netlify function path
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: text, user: currentUser })
+                body: JSON.stringify({ messages })
             });
 
             if (!res.ok) throw new Error("Network issue");
@@ -222,7 +228,7 @@
     function saveMsg(text, type) {
         let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
         history.push({ text, type });
-        localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-20)));
+        localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-10)));
     }
 
     function loadHistory() {
