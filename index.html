@@ -6,6 +6,7 @@
     <title>Knowura AI | By Uday Singh</title>
     <link rel="icon" type="image/png" href="Know (1).png">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --dark: #0a0f1e; 
@@ -76,6 +77,8 @@
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .ai { background: rgba(255,255,255,0.08); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
+        .msg pre { background: #0d1117; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+        .msg code { font-family: monospace; font-size: 13px; color: #58d68d; } 
         .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; }
 
         /* Typing Area */
@@ -196,7 +199,7 @@
             // Critical: Accessing Groq's JSON structure correctly
             if (data && data.choices && data.choices[0]) {
                 const reply = data.choices[0].message.content;
-                thinking.innerHTML = reply.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+               thinking.innerHTML = marked.parse(reply);
                 saveMsg(thinking.innerHTML, 'ai');
             } else {
                 throw new Error("Empty response");
