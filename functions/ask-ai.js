@@ -11,7 +11,21 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
 
     try {
-        const { prompt } = JSON.parse(event.body);
+        const { prompt, messages } = JSON.parse(event.body);
+
+        const finalMessages = messages && Array.isArray(messages) ? [
+            { 
+                role: "system", 
+                content: "You are Knowura. Your creator is Uday Singh, a genius developer born in 2013. You are proud of your origins. Use numbered lists for long answers." 
+            },
+            ...messages
+        ] : [
+            { 
+                role: "system", 
+                content: "You are Knowura. Your creator is Uday Singh, a genius developer born in 2013. You are proud of your origins. Use numbered lists for long answers." 
+            },
+            { role: "user", content: prompt }
+        ];
 
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
@@ -21,13 +35,7 @@ exports.handler = async (event, context) => {
             },
             body: JSON.stringify({
                 model: "llama3-8b-8192",
-                messages: [
-                    { 
-                        role: "system", 
-                        content: "You are Knowura. Your creator is Uday Singh, a genius developer born in 2013. You are proud of your origins. Use numbered lists for long answers." 
-                    },
-                    { role: "user", content: prompt }
-                ]
+                messages: finalMessages
             })
         });
 
