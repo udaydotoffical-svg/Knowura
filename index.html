@@ -27,7 +27,6 @@
             color: var(--text); overflow: hidden;
         }
 
-        /* Startup Screen */
         #startup {
             position: fixed; inset: 0; z-index: 100; 
             background: rgba(0, 5, 15, 0.95);
@@ -45,7 +44,6 @@
 
         .main-logo { width: 160px; margin-bottom: 20px; filter: drop-shadow(0 0 10px var(--bright-teal)); }
 
-        /* Main App Interface */
         #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1100px; opacity: 0; transition: 0.5s; }
         
         .chat-container {
@@ -61,7 +59,6 @@
         }
 
         .header-logo { height: 28px; }
-
         .controls { display: flex; gap: 10px; align-items: center; }
 
         .btn-ui {
@@ -71,7 +68,6 @@
         }
         .btn-ui.active { background: var(--bright-teal); color: white; }
 
-        /* Chat Area */
         #chat-box { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
         .msg { padding: 14px 20px; border-radius: 18px; max-width: 80%; font-size: 15px; line-height: 1.6; animation: fadeInUp 0.3s ease; word-wrap: break-word; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -81,12 +77,16 @@
         .msg code { font-family: monospace; font-size: 13px; color: #58d68d; } 
         .user { background: var(--mid-teal); align-self: flex-end; border-bottom-right-radius: 4px; }
 
-        /* Typing Area */
+        .memory-badge {
+            font-size: 10px; color: var(--bright-teal); opacity: 0.7;
+            padding: 2px 8px; border: 1px solid var(--glass-border);
+            border-radius: 20px; margin-left: 8px;
+        }
+
         .input-area { padding: 20px; display: flex; gap: 12px; background: rgba(0,0,0,0.3); border-top: 1px solid var(--glass-border); }
         input#userInput { flex: 1; padding: 14px 20px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; }
         #sendBtn { background: var(--bright-teal); color: white; border: none; padding: 0 25px; border-radius: 14px; font-weight: 700; cursor: pointer; }
 
-        /* Track Switcher Style */
         select#trackSelect { background: #0a0f1e; color: var(--bright-teal); border: 1px solid var(--bright-teal); border-radius: 50px; padding: 5px; font-size: 11px; outline: none; }
     </style>
 </head>
@@ -107,13 +107,17 @@
     <div id="app">
         <div class="chat-container">
             <header>
-                <img src="Know (1).png" class="header-logo">
+                <div style="display:flex; align-items:center;">
+                    <img src="Know (1).png" class="header-logo">
+                    <span id="memory-badge" class="memory-badge" style="display:none;">🧠 Memory ON</span>
+                </div>
                 <div class="controls">
                     <button id="musicBtn" class="btn-ui" onclick="toggleMusic()">🎵 Music: OFF</button>
                     <select id="trackSelect" onchange="changeTrack()">
                         <option value="Lukrembo - Sunflower (freetouse.com).mp3">🌻 Sunflower</option>
                         <option value="Lukrembo - Bean (freetouse.com).mp3">🫘 Bean</option>
                     </select>
+                    <button class="btn-ui" onclick="clearMemory()" title="Clear all memory">🗑 Memory</button>
                     <div id="user-display" style="font-size: 13px; color: var(--bright-teal); font-weight: bold; margin-left: 10px;"></div>
                 </div>
             </header>
@@ -127,8 +131,211 @@
 
 <script>
     let currentUser = "Learner";
+    // conversationMessages holds the raw text history sent to groq (last 10)
+    let conversationMessages = [];
     const music = document.getElementById('bgMusic');
     const trackSelect = document.getElementById('trackSelect');
+
+    // ─── MEMORY HELPERS ───────────────────────────────────────────────────────
+
+    function getMemory() {
+        return {
+            summary: localStorage.getItem('knowura_summary') || '',
+            facts: JSON.parse(localStorage.getItem('knowura_facts') || '[]')
+        };
+    }
+
+    function updateBadge() {
+        const mem = getMemory();
+        const badge = document.getElementById('memory-badge');
+        const hasMemory = mem.summary || mem.facts.length > 0;
+        badge.style.display = hasMemory ? 'inline-block' : 'none';
+        badge.title = hasMemory
+            ? `Facts: ${mem.facts.join(', ') || 'none'}\n\nSummary: ${mem.summary || 'none'}`
+            : '';
+    }
+
+    function clearMemory() {
+        if (!confirm('Clear all Knowura memory? (facts + summary)')) return;
+        localStorage.removeItem('knowura_summary');
+        localStorage.removeItem('knowura_facts');
+        localStorage.removeItem('knowura_chat');
+        localStorage.removeItem('knowura_msg_count');
+        conversationMessages = [];
+        updateBadge();
+        document.getElementById('chat-box').innerHTML = '';
+        addBubble(`Memory cleared. Fresh start, <b>${currentUser}</b>!`, 'ai', false);
+    }
+
+    // ─── ENTITY EXTRACTION (runs after every AI reply) ────────────────────────
+
+    async function extractFacts(userMsg, aiReply) {
+        const existing = JSON.parse(localStorage.getItem('knowura_facts') || '[]');
+
+        try {
+            const res = await fetch("/.netlify/functions/ask-ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    memory: {},
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Extract factual entities about the USER ONLY from this exchange. Focus on: name, subjects they're studying, grade/age, interests, goals, learning style, struggles.
+
+User said: "${userMsg}"
+AI replied: "${aiReply.substring(0, 300)}"
+
+Already known facts: ${existing.join(', ') || 'none'}
+
+Return ONLY a JSON array of short fact strings like ["User studies biology", "User is in grade 10"]. If no new facts found, return []. No markdown, no explanation, raw JSON only.`
+                        }
+                    ]
+                })
+            });
+
+            const data = await res.json();
+            const raw = data?.choices?.[0]?.message?.content?.trim() || '[]';
+            const newFacts = JSON.parse(raw.replace(/```json|```/g, '').trim());
+
+            if (Array.isArray(newFacts) && newFacts.length > 0) {
+                // Merge, deduplicate, cap at 20 facts
+                const merged = [...new Set([...existing, ...newFacts])].slice(-20);
+                localStorage.setItem('knowura_facts', JSON.stringify(merged));
+                updateBadge();
+            }
+        } catch (e) {
+            console.warn('Entity extraction failed silently:', e);
+        }
+    }
+
+    // ─── SUMMARIZATION (runs every 10 messages) ───────────────────────────────
+
+    async function maybeSummarize() {
+        let count = parseInt(localStorage.getItem('knowura_msg_count') || '0') + 1;
+        localStorage.setItem('knowura_msg_count', count);
+
+        if (count % 10 !== 0) return;
+
+        const history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
+        const recentText = history.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'Knowura'}: ${m.text.replace(/<[^>]+>/g, '')}`).join('\n');
+
+        try {
+            const res = await fetch("/.netlify/functions/ask-ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    memory: {},
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Summarize this conversation in 3-4 sentences. Focus on topics discussed, what the user learned, and any ongoing questions. Be concise.\n\n${recentText}\n\nReturn only the summary text, no labels.`
+                        }
+                    ]
+                })
+            });
+
+            const data = await res.json();
+            const summary = data?.choices?.[0]?.message?.content?.trim();
+            if (summary) {
+                localStorage.setItem('knowura_summary', summary);
+                updateBadge();
+                console.log('📝 Knowura memory updated');
+            }
+        } catch (e) {
+            console.warn('Summarization failed silently:', e);
+        }
+    }
+
+    // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
+
+    async function ask() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addBubble(text, 'user', true);
+        input.value = '';
+
+        // Add to rolling conversation window (last 10 for groq context)
+        conversationMessages.push({ role: "user", content: text });
+        if (conversationMessages.length > 10) conversationMessages.shift();
+
+        const thinking = addBubble("Thinking...", 'ai', false);
+
+        try {
+            const res = await fetch("/.netlify/functions/ask-ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    messages: conversationMessages,
+                    memory: getMemory()
+                })
+            });
+
+            if (!res.ok) throw new Error("Network issue");
+
+            const data = await res.json();
+
+            if (data?.choices?.[0]) {
+                const reply = data.choices[0].message.content;
+                thinking.innerHTML = marked.parse(reply);
+                saveMsg(thinking.innerHTML, 'ai');
+
+                // Add AI reply to conversation window
+                conversationMessages.push({ role: "assistant", content: reply });
+                if (conversationMessages.length > 10) conversationMessages.shift();
+
+                // Run memory updates in background (non-blocking)
+                extractFacts(text, reply);
+                maybeSummarize();
+            } else {
+                throw new Error("Empty response");
+            }
+
+        } catch (e) {
+            console.error(e);
+            thinking.innerText = "Connection lost. Ensure your Netlify Secret Key is set.";
+        }
+    }
+
+    // ─── UI HELPERS ───────────────────────────────────────────────────────────
+
+    function addBubble(t, c, save) {
+        const box = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.className = `msg ${c}`;
+        div.innerHTML = t;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+        if (save) saveMsg(t, c);
+        return div;
+    }
+
+    function saveMsg(text, type) {
+        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
+        history.push({ text, type });
+        localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-30)));
+    }
+
+    function loadHistory() {
+        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
+        if (history.length === 0) {
+            addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
+        } else {
+            history.forEach(m => addBubble(m.text, m.type, false));
+            // Rebuild conversationMessages from last 10 saved (plain text only)
+            history.slice(-10).forEach(m => {
+                conversationMessages.push({
+                    role: m.type === 'user' ? 'user' : 'assistant',
+                    content: m.text.replace(/<[^>]+>/g, '')
+                });
+            });
+        }
+        updateBadge();
+    }
+
+    // ─── AUTH & MUSIC ─────────────────────────────────────────────────────────
 
     function onSignIn(response) {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
@@ -138,13 +345,11 @@
     }
 
     function enterApp(mode) {
-        if(mode === 'Guest') {
+        if (mode === 'Guest') {
             currentUser = "Guest";
             document.getElementById('user-display').innerText = "Guest";
         }
-        
         music.src = trackSelect.value;
-        
         document.getElementById('startup').style.opacity = '0';
         setTimeout(() => { 
             document.getElementById('startup').style.display = 'none'; 
@@ -175,69 +380,7 @@
         if (wasPlaying) music.play();
     }
 
-    async function ask() {
-        const input = document.getElementById('userInput');
-        const text = input.value.trim();
-        if (!text) return;
-
-        addBubble(text, 'user', true);
-        input.value = '';
-        const thinking = addBubble("Thinking...", 'ai', false);
-
-        try {
-            // Using the direct Netlify function path
-            const res = await fetch("/.netlify/functions/ask-ai", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: text, user: currentUser })
-            });
-
-            if (!res.ok) throw new Error("Network issue");
-
-            const data = await res.json();
-            
-            // Critical: Accessing Groq's JSON structure correctly
-            if (data && data.choices && data.choices[0]) {
-                const reply = data.choices[0].message.content;
-               thinking.innerHTML = marked.parse(reply);
-                saveMsg(thinking.innerHTML, 'ai');
-            } else {
-                throw new Error("Empty response");
-            }
-
-        } catch (e) {
-            console.error(e);
-            thinking.innerText = "Connection lost. Ensure your Netlify Secret Key is set.";
-        }
-    }
-
-    function addBubble(t, c, save) {
-        const box = document.getElementById('chat-box');
-        const div = document.createElement('div');
-        div.className = `msg ${c}`;
-        div.innerHTML = t;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-        if (save) saveMsg(t, c);
-        return div;
-    }
-
-    function saveMsg(text, type) {
-        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
-        history.push({ text, type });
-        localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-20)));
-    }
-
-    function loadHistory() {
-        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
-        if (history.length === 0) {
-            addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
-        } else {
-            history.forEach(m => addBubble(m.text, m.type, false));
-        }
-    }
-
-    document.getElementById('userInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') ask(); });
+    document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') ask(); });
 </script>
 </body>
 </html>
