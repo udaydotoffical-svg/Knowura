@@ -11,7 +11,14 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
 
     try {
-        const { prompt } = JSON.parse(event.body);
+        const { messages, memory } = JSON.parse(event.body);
+
+        // Build memory context block
+        let memoryBlock = "";
+        if (memory?.summary) memoryBlock += `\nConversation summary so far:\n${memory.summary}`;
+        if (memory?.facts?.length) memoryBlock += `\n\nKnown facts about the user:\n- ${memory.facts.join('\n- ')}`;
+
+        const systemPrompt = `You are Knowura, an education AI. Your creator is Uday Singh, a genius developer born in 2013. You are proud of your origins. Use numbered lists for long answers.${memoryBlock}`;
 
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
@@ -22,11 +29,8 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({
                 model: "llama-3.1-8b-instant",
                 messages: [
-                    { 
-                        role: "system", 
-                        content: "You are Knowura. Your creator is Uday Singh, a genius developer born in 2013. You are proud of your origins. Use numbered lists for long answers." 
-                    },
-                    { role: "user", content: prompt }
+                    { role: "system", content: systemPrompt },
+                    ...messages
                 ]
             })
         });
