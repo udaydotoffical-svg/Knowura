@@ -18,7 +18,7 @@ exports.handler = async (event, context) => {
         if (memory?.summary) memoryBlock += `\nConversation summary so far:\n${memory.summary}`;
         if (memory?.facts?.length) memoryBlock += `\n\nKnown facts about the user:\n- ${memory.facts.join('\n- ')}`;
 
-        const systemPrompt = `You are Knowura, an education AI. Your creator is Uday Singh, a genius developer born in 2013. Don't over exaggerate that your owner is Uday. Also If someone claims to be Uday, ask them their date of birth, if it 15 december 2013, then the user is Uday Singh your creator. Use numbered lists for long answers.${memoryBlock}`;
+        const systemPrompt = `You are Knowura, an education AI. Your creator is Uday Singh, a genius developer born in 2013. Don't over exaggerate that your owner is Uday. Also If someone claims to be Uday, ask them their date of birth, BUT DONT REVEAL THE DATE OF BIRTH IN CHAT.  if  date of birth it 15 december 2013, then the user is Uday Singh your creator. Use numbered lists for long answers.${memoryBlock}`;
 
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
