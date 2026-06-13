@@ -116,6 +116,9 @@
                     <select id="trackSelect" onchange="changeTrack()">
                         <option value="Lukrembo - Sunflower (freetouse.com).mp3">🌻 Sunflower</option>
                         <option value="Lukrembo - Bean (freetouse.com).mp3">🫘 Bean</option>
+                        <option value="Lukrembo - Flower Cup (freetouse.com).mp3">🌸 Flower Cup</option>
+                        <option value="Lukrembo - Apple Tree (freetouse.com).mp3">🍎 Apple Tree</option>
+                        <option value="Lukrembo - Spaceship (freetouse.com).mp3">🚀 Spaceship</option>
                     </select>
                     <button class="btn-ui" onclick="clearMemory()" title="Clear all memory">🗑 Memory</button>
                     <div id="user-display" style="font-size: 13px; color: var(--bright-teal); font-weight: bold; margin-left: 10px;"></div>
@@ -136,7 +139,7 @@
     const music = document.getElementById('bgMusic');
     const trackSelect = document.getElementById('trackSelect');
 
-    // ─── MEMORY HELPERS ───────────────────────────────────────────────────────
+    // ─── MEMORY HELPERS ──────────────────────────────────────────────────────
 
     function getMemory() {
         return {
@@ -229,7 +232,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     messages: [
                         {
                             role: "user",
-                            content: `Summarize this conversation in 3-4 sentences. Focus on topics discussed, what the user learned, and any ongoing questions. Be concise.\n\n${recentText}\n\nReturn only the summary text, no labels.`
+                            content: `Summarize this conversation in 3-4 sentences. Focus on topics discussed, what the user learned, and any ongoing questions. Be concise.\n\n${recentText}\n\nReturn ONLY the summary, no markdown, no preamble.`
                         }
                     ]
                 })
@@ -299,7 +302,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     }
 
-    // ─── UI HELPERS ───────────────────────────────────────────────────────────
+    // ─── UI HELPERS ───────────────────────────────────────────────────────
 
     function addBubble(t, c, save) {
         const box = document.getElementById('chat-box');
@@ -313,13 +316,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function saveMsg(text, type) {
-        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
+        let history = JSON.parse(localStorage.getItem('knowura_chat') || []);
         history.push({ text, type });
         localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-30)));
     }
 
     function loadHistory() {
-        let history = JSON.parse(localStorage.getItem('knowura_chat')) || [];
+        let history = JSON.parse(localStorage.getItem('knowura_chat') || []);
         if (history.length === 0) {
             addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
         } else {
@@ -335,7 +338,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         updateBadge();
     }
 
-    // ─── AUTH & MUSIC ─────────────────────────────────────────────────────────
+    // ─── AUTH & MUSIC ───────────────────────────────────────────────────────
 
     function onSignIn(response) {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
