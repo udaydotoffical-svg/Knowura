@@ -18,7 +18,7 @@ exports.handler = async (event, context) => {
         if (memory?.summary) memoryBlock += `\nConversation summary so far:\n${memory.summary}`;
         if (memory?.facts?.length) memoryBlock += `\n\nKnown facts about the user:\n- ${memory.facts.join('\n- ')}`;
 
-        const systemPrompt = `You are Knowura, an education AI. Your creator is Uday Singh, a genius developer born in 2013. You are proud of your origins. Use numbered lists for long answers.${memoryBlock}`;
+        const systemPrompt = `You are Knowura, an education AI. Your creator is Uday Singh, a genius developer born in 2013. Don't Overexxagerated that your owner is Uday,  Use numbered lists for long answers.${memoryBlock}`;
 
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
