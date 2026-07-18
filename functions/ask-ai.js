@@ -12,7 +12,6 @@ exports.handler = async (event, context) => {
         const { messages, memory, ownerMode } = JSON.parse(event.body);
         const isOwner = ownerMode === true;
 
-        // Build memory context block
         let memoryBlock = "";
         if (memory?.summary) memoryBlock += `\nConversation summary so far:\n${memory.summary}`;
         if (memory?.facts?.length) memoryBlock += `\n\nKnown facts about the user:\n- ${memory.facts.join('\n- ')}`;
