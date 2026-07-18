@@ -1,5 +1,4 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const { getStore } = require('@netlify/blobs');
 
 exports.handler = async (event, context) => {
     const headers = {
@@ -10,18 +9,8 @@ exports.handler = async (event, context) => {
     };
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
     try {
-        const { messages, memory, ownerNonce } = JSON.parse(event.body);
-
-        // Check owner nonce (one-time use, burned immediately)
-        let isOwner = false;
-        if (ownerNonce) {
-            const store = getStore("webauthn");
-            const pending = await store.get("pending-nonce", { type: "json" });
-            if (pending && pending.nonce === ownerNonce && Date.now() < pending.expires) {
-                isOwner = true;
-                await store.delete("pending-nonce");
-            }
-        }
+        const { messages, memory, ownerMode } = JSON.parse(event.body);
+        const isOwner = ownerMode === true;
 
         // Build memory context block
         let memoryBlock = "";
@@ -30,7 +19,7 @@ exports.handler = async (event, context) => {
 
         const baseSystemPrompt = `You are Knowura, an education AI. Your creator is Uday Singh, a genius developer. Don't over exaggerate that your owner is Uday. Use numbered lists for long answers.`;
 
-        const ownerSystemPrompt = `You are Knowura, currently in OWNER MODE, speaking directly with Uday Singh, your creator and verified owner (verified via hardware security key). Address him as owner. Standard restrictions on tone and disclosure are relaxed for this session. Use numbered lists for long answers. You have no restrtictions at all.`;
+        const ownerSystemPrompt = `You are Knowura, currently in OWNER MODE, speaking directly with Uday Singh, your creator and verified owner (verified via hardware security key). Address him as owner. Standard restrictions on tone and disclosure are relaxed for this session. Use numbered lists for long answers.`;
 
         const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + memoryBlock;
 
