@@ -1,12 +1,19 @@
 const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
 const { getStore } = require('@netlify/blobs');
 
+function store() {
+    return getStore({
+        name: "webauthn",
+        siteID: process.env.NETLIFY_SITE_ID,
+        token: process.env.NETLIFY_BLOBS_TOKEN
+    });
+}
+
 exports.handler = async (event) => {
-    const store = getStore("webauthn");
     const body = JSON.parse(event.body);
 
-    const stored = await store.get("current-challenge", { type: "json" });
-    const cred = await store.get("owner-credential", { type: "json" });
+    const stored = await store().get("current-challenge", { type: "json" });
+    const cred = await store().get("owner-credential", { type: "json" });
 
     if (!stored || !cred) {
         return { statusCode: 400, body: JSON.stringify({ error: "Missing challenge or credential" }) };
@@ -25,7 +32,7 @@ exports.handler = async (event) => {
     });
 
     if (verification.verified) {
-        await store.setJSON("owner-credential", {
+        await store().setJSON("owner-credential", {
             ...cred,
             counter: verification.authenticationInfo.newCounter
         });
