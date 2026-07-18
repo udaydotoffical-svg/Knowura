@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="Know (1).png">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
     <style>
         :root {
             --dark: #0a0f1e; 
@@ -56,6 +57,12 @@
             padding: 15px 25px; background: rgba(0,0,0,0.5); 
             display: flex; justify-content: space-between; align-items: center; 
             border-bottom: 1px solid var(--glass-border); 
+            transition: 0.3s;
+        }
+
+        header.owner-mode {
+            background: rgba(60, 10, 20, 0.6);
+            border-bottom: 1px solid #e94560;
         }
 
         .header-logo { height: 28px; }
@@ -67,6 +74,7 @@
             cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s;
         }
         .btn-ui.active { background: var(--bright-teal); color: white; }
+        .btn-ui:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #chat-box { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
         .msg { padding: 14px 20px; border-radius: 18px; max-width: 80%; font-size: 15px; line-height: 1.6; animation: fadeInUp 0.3s ease; word-wrap: break-word; }
@@ -135,6 +143,7 @@
                 <div style="display:flex; align-items:center;">
                     <img src="Know (1).png" class="header-logo">
                     <span id="memory-badge" class="memory-badge" style="display:none;">🧠 Memory ON</span>
+                    <span id="owner-badge" class="memory-badge" style="display:none; border-color:#e94560; color:#e94560;">🔓 Owner Mode</span>
                 </div>
                 <div class="controls">
                     <button id="musicBtn" class="btn-ui" onclick="toggleMusic()">🎵 Music: OFF</button>
@@ -146,6 +155,7 @@
                         <option value="Lukrembo - Spaceship (freetouse.com).mp3">🚀 Spaceship</option>
                     </select>
                     <button class="btn-ui" onclick="clearMemory()" title="Clear all memory">🗑 Memory</button>
+                    <button id="ownerBtn" class="btn-ui" onclick="unlockOwnerMode()" title="Unlock owner mode with your security key">🔑 Unlock Owner</button>
                     <div id="user-display" style="font-size: 13px; color: var(--bright-teal); font-weight: bold; margin-left: 10px;"></div>
                 </div>
             </header>
@@ -161,8 +171,52 @@
     let currentUser = "Learner";
     // conversationMessages holds the raw text history sent to groq (last 10)
     let conversationMessages = [];
+    // Owner mode is in-memory only — never persisted, resets on refresh
+    let ownerMode = false;
     const music = document.getElementById('bgMusic');
     const trackSelect = document.getElementById('trackSelect');
+
+    // ─── OWNER MODE (FIDO2 / WebAuthn) ───────────────────────────────────────
+
+    async function unlockOwnerMode() {
+        const btn = document.getElementById('ownerBtn');
+        btn.disabled = true;
+        const originalText = btn.innerText;
+        btn.innerText = "Tap your key...";
+
+        try {
+            const optionsRes = await fetch('/.netlify/functions/webauthn-login-options');
+            if (!optionsRes.ok) {
+                alert("No security key registered yet.");
+                return;
+            }
+            const options = await optionsRes.json();
+
+            const authResp = await SimpleWebAuthnBrowser.startAuthentication(options);
+
+            const verifyRes = await fetch('/.netlify/functions/webauthn-login-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(authResp)
+            });
+            const result = await verifyRes.json();
+
+            if (result.verified) {
+                ownerMode = true;
+                document.getElementById('owner-badge').style.display = 'inline-block';
+                document.querySelector('header').classList.add('owner-mode');
+                btn.style.display = 'none';
+            } else {
+                alert("Verification failed.");
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        } catch (e) {
+            console.warn("Owner unlock cancelled or failed:", e);
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
 
     // ─── MEMORY HELPERS ──────────────────────────────────────────────────────
 
@@ -297,7 +351,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     messages: conversationMessages,
-                    memory: getMemory()
+                    memory: getMemory(),
+                    ownerMode: ownerMode
                 })
             });
 
