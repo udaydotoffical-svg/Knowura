@@ -2,6 +2,9 @@
   "name": "knowura-ai",
   "version": "1.0.0",
   "dependencies": {
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "@simplewebauthn/server": "^11.0.0",
+    "@simplewebauthn/browser": "^11.0.0",
+    "@netlify/blobs": "^8.0.0"
   }
 }
