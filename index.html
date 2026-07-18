@@ -396,13 +396,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function saveMsg(text, type) {
-        let history = JSON.parse(localStorage.getItem('knowura_chat') || []);
+        let history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
         history.push({ text, type });
         localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-30)));
     }
 
     function loadHistory() {
-        let history = JSON.parse(localStorage.getItem('knowura_chat') || []);
+        let history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
         if (history.length === 0) {
             addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
         } else {
