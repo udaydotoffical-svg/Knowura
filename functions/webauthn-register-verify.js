@@ -1,34 +1,33 @@
-const { verifyRegistrationResponse } = require('@simplewebauthn/server');
+const { generateRegistrationOptions } = require('@simplewebauthn/server');
 const { getStore } = require('@netlify/blobs');
 
-exports.handler = async (event) => {
-  const store = getStore("webauthn");
-  const body = JSON.parse(event.body);
-
-  const stored = await store.get("current-challenge", { type: "json" });
-  if (!stored) {
-    return { statusCode: 400, body: JSON.stringify({ error: "No challenge found" }) };
-  }
-
-  const verification = await verifyRegistrationResponse({
-    response: body,
-    expectedChallenge: stored.challenge,
-    expectedOrigin: process.env.ORIGIN,
-    expectedRPID: process.env.RP_ID
-  });
-
-  if (verification.verified) {
-    const { credential } = verification.registrationInfo;
-    await store.setJSON("owner-credential", {
-      id: credential.id,
-      publicKey: Buffer.from(credential.publicKey).toString('base64'),
-      counter: credential.counter
+function store() {
+    return getStore({
+        name: "webauthn",
+        siteID: process.env.NETLIFY_SITE_ID,
+        token: process.env.NETLIFY_BLOBS_TOKEN
     });
-  }
+}
 
-  return {
-    statusCode: 200,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ verified: verification.verified })
-  };
+exports.handler = async () => {
+    const options = await generateRegistrationOptions({
+        rpName: "Knowura",
+        rpID: process.env.RP_ID,
+        userID: new TextEncoder().encode("uday-owner"),
+        userName: "uday",
+        attestationType: "none",
+        authenticatorSelection: {
+            authenticatorAttachment: "cross-platform",
+            userVerification: "preferred",
+            residentKey: "preferred"
+        }
+    });
+
+    await store().setJSON("current-challenge", { challenge: options.challenge });
+
+    return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options)
+    };
 };
