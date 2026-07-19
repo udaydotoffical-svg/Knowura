@@ -192,7 +192,7 @@
             }
             const options = await optionsRes.json();
 
-            const authResp = await SimpleWebAuthnBrowser.startAuthentication(options);
+            const authResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
 
             const verifyRes = await fetch('/.netlify/functions/webauthn-login-verify', {
                 method: 'POST',
@@ -331,6 +331,16 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
 
+    function looksSearchWorthy(text) {
+        const explicitTriggers = ["search for", "search the web", "look up", "google", "find information on", "can you search"];
+        const contextTriggers = [
+            "latest", "current", "today", "recent", "news", "who is", "what is the price",
+            "when did", "how much does", "right now", "this year", "2025", "2026", "score", "weather"
+        ];
+        const lower = text.toLowerCase();
+        return explicitTriggers.some(t => lower.includes(t)) || contextTriggers.some(t => lower.includes(t));
+    }
+
     async function ask() {
         const input = document.getElementById('userInput');
         const text = input.value.trim();
@@ -343,7 +353,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         conversationMessages.push({ role: "user", content: text });
         if (conversationMessages.length > 10) conversationMessages.shift();
 
-        const thinking = addBubble("Thinking...", 'ai', false);
+        const willSearch = looksSearchWorthy(text);
+        const thinking = addBubble(willSearch ? "🔍 Searching the web..." : "Thinking...", 'ai', false);
+        let searchStageTimer = null;
+        if (willSearch) {
+            searchStageTimer = setTimeout(() => {
+                thinking.innerText = "Thinking...";
+            }, 1200);
+        }
 
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
@@ -359,6 +376,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (!res.ok) throw new Error("Network issue");
 
             const data = await res.json();
+
+            if (searchStageTimer) clearTimeout(searchStageTimer);
 
             if (data?.choices?.[0]) {
                 const reply = data.choices[0].message.content;
