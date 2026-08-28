@@ -101,7 +101,7 @@
         .checkbox-wrap input:checked ~ .checkbox-box .icon { opacity: 1; transform: scale(1); }
         .checkbox-wrap input:focus-visible ~ .checkbox-box { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
-        #app { display: none; width: 100%; height: 100vh; height: 100dvh; flex-direction: column; padding: 20px; max-width: 1100px; opacity: 0; transition: opacity 0.5s ease; }
+        #app { display: none; width: 100%; height: 100vh; height: 100dvh; flex-direction: column; padding: 14px; opacity: 0; transition: opacity 0.5s ease; }
 
         .chat-container {
             position: relative;
@@ -835,78 +835,6 @@
                         <button id="hamburgerBtn" class="btn-ui icon-only" onclick="toggleHamburgerMenu()" title="Menu">
                             <svg class="icon"><use href="#icon-menu"/></svg>
                         </button>
-                        <div id="hamburgerPanel" class="hamburger-panel" onclick="if (event.target === this) toggleHamburgerMenu()">
-                        <div class="hamburger-modal-card">
-                            <button class="live-close" onclick="toggleHamburgerMenu()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
-                            <div class="brand-title" style="font-size:16px; margin-bottom:16px;">Menu</div>
-
-                            <div id="menuStatusRow" class="menu-status-row">
-                                <span id="memory-badge" class="memory-badge" style="display:none;"><svg class="icon"><use href="#icon-tag"/></svg> Memory ON</span>
-                                <span id="owner-badge" class="memory-badge" style="display:none; border-color:var(--ink); color:var(--owner);"><svg class="icon"><use href="#icon-unlock"/></svg> Owner Mode</span>
-                            </div>
-
-                            <div class="settings-section">
-                                <div class="settings-label">Glass Opacity</div>
-                                <div class="glass-slider-row">
-                                    <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
-                                    <span id="glassOpacityValue" class="glass-slider-value">40%</span>
-                                </div>
-                            </div>
-
-                            <div class="settings-section">
-                                <div class="settings-label">Header Style</div>
-                                <button class="choice-pill" data-group="logoView" data-value="big" onclick="setLogoView('big')">
-                                    <span class="choice-row"><span class="choice-dot"></span>Full Logo</span>
-                                    <span class="choice-hint">Default — big logo up top, shrinks with a wordmark as you scroll</span>
-                                </button>
-                                <button class="choice-pill" data-group="logoView" data-value="normal" onclick="setLogoView('normal')">
-                                    <span class="choice-row"><span class="choice-dot"></span>Compact</span>
-                                    <span class="choice-hint">Small top bar always, no shrink animation</span>
-                                </button>
-                            </div>
-
-                            <div class="settings-section">
-                                <div class="settings-label">Memory</div>
-                                <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
-                                    <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
-                                </button>
-                                <button class="menu-item" onclick="clearMemory()" title="Clear all memory" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Clear Memory</button>
-                            </div>
-
-                            <div class="settings-section">
-                                <div class="settings-label">Voice Mode</div>
-                                <button class="choice-pill" data-group="voiceMode" data-value="seamless" onclick="setVoiceMode('seamless')">
-                                    <span class="choice-row"><span class="choice-dot"></span>Seamless</span>
-                                    <span class="choice-hint">Default — talk naturally, like a phone call</span>
-                                </button>
-                                <button class="choice-pill" data-group="voiceMode" data-value="ptt" onclick="setVoiceMode('ptt')">
-                                    <span class="choice-row"><span class="choice-dot"></span>Push to Talk</span>
-                                    <span class="choice-hint">Hold the mic button while you speak</span>
-                                </button>
-                            </div>
-                            <div class="settings-section">
-                                <div class="settings-label">Wake Word — "Hey Knowura"</div>
-                                <button class="choice-pill" data-group="wakeWord" data-value="voice" onclick="setWakeWord('voice')">
-                                    <span class="choice-row"><span class="choice-dot"></span>Voice Mode Only</span>
-                                    <span class="choice-hint">Default — say it mid-call to grab its attention</span>
-                                </button>
-                                <button class="choice-pill" data-group="wakeWord" data-value="both" onclick="setWakeWord('both')">
-                                    <span class="choice-row"><span class="choice-dot"></span>Chat &amp; Voice</span>
-                                    <span class="choice-hint">Say it anytime to jump into a call</span>
-                                </button>
-                                <button class="choice-pill" data-group="wakeWord" data-value="off" onclick="setWakeWord('off')">
-                                    <span class="choice-row"><span class="choice-dot"></span>Off</span>
-                                </button>
-                            </div>
-
-                            <div class="settings-section">
-                                <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
-                            </div>
-                            <div class="settings-section">
-                                <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
-                            </div>
-                        </div>
-                        </div>
                     </div>
                     <div id="user-display" style="font-size: 12px; color: var(--cyan); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; margin-left: 6px;"></div>
                 </div>
@@ -944,6 +872,79 @@
                 <div class="live-ultra-row">
                     <button id="ultraToggleVoice" class="ultra-toggle" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hamburgerPanel" class="hamburger-panel" onclick="if (event.target === this) toggleHamburgerMenu()">
+        <div class="hamburger-modal-card">
+            <button class="live-close" onclick="toggleHamburgerMenu()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
+            <div class="brand-title" style="font-size:16px; margin-bottom:16px;">Menu</div>
+
+            <div id="menuStatusRow" class="menu-status-row">
+                <span id="memory-badge" class="memory-badge" style="display:none;"><svg class="icon"><use href="#icon-tag"/></svg> Memory ON</span>
+                <span id="owner-badge" class="memory-badge" style="display:none; border-color:var(--ink); color:var(--owner);"><svg class="icon"><use href="#icon-unlock"/></svg> Owner Mode</span>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Glass Opacity</div>
+                <div class="glass-slider-row">
+                    <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
+                    <span id="glassOpacityValue" class="glass-slider-value">40%</span>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Header Style</div>
+                <button class="choice-pill" data-group="logoView" data-value="big" onclick="setLogoView('big')">
+                    <span class="choice-row"><span class="choice-dot"></span>Full Logo</span>
+                    <span class="choice-hint">Default — big logo up top, shrinks with a wordmark as you scroll</span>
+                </button>
+                <button class="choice-pill" data-group="logoView" data-value="normal" onclick="setLogoView('normal')">
+                    <span class="choice-row"><span class="choice-dot"></span>Compact</span>
+                    <span class="choice-hint">Small top bar always, no shrink animation</span>
+                </button>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Memory</div>
+                <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
+                    <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
+                </button>
+                <button class="menu-item" onclick="clearMemory()" title="Clear all memory" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Clear Memory</button>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Voice Mode</div>
+                <button class="choice-pill" data-group="voiceMode" data-value="seamless" onclick="setVoiceMode('seamless')">
+                    <span class="choice-row"><span class="choice-dot"></span>Seamless</span>
+                    <span class="choice-hint">Default — talk naturally, like a phone call</span>
+                </button>
+                <button class="choice-pill" data-group="voiceMode" data-value="ptt" onclick="setVoiceMode('ptt')">
+                    <span class="choice-row"><span class="choice-dot"></span>Push to Talk</span>
+                    <span class="choice-hint">Hold the mic button while you speak</span>
+                </button>
+            </div>
+            <div class="settings-section">
+                <div class="settings-label">Wake Word — "Hey Knowura"</div>
+                <button class="choice-pill" data-group="wakeWord" data-value="voice" onclick="setWakeWord('voice')">
+                    <span class="choice-row"><span class="choice-dot"></span>Voice Mode Only</span>
+                    <span class="choice-hint">Default — say it mid-call to grab its attention</span>
+                </button>
+                <button class="choice-pill" data-group="wakeWord" data-value="both" onclick="setWakeWord('both')">
+                    <span class="choice-row"><span class="choice-dot"></span>Chat &amp; Voice</span>
+                    <span class="choice-hint">Say it anytime to jump into a call</span>
+                </button>
+                <button class="choice-pill" data-group="wakeWord" data-value="off" onclick="setWakeWord('off')">
+                    <span class="choice-row"><span class="choice-dot"></span>Off</span>
+                </button>
+            </div>
+
+            <div class="settings-section">
+                <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
+            </div>
+            <div class="settings-section">
+                <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
             </div>
         </div>
     </div>
