@@ -39,7 +39,7 @@ exports.handler = async (event) => {
                     model: "canopylabs/orpheus-v1-english",
                     input: clean,
                     voice: voice || "autumn",
-                    response_format: "mp3"
+                    response_format: "wav" // Orpheus only accepts wav, unlike the old playai-tts endpoint
                 }),
                 signal: controller.signal
             });
@@ -57,7 +57,7 @@ exports.handler = async (event) => {
 
         const arrayBuffer = await res.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString("base64");
-        return { statusCode: 200, headers, body: JSON.stringify({ audio: base64, mimeType: "audio/mpeg" }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ audio: base64, mimeType: "audio/wav" }) };
     } catch (error) {
         return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
     }

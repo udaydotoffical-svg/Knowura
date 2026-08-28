@@ -1777,7 +1777,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             catch (e) { throw new Error(`Non-JSON response from /speak (HTTP ${res.status}): ${raw.slice(0, 300)}`); }
             if (!data.audio) throw new Error(data.error || `No audio returned (HTTP ${res.status})`);
 
-            currentReplyAudio = new Audio(`data:${data.mimeType || 'audio/mpeg'};base64,${data.audio}`);
+            currentReplyAudio = new Audio(`data:${data.mimeType || 'audio/wav'};base64,${data.audio}`);
             setOrbState('speaking');
             setLiveStatus('Speaking…');
             hookAnalyser(currentReplyAudio);
