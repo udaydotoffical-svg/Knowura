@@ -468,7 +468,11 @@
 
         .live-panel {
             display: none; position: absolute; inset: 0; z-index: 60;
-            background: rgba(3,6,14,0.55); backdrop-filter: blur(26px) saturate(150%);
+            background:
+                linear-gradient(180deg, rgba(3,6,16,0.55), rgba(3,6,16,0.78)),
+                url('assets/images/background.jpg') no-repeat center center;
+            background-size: cover;
+            backdrop-filter: blur(6px) saturate(140%);
             flex-direction: column; align-items: center; justify-content: center;
             padding: 24px; text-align: center;
         }
@@ -539,6 +543,8 @@
         .mic-btn:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
         .mic-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
         .mic-btn.secondary.muted { background: var(--owner); color: #fff; }
+        .mic-btn.cc-btn { width: 44px; height: 44px; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-dim); }
+        .mic-btn.cc-btn.active { background: var(--cyan); color: #001018; }
         .mic-btn.end-call { background: var(--owner); color: #fff; transform: rotate(135deg); }
         .mic-btn.end-call:hover { background: #ff5470; }
         .mic-btn.primary.holding { background: var(--cyan); color: #001018; animation: micPulse 0.8s ease-in-out infinite; }
@@ -862,6 +868,7 @@
                 <div id="liveStatus" class="live-status">Connecting…</div>
                 <div id="liveTranscript" class="live-transcript"></div>
                 <div class="call-controls">
+                    <button id="ccBtn" class="mic-btn cc-btn active" onclick="toggleCaptions()" title="Toggle captions">CC</button>
                     <button id="muteBtn" class="mic-btn secondary" onclick="toggleMute()" title="Mute / unmute microphone"><svg class="icon"><use href="#icon-mic"/></svg></button>
                     <button id="pttBtn" class="mic-btn primary" style="display:none;"
                         onmousedown="pttStart(event)" onmouseup="pttStop(event)" onmouseleave="pttStop(event)"
@@ -1013,14 +1020,9 @@
     let tracks = [];
     let currentTrackIndex = -1;
 
-    // Resume an existing "stay signed in" session before anything else renders,
-    // so returning users skip the startup screen instead of seeing it flash.
-    tryResumeSession();
-    tryResumeOwnerSession();
-
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, logoView: 'big' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, logoView: 'big', captionsEnabled: true };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1038,10 +1040,20 @@
             btn.classList.toggle('selected', settings[btn.dataset.group] === btn.dataset.value);
         });
         document.getElementById('memoryToggle')?.classList.toggle('active', settings.memoryEnabled);
+        document.getElementById('ccBtn')?.classList.toggle('active', settings.captionsEnabled);
         const slider = document.getElementById('glassOpacitySlider');
         if (slider) slider.value = settings.glassOpacity;
         applyGlassOpacity(settings.glassOpacity);
         applyLogoView();
+    }
+
+    function toggleCaptions() {
+        settings.captionsEnabled = !settings.captionsEnabled;
+        saveSettings();
+        document.getElementById('ccBtn')?.classList.toggle('active', settings.captionsEnabled);
+        if (!settings.captionsEnabled && callState === 'speaking') {
+            document.getElementById('liveTranscript').innerText = '';
+        }
     }
 
     // ─── HEADER STYLE (Full Logo shrinks on scroll; Compact stays small always) ──
@@ -2121,6 +2133,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             currentReplyAudio = new Audio(`data:${data.mimeType || 'audio/wav'};base64,${data.audio}`);
             setOrbState('speaking');
             setLiveStatus('Speaking…');
+            if (settings.captionsEnabled) document.getElementById('liveTranscript').innerText = text;
             hookAnalyser(currentReplyAudio);
             currentReplyAudio.onended = () => {
                 currentReplyAudio = null;
@@ -2233,6 +2246,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (settings.logoView === 'normal') return;
         document.querySelector('header').classList.toggle('scrolled', e.target.scrollTop > 12);
     });
+
+    // Resume an existing "stay signed in" / owner-unlock session. Must run LAST —
+    // it transitively touches `settings`, `callActive`, `currentOrbState`, etc., which
+    // are declared further up but only actually initialized once this line in the
+    // script is reached. Calling it any earlier throws a TDZ ReferenceError that
+    // silently kills every listener/init call still below it in the file.
+    tryResumeSession();
+    tryResumeOwnerSession();
 </script>
 </body>
 </html>

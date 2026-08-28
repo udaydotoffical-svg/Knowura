@@ -41,7 +41,10 @@ owner — unlock an uncensored "owner mode" with a hardware security key.
   available as an alternative in Settings if you'd rather control exactly
   when it listens. The avatar is a full-screen animated gif (your own art,
   in `assets/images/`) that swaps between idle/listening/thinking/speaking/
-  ultra loops, with a subtle audio-reactive pulse while it talks
+  ultra loops, with a subtle audio-reactive pulse while it talks. The call
+  screen's backdrop is the same wallpaper as the rest of the app (not a
+  blurred view of the chat transcript behind it), and a CC button toggles
+  closed captions of Knowura's spoken replies (on by default)
 - **Wake word ("Hey Knowura")** — optional, configurable in Settings:
   *Voice Mode Only* (default) lets you say it mid-call to interrupt Knowura
   and grab its attention; *Chat & Voice* also listens in the background
@@ -88,7 +91,11 @@ knowura/
 │   ├── webauthn-login-options.js
 │   └── webauthn-login-verify.js
 ├── scripts/
-│   └── generate-audio-manifest.js  # scans assets/audio/, writes manifest.json
+│   ├── generate-audio-manifest.js  # scans assets/audio/, writes manifest.json
+│   └── check-init.js         # runs public/index.html's inline script against a stub
+│                              # DOM in real Node/V8 to catch runtime init errors
+│                              # (e.g. TDZ) that plain syntax/reference checks miss —
+│                              # `npm run check:init` after editing that script
 ├── netlify.toml
 └── package.json
 ```

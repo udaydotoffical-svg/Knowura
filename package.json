@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "build": "node scripts/generate-audio-manifest.js",
-    "generate:audio": "node scripts/generate-audio-manifest.js"
+    "generate:audio": "node scripts/generate-audio-manifest.js",
+    "check:init": "node scripts/check-init.js"
   },
   "dependencies": {
     "node-fetch": "^2.6.7",
