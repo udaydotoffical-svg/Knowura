@@ -15,26 +15,44 @@ exports.handler = async (event) => {
         const { text, voice } = JSON.parse(event.body);
         if (!text) throw new Error("No text provided");
 
-        // Orpheus TTS caps input length; keep clips short and strip Markdown noise.
-        const clean = text.replace(/[*_`#>]/g, "").slice(0, 1800);
+        // Keep voice replies short (Netlify functions time out around 10s, and a
+        // long TTS render risks blowing past that) and cut at a sentence boundary
+        // where possible, rather than mid-word.
+        let clean = text.replace(/[*_`#>]/g, "").trim();
+        if (clean.length > 600) {
+            const cut = clean.slice(0, 600);
+            const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
+            clean = lastStop > 200 ? cut.slice(0, lastStop + 1) : cut;
+        }
 
-        const res = await fetch("https://api.groq.com/openai/v1/audio/speech", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "canopylabs/orpheus-v1-english",
-                input: clean,
-                voice: voice || "autumn",
-                response_format: "mp3"
-            })
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        let res;
+        try {
+            res = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "canopylabs/orpheus-v1-english",
+                    input: clean,
+                    voice: voice || "autumn",
+                    response_format: "mp3"
+                }),
+                signal: controller.signal
+            });
+        } catch (fetchErr) {
+            if (fetchErr.name === "AbortError") throw new Error("Groq TTS timed out after 8s");
+            throw fetchErr;
+        } finally {
+            clearTimeout(timeout);
+        }
 
         if (!res.ok) {
             const errText = await res.text();
-            throw new Error(`Groq TTS failed: ${errText}`);
+            throw new Error(`Groq TTS failed (${res.status}): ${errText}`);
         }
 
         const arrayBuffer = await res.arrayBuffer();
