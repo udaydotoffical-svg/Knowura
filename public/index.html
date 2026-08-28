@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowura AI | By Uday Singh</title>
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+    <style>
+        :root {
+            --dark: #05070f;
+            --blue: #2f6bff;
+            --blue-deep: #0f2a80;
+            --cyan: #22e5ff;
+            --ink: #000000;
+            --panel: rgba(18, 34, 68, 0.5);
+            --panel-strong: rgba(9, 18, 40, 0.72);
+            --text: #eaf6ff;
+            --text-dim: #8fa6cc;
+            --owner: #ff3057;
+            --owner-bg: rgba(74, 8, 20, 0.6);
+            --shadow-sm: 3px 3px 0 var(--ink);
+            --shadow-md: 5px 5px 0 var(--ink);
+            --shadow-lg: 8px 8px 0 var(--ink);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
+
+        .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+
+        body {
+            height: 100vh;
+            background:
+                linear-gradient(180deg, rgba(3,6,16,0.4), rgba(3,6,16,0.62)),
+                url('assets/images/background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text); overflow: hidden;
+        }
+
+        #startup {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(3, 6, 14, 0.78);
+            backdrop-filter: blur(18px) saturate(140%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.6s ease;
+            padding: 20px;
+        }
+
+        .glass-card {
+            background: var(--panel-strong);
+            backdrop-filter: blur(24px) saturate(150%);
+            border: 3px solid var(--ink);
+            box-shadow: var(--shadow-lg), 0 0 0 1px rgba(34,229,255,0.08) inset;
+            border-radius: 20px; padding: 40px 34px; text-align: center; width: 100%; max-width: 400px;
+            animation: cardIn 0.6s cubic-bezier(.16,1,.3,1);
+            position: relative;
+        }
+        .glass-card::before {
+            content: ''; position: absolute; inset: 10px;
+            border: 1px solid rgba(34,229,255,0.14); border-radius: 12px;
+            pointer-events: none;
+        }
+
+        @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+
+        .main-logo {
+            width: 140px; margin-bottom: 16px;
+            filter: drop-shadow(0 0 14px rgba(34,229,255,0.6));
+        }
+
+        .brand-title {
+            font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+            font-size: 22px; font-weight: 400; letter-spacing: 0.5px; color: var(--text);
+            text-transform: uppercase;
+        }
+        .brand-sub {
+            font-size: 11px; color: var(--cyan); margin-top: 8px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.85;
+        }
+
+        .stay-signed-in {
+            display: flex; align-items: center; gap: 10px; margin-top: 18px;
+            font-size: 12px; color: var(--text-dim); font-weight: 600; cursor: pointer; justify-content: center;
+        }
+        .checkbox-wrap { position: relative; width: 20px; height: 20px; flex-shrink: 0; }
+        .checkbox-wrap input[type="checkbox"] { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; width: 100%; height: 100%; }
+        .checkbox-box {
+            position: absolute; inset: 0; border-radius: 5px; border: 2.5px solid var(--ink);
+            background: var(--panel-strong); display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow-sm); transition: background 0.12s ease; pointer-events: none;
+        }
+        .checkbox-box .icon { width: 13px; height: 13px; opacity: 0; transform: scale(0.5); transition: all 0.12s ease; color: #001018; }
+        .checkbox-wrap input:checked ~ .checkbox-box { background: var(--cyan); }
+        .checkbox-wrap input:checked ~ .checkbox-box .icon { opacity: 1; transform: scale(1); }
+        .checkbox-wrap input:focus-visible ~ .checkbox-box { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1100px; opacity: 0; transition: opacity 0.5s ease; }
+
+        .chat-container {
+            position: relative;
+            flex: 1; background: var(--panel); backdrop-filter: blur(22px) saturate(140%);
+            border: 3px solid var(--ink); border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            display: flex; flex-direction: column; overflow: hidden;
+            background-image: linear-gradient(rgba(34,229,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(34,229,255,0.035) 1px, transparent 1px);
+            background-size: 26px 26px;
+        }
+
+        header {
+            padding: 14px 22px; background: rgba(6, 12, 26, 0.7);
+            display: flex; justify-content: space-between; align-items: center; gap: 14px;
+            flex-wrap: wrap;
+            border-bottom: 3px solid var(--ink);
+            transition: background 0.4s ease, border-color 0.4s ease;
+        }
+
+        header.owner-mode {
+            background: var(--owner-bg);
+            border-bottom: 3px solid var(--owner);
+        }
+
+        .brand-lockup { display: flex; align-items: center; gap: 10px; }
+        .header-logo {
+            height: 30px; padding: 3px; background: var(--panel-strong);
+            border: 2px solid var(--ink); border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+        }
+        .brand-name {
+            font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+            font-weight: 400; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase;
+            background: linear-gradient(135deg, var(--cyan), var(--blue) 110%);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+        .btn-ui {
+            background: var(--panel-strong); border: 2.5px solid var(--ink);
+            color: var(--text); padding: 8px 16px; border-radius: 10px;
+            cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.4px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-ui:hover:not(:disabled) {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0 var(--ink);
+            background: rgba(47,107,255,0.25);
+        }
+        .btn-ui:active:not(:disabled) {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0 var(--ink);
+        }
+        .btn-ui.active {
+            background: var(--cyan);
+            color: #001018; border-color: var(--ink);
+        }
+        .btn-ui:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: var(--shadow-sm); }
+
+        #chat-box {
+            flex: 1; padding: 26px; overflow-y: auto; overflow-x: hidden;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+        #chat-box::-webkit-scrollbar { width: 10px; }
+        #chat-box::-webkit-scrollbar-track { background: transparent; }
+        #chat-box::-webkit-scrollbar-thumb { background: var(--blue); border: 2px solid var(--ink); border-radius: 6px; }
+        #chat-box::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+        .msg {
+            position: relative; padding: 14px 20px; border-radius: 14px; max-width: 80%;
+            font-size: 15px; line-height: 1.65; animation: fadeInUp 0.3s cubic-bezier(.16,1,.3,1);
+            word-wrap: break-word;
+            border: 2.5px solid var(--ink);
+            box-shadow: var(--shadow-sm);
+        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ai {
+            background: rgba(14, 26, 54, 0.75); align-self: flex-start;
+            margin-left: 34px;
+        }
+        .ai::before {
+            content: 'K'; position: absolute; left: -34px; top: 0;
+            width: 26px; height: 26px; border-radius: 7px;
+            background: var(--cyan); border: 2px solid var(--ink);
+            color: #001018; font-weight: 800; font-size: 12px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+
+        .msg h1, .msg h2, .msg h3 { margin: 12px 0 8px; font-weight: 700; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.3px; }
+        .msg h1 { font-size: 1.2em; } .msg h2 { font-size: 1.08em; } .msg h3 { font-size: 1em; }
+        .msg p { margin: 0 0 8px; } .msg p:last-child { margin-bottom: 0; }
+        .msg ul, .msg ol { margin: 6px 0 10px 20px; }
+        .msg li { margin-bottom: 4px; }
+        .msg a { color: var(--cyan); text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
+        .msg a:hover { color: #9df1ff; }
+        .msg strong { color: #fff; font-weight: 700; }
+        .msg blockquote {
+            border-left: 4px solid var(--cyan); padding: 4px 14px; margin: 8px 0;
+            color: var(--text-dim); background: rgba(34,229,255,0.05); border-radius: 0 8px 8px 0;
+        }
+        .msg table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+        .msg th, .msg td { border: 1px solid rgba(143,166,204,0.3); padding: 6px 10px; text-align: left; }
+        .msg th { background: rgba(34,229,255,0.08); text-transform: uppercase; font-size: 11px; letter-spacing: 0.4px; }
+        .msg hr { border: none; border-top: 2px solid rgba(143,166,204,0.25); margin: 12px 0; }
+
+        .msg pre {
+            background: #00040a;
+            padding: 12px 14px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 2px solid var(--ink);
+            box-shadow: 2px 2px 0 rgba(34,229,255,0.25);
+        }
+
+        .msg code {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 12.5px;
+            color: var(--cyan);
+            display: block;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .msg p code, .msg li code {
+            background: rgba(34,229,255,0.12);
+            padding: 2px 6px;
+            border: 1px solid rgba(34,229,255,0.3);
+            border-radius: 4px;
+            display: inline;
+            color: var(--cyan);
+            font-size: 0.9em;
+        }
+
+        .typing { display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        .typing .dots { display: inline-flex; gap: 3px; }
+        .typing .dots i {
+            width: 6px; height: 6px; border-radius: 2px; background: var(--cyan);
+            border: 1px solid var(--ink);
+            display: inline-block; animation: dotPulse 1.2s ease-in-out infinite;
+        }
+        .typing .dots i:nth-child(2) { animation-delay: 0.15s; }
+        .typing .dots i:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes dotPulse { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+
+        .user {
+            background: linear-gradient(135deg, var(--blue-deep), var(--blue));
+            align-self: flex-end;
+        }
+
+        .memory-badge {
+            font-size: 10px; color: var(--cyan);
+            padding: 4px 12px 4px 10px; border: 2px solid var(--ink);
+            background: var(--panel-strong);
+            border-radius: 999px; margin-left: 8px; font-weight: 700; letter-spacing: 0.4px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-sm);
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .memory-badge::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%;
+            background: var(--cyan); box-shadow: 0 0 6px var(--cyan);
+            animation: dotPulse 1.4s ease-in-out infinite;
+        }
+
+        .input-area { padding: 18px 22px; display: flex; gap: 12px; background: rgba(4,8,18,0.65); border-top: 3px solid var(--ink); }
+        input#userInput {
+            flex: 1; padding: 13px 20px; border-radius: 12px; border: 2.5px solid var(--ink);
+            background: var(--panel-strong); color: var(--text); outline: none;
+            font-size: 14.5px; font-weight: 500; transition: all 0.15s ease;
+            box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4);
+        }
+        input#userInput::placeholder { color: var(--text-dim); }
+        input#userInput:focus { border-color: var(--cyan); box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4), 0 0 0 3px rgba(34,229,255,0.2); }
+
+        #sendBtn {
+            background: var(--blue);
+            color: #fff; border: 2.5px solid var(--ink); padding: 0 28px; border-radius: 12px;
+            height: 46px; width: 110px;
+            font-weight: 700; letter-spacing: 0.6px; cursor: pointer; font-size: 13px;
+            text-transform: uppercase;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, width 0.2s ease, border-radius 0.2s ease, padding 0.2s ease;
+        }
+        #sendBtn:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); background: var(--cyan); color: #001018; }
+        #sendBtn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+
+        #sendBtn.mic-mode {
+            width: 46px; padding: 0; border-radius: 50%;
+            background: var(--panel-strong); color: var(--cyan); font-size: 17px;
+        }
+        #sendBtn.mic-mode:hover { background: var(--cyan); color: #001018; }
+        #sendBtn.morph { animation: morphPop 0.25s cubic-bezier(.34,1.56,.64,1); }
+        @keyframes morphPop {
+            0% { transform: scale(0.55) rotate(-18deg); opacity: 0.4; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* ─── LOFI PLAYER ─────────────────────────────────────────────── */
+
+        .music-widget { position: relative; }
+
+        .music-panel {
+            display: none;
+            position: absolute; top: calc(100% + 10px); right: 0; z-index: 50;
+            width: 300px;
+            background: var(--panel-strong); backdrop-filter: blur(24px) saturate(150%);
+            border: 3px solid var(--ink); border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 16px;
+            animation: cardIn 0.2s cubic-bezier(.16,1,.3,1);
+        }
+        .music-panel.open { display: block; }
+
+        .now-playing { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .track-art {
+            width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--blue-deep), var(--cyan));
+            border: 2px solid var(--ink); box-shadow: var(--shadow-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: #001018;
+        }
+        .track-art.spinning { animation: spinArt 6s linear infinite; }
+        @keyframes spinArt { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(30deg); } }
+        .track-meta { min-width: 0; }
+        .track-title {
+            font-size: 13px; font-weight: 700; color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .track-artist { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+        .progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .time { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; min-width: 30px; }
+        .time:last-child { text-align: right; }
+
+        input[type="range"].seek-bar {
+            -webkit-appearance: none; appearance: none;
+            flex: 1; height: 6px; border-radius: 999px;
+            background: rgba(143,166,204,0.2); border: 1px solid var(--ink);
+            outline: none; cursor: pointer;
+        }
+        input[type="range"].seek-bar::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+            background: var(--cyan); border: 2px solid var(--ink); cursor: pointer;
+            box-shadow: 1px 1px 0 var(--ink);
+        }
+        input[type="range"].seek-bar::-moz-range-thumb {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--cyan); border: 2px solid var(--ink); cursor: pointer;
+        }
+
+        .transport { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .transport-btn {
+            background: var(--panel-strong); border: 2px solid var(--ink); color: var(--text);
+            width: 32px; height: 32px; border-radius: 9px; font-size: 12px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow-sm); transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .transport-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .transport-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        .transport-btn.play { width: 40px; height: 40px; background: var(--cyan); color: #001018; border-radius: 50%; font-size: 14px; }
+
+        .volume-row { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; }
+        .volume-row .seek-bar { width: 60px; height: 5px; }
+
+        .track-list { max-height: 190px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+        .track-list::-webkit-scrollbar { width: 6px; }
+        .track-list::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 6px; }
+
+        .track-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 10px; border-radius: 8px; cursor: pointer;
+            font-size: 12px; color: var(--text-dim); font-weight: 600;
+            border: 1px solid transparent; transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .track-item:hover { background: rgba(47,107,255,0.15); border-color: rgba(34,229,255,0.2); color: var(--text); }
+        .track-item.playing { background: rgba(34,229,255,0.12); border-color: var(--cyan); color: var(--cyan); }
+        .track-item .idx { font-family: 'JetBrains Mono', monospace; font-size: 10px; width: 16px; flex-shrink: 0; }
+        .track-item .eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 10px; width: 12px; flex-shrink: 0; }
+        .track-item .eq i { width: 2px; background: var(--cyan); animation: eqBounce 0.9s ease-in-out infinite; }
+        .track-item .eq i:nth-child(1) { height: 40%; animation-delay: 0s; }
+        .track-item .eq i:nth-child(2) { height: 100%; animation-delay: 0.2s; }
+        .track-item .eq i:nth-child(3) { height: 60%; animation-delay: 0.4s; }
+        @keyframes eqBounce { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+        .track-item .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        @media (max-width: 680px) {
+            .music-panel { width: calc(100vw - 32px); right: -8px; }
+        }
+
+        /* ─── ULTRA THINK TOGGLE ──────────────────────────────────────── */
+
+        .ultra-toggle {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--panel-strong); border: 2px solid var(--ink); border-radius: 999px;
+            padding: 7px 15px 7px 12px; cursor: pointer; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-dim);
+            box-shadow: var(--shadow-sm); transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
+        }
+        .ultra-toggle .dot {
+            width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim);
+            border: 1px solid var(--ink); transition: all 0.15s ease; flex-shrink: 0;
+        }
+        .ultra-toggle:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .ultra-toggle:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        .ultra-toggle.active {
+            color: #fff; background: linear-gradient(135deg, var(--owner), #ff6b8a);
+        }
+        .ultra-toggle.active .dot { background: #fff; box-shadow: 0 0 6px #fff; }
+
+        .ultra-toggle.compact {
+            padding: 4px 10px 4px 8px; font-size: 10px; border-width: 1.5px; gap: 6px;
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+        .ultra-toggle.compact:hover { box-shadow: 3px 3px 0 var(--ink); }
+        .ultra-toggle.compact .icon { width: 0.85em; height: 0.85em; }
+
+        .tips-bar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 20px; font-size: 10.5px; color: var(--text-dim); font-weight: 500;
+            border-top: 1px solid rgba(148,163,184,0.15);
+        }
+        .tips-bar .icon { color: var(--cyan); flex-shrink: 0; }
+        .tips-sep { width: 1px; height: 16px; background: rgba(148,163,184,0.25); flex-shrink: 0; }
+        #tipsText {
+            transition: opacity 0.3s ease; flex: 1; min-width: 0;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        .msg details.reasoning {
+            margin-bottom: 10px; border: 1px dashed rgba(255,48,87,0.4); border-radius: 8px;
+            padding: 8px 12px; background: rgba(255,48,87,0.06); font-size: 12.5px; color: var(--text-dim);
+        }
+        .msg details.reasoning summary {
+            cursor: pointer; font-weight: 700; color: var(--owner); text-transform: uppercase;
+            font-size: 10.5px; letter-spacing: 0.4px; list-style: none;
+        }
+        .msg details.reasoning summary::-webkit-details-marker { display: none; }
+        .msg details.reasoning[open] summary { margin-bottom: 8px; }
+
+        /* ─── LIVE VOICE MODE ─────────────────────────────────────────── */
+
+        .live-panel {
+            display: none; position: absolute; inset: 0; z-index: 60;
+            background: rgba(3,6,14,0.94); backdrop-filter: blur(22px) saturate(140%);
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 24px; text-align: center;
+        }
+        .live-panel.open { display: flex; }
+
+        .live-close {
+            position: absolute; top: 16px; right: 16px;
+            width: 34px; height: 34px; border-radius: 9px;
+            background: var(--panel-strong); border: 2px solid var(--ink); color: var(--text);
+            font-size: 15px; cursor: pointer; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .live-close:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+
+        .orb-wrap { position: relative; display: flex; align-items: center; justify-content: center; padding: 6px 0; }
+
+        .ultra-badge {
+            position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
+            background: var(--owner); color: #fff; font-size: 12px; font-weight: 800;
+            padding: 5px 16px; border-radius: 999px; border: 2px solid var(--ink);
+            letter-spacing: 0.6px; box-shadow: var(--shadow-sm); text-transform: uppercase;
+            animation: badgePulse 1s ease-in-out infinite; z-index: 2;
+        }
+        @keyframes badgePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+        /* The orb is your real gif art — sized to nearly fill the panel, ChatGPT-voice-mode style */
+        .orb-gif {
+            display: block;
+            width: min(72vw, 60vh, 620px);
+            height: min(72vw, 60vh, 620px);
+            object-fit: contain;
+            filter: drop-shadow(0 0 30px rgba(34,229,255,0.4));
+            transition: filter 0.4s ease, transform 0.15s ease-out;
+        }
+
+        .orb-wrap .ring {
+            position: absolute; inset: 8%; border-radius: 50%;
+            border: 3px solid var(--cyan); opacity: 0; pointer-events: none;
+        }
+        .orb-wrap.listening .ring1 { animation: ringPulse 1.6s ease-out infinite; }
+        .orb-wrap.listening .ring2 { animation: ringPulse 1.6s ease-out infinite 0.5s; }
+        @keyframes ringPulse {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            100% { transform: scale(1.28); opacity: 0; }
+        }
+
+        .orb-wrap.ultra .orb-gif { filter: drop-shadow(0 0 38px rgba(255,48,87,0.6)); }
+        .orb-wrap.ultra .ring { border-color: var(--owner); }
+
+        .live-status {
+            font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700;
+            color: var(--cyan); margin: 10px 0 6px;
+        }
+        .live-transcript {
+            font-size: 14px; color: var(--text-dim); max-width: 360px; min-height: 20px;
+            margin-bottom: 16px; line-height: 1.5;
+        }
+
+        .call-controls { display: flex; align-items: center; gap: 20px; }
+
+        .mic-btn {
+            width: 62px; height: 62px; border-radius: 50%;
+            background: var(--panel-strong); border: 3px solid var(--ink); color: var(--text); font-size: 20px;
+            cursor: pointer; box-shadow: var(--shadow-md);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        }
+        .mic-btn:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
+        .mic-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+        .mic-btn.secondary.muted { background: var(--owner); color: #fff; }
+        .mic-btn.end-call { background: var(--owner); color: #fff; transform: rotate(135deg); }
+        .mic-btn.end-call:hover { background: #ff5470; }
+        .mic-btn.primary.holding { background: var(--cyan); color: #001018; animation: micPulse 0.8s ease-in-out infinite; }
+        @keyframes micPulse {
+            0%, 100% { box-shadow: var(--shadow-md); }
+            50% { box-shadow: 0 0 0 7px rgba(34,229,255,0.3), var(--shadow-md); }
+        }
+
+        .live-ultra-row { margin-top: 20px; }
+
+        /* ─── MINI PLAYER (appears in the top bar while a track is playing) ──── */
+
+        .mini-player {
+            display: none; align-items: center; gap: 4px;
+            background: var(--panel-strong); border: 2.5px solid var(--ink); border-radius: 10px;
+            padding: 5px 12px 5px 6px; box-shadow: var(--shadow-sm);
+        }
+        .mini-player.show { display: flex; animation: fadeInUp 0.25s ease; }
+        .mini-btn {
+            width: 26px; height: 26px; border-radius: 6px;
+            background: transparent; border: none; color: var(--text); font-size: 13px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            transition: color 0.12s ease, transform 0.12s ease;
+        }
+        .mini-btn:hover { color: var(--cyan); transform: scale(1.15); }
+        .mini-btn.play { color: var(--cyan); }
+        .mini-track-title {
+            font-size: 11px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.3px;
+            max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            border-left: 2px solid rgba(148,163,184,0.25); padding-left: 8px; margin-left: 2px;
+        }
+        @media (max-width: 680px) {
+            .mini-track-title { max-width: 70px; }
+        }
+
+        /* ─── HAMBURGER MENU (tucks Music / Clear Memory / Unlock Owner away) ── */
+
+        .hamburger-widget { position: relative; }
+        .btn-ui.icon-only { padding: 8px 10px; gap: 0; font-size: 15px; }
+
+        .hamburger-panel {
+            display: none;
+            position: absolute; top: calc(100% + 10px); left: 0; z-index: 50;
+            width: 230px;
+            background: var(--panel-strong); backdrop-filter: blur(24px) saturate(150%);
+            border: 3px solid var(--ink); border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 12px;
+            flex-direction: column; gap: 6px;
+            animation: cardIn 0.2s cubic-bezier(.16,1,.3,1);
+        }
+        .hamburger-panel.open { display: flex; }
+
+        .menu-item {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            background: rgba(255,255,255,0.03); border: 2px solid var(--ink); border-radius: 10px;
+            padding: 9px 12px; cursor: pointer; text-align: left;
+            color: var(--text); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+            box-shadow: var(--shadow-sm); transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        }
+        .menu-item:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: rgba(47,107,255,0.15); }
+        .menu-item:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        .menu-item.active { background: var(--cyan); color: #001018; }
+
+        /* ─── SETTINGS ─────────────────────────────────────────────────── */
+
+        .settings-widget { position: relative; }
+
+        .settings-panel {
+            display: none;
+            position: absolute; top: calc(100% + 10px); right: 0; z-index: 50;
+            width: 290px;
+            background: var(--panel-strong); backdrop-filter: blur(24px) saturate(150%);
+            border: 3px solid var(--ink); border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 16px;
+            animation: cardIn 0.2s cubic-bezier(.16,1,.3,1);
+        }
+        .settings-panel.open { display: block; }
+
+        .settings-section { margin-bottom: 14px; }
+        .settings-section:last-child { margin-bottom: 0; }
+        .settings-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+            color: var(--text-dim); font-weight: 800; margin-bottom: 8px;
+        }
+
+        .choice-pill {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%;
+            background: rgba(255,255,255,0.03); border: 2px solid var(--ink); border-radius: 10px;
+            padding: 8px 12px; margin-bottom: 6px; cursor: pointer; text-align: left;
+            color: var(--text-dim); box-shadow: var(--shadow-sm); transition: all 0.12s ease;
+        }
+        .choice-pill:last-child { margin-bottom: 0; }
+        .choice-pill:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .choice-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; }
+        .choice-dot {
+            width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink);
+            background: transparent; flex-shrink: 0; transition: background 0.12s ease;
+        }
+        .choice-hint { font-size: 10px; color: var(--text-dim); font-weight: 500; padding-left: 18px; }
+        .choice-pill.selected { background: linear-gradient(135deg, var(--blue-deep), var(--blue)); border-color: var(--ink); }
+        .choice-pill.selected .choice-row { color: #fff; }
+        .choice-pill.selected .choice-dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+        .choice-pill.selected .choice-hint { color: rgba(255,255,255,0.8); }
+
+        @media (max-width: 680px) {
+            .orb-gif { width: min(80vw, 50vh, 380px); height: min(80vw, 50vh, 380px); }
+        }
+
+        @media (max-width: 680px) {
+            #app { padding: 8px; }
+            header { padding: 12px 14px; }
+            .brand-name { display: none; }
+            #chat-box { padding: 16px; }
+            .msg { max-width: 90%; font-size: 14px; }
+            .glass-card { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <svg style="display:none" aria-hidden="true">
+        <defs>
+            <symbol id="icon-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="currentColor"/></symbol>
+            <symbol id="icon-tag" viewBox="0 0 24 24"><path d="M3 11 12 2h7a2 2 0 0 1 2 2v7l-9 9a2 2 0 0 1-2.8 0l-6.2-6.2a2 2 0 0 1 0-2.8z" fill="currentColor"/></symbol>
+            <symbol id="icon-unlock" viewBox="0 0 24 24"><path d="M6 10V7a6 6 0 0 1 11.2-3" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round"/><rect x="4" y="10" width="16" height="11" rx="2" fill="currentColor"/></symbol>
+            <symbol id="icon-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></symbol>
+            <symbol id="icon-volume" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8a5 5 0 0 1 0 8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+            <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round"/></symbol>
+            <symbol id="icon-menu" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+            <symbol id="icon-play" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z" fill="currentColor"/></symbol>
+            <symbol id="icon-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></symbol>
+            <symbol id="icon-skip-back" viewBox="0 0 24 24"><rect x="4" y="4" width="2.5" height="16" fill="currentColor"/><path d="M20 5 9 12l11 7z" fill="currentColor"/></symbol>
+            <symbol id="icon-skip-forward" viewBox="0 0 24 24"><rect x="17.5" y="4" width="2.5" height="16" fill="currentColor"/><path d="M4 5l11 7-11 7z" fill="currentColor"/></symbol>
+            <symbol id="icon-settings" viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="9" cy="7" r="2.3" fill="currentColor"/><line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="15" cy="17" r="2.3" fill="currentColor"/></symbol>
+            <symbol id="icon-logout" viewBox="0 0 24 24"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 8l4 4-4 4M17 12H9" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+            <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16M13 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+            <symbol id="icon-x" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
+            <symbol id="icon-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round"/></symbol>
+            <symbol id="icon-mic-off" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></symbol>
+            <symbol id="icon-phone" viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.3 21 3 13.7 3 4.7c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z" fill="currentColor"/></symbol>
+            <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2.3"/><line x1="16" y1="16" x2="21" y2="21" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></symbol>
+            <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M12 3 22 20H2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></symbol>
+            <symbol id="icon-check" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+            <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10" width="2" height="7" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/></symbol>
+        </defs>
+    </svg>
+
+    <audio id="bgMusic" preload="auto"></audio>
+
+    <div id="startup">
+        <div class="glass-card">
+            <img src="assets/images/logo.png" class="main-logo">
+            <div class="brand-title">Knowura AI</div>
+            <div class="brand-sub" style="margin-bottom: 22px;">Engineered by Uday Singh</div>
+            <div id="g_id_onload" data-client_id="881574590484-beet5os15tc4f3pba7e2lft7u6ufsbrr.apps.googleusercontent.com" data-callback="onSignIn"></div>
+            <div class="g_id_signin" data-type="standard"></div>
+            <button class="btn-ui" style="width:100%; margin-top:15px; padding:12px;" onclick="enterApp('Guest')">Continue as Guest</button>
+            <label class="stay-signed-in">
+                <span class="checkbox-wrap">
+                    <input type="checkbox" id="stayInput" checked>
+                    <span class="checkbox-box"><svg class="icon"><use href="#icon-check"/></svg></span>
+                </span>
+                Stay signed in on this device
+            </label>
+        </div>
+    </div>
+
+    <div id="app">
+        <div class="chat-container">
+            <header>
+                <div class="brand-lockup">
+                    <img src="assets/images/logo.png" class="header-logo">
+                    <span class="brand-name">Knowura</span>
+                    <span id="memory-badge" class="memory-badge" style="display:none;"><svg class="icon"><use href="#icon-tag"/></svg> Memory ON</span>
+                    <span id="owner-badge" class="memory-badge" style="display:none; border-color:var(--ink); color:var(--owner);"><svg class="icon"><use href="#icon-unlock"/></svg> Owner Mode</span>
+                </div>
+                <div class="controls">
+                    <div id="miniPlayer" class="mini-player">
+                        <button class="mini-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
+                        <button id="miniPlayPauseBtn" class="mini-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-pause"/></svg></button>
+                        <button class="mini-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
+                        <span id="miniTrackTitle" class="mini-track-title">—</span>
+                    </div>
+                    <div class="hamburger-widget">
+                        <button id="hamburgerBtn" class="btn-ui icon-only" onclick="toggleHamburgerMenu()" title="Menu">
+                            <svg class="icon"><use href="#icon-menu"/></svg>
+                        </button>
+                        <div id="hamburgerPanel" class="hamburger-panel">
+                            <div class="music-widget">
+                                <button id="musicBtn" class="menu-item" onclick="toggleMusicPanel()"><svg class="icon"><use href="#icon-music"/></svg> Music</button>
+                                <div id="musicPanel" class="music-panel">
+                                    <div class="now-playing">
+                                        <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
+                                        <div class="track-meta">
+                                            <div id="trackTitle" class="track-title">No track loaded</div>
+                                            <div class="track-artist">Knowura Lofi Radio</div>
+                                        </div>
+                                    </div>
+                                    <div class="progress-row">
+                                        <span id="curTime" class="time">0:00</span>
+                                        <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
+                                        <span id="durTime" class="time">0:00</span>
+                                    </div>
+                                    <div class="transport">
+                                        <button class="transport-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
+                                        <button id="playPauseBtn" class="transport-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-play"/></svg></button>
+                                        <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
+                                        <div class="volume-row" title="Volume">
+                                            <span><svg class="icon"><use href="#icon-volume"/></svg></span>
+                                            <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
+                                        </div>
+                                    </div>
+                                    <div id="trackList" class="track-list"></div>
+                                </div>
+                            </div>
+                            <button class="menu-item" onclick="clearMemory()" title="Clear all memory"><svg class="icon"><use href="#icon-trash"/></svg> Clear Memory</button>
+                            <button id="ownerBtn" class="menu-item" onclick="unlockOwnerMode()" title="Unlock owner mode with your security key"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
+                        </div>
+                    </div>
+                    <div class="settings-widget">
+                        <button id="settingsBtn" class="btn-ui" onclick="toggleSettingsPanel()" title="Settings"><svg class="icon"><use href="#icon-settings"/></svg> Settings</button>
+                        <div id="settingsPanel" class="settings-panel">
+                            <div class="settings-section">
+                                <div class="settings-label">Voice Mode</div>
+                                <button class="choice-pill" data-group="voiceMode" data-value="seamless" onclick="setVoiceMode('seamless')">
+                                    <span class="choice-row"><span class="choice-dot"></span>Seamless</span>
+                                    <span class="choice-hint">Default — talk naturally, like a phone call</span>
+                                </button>
+                                <button class="choice-pill" data-group="voiceMode" data-value="ptt" onclick="setVoiceMode('ptt')">
+                                    <span class="choice-row"><span class="choice-dot"></span>Push to Talk</span>
+                                    <span class="choice-hint">Hold the mic button while you speak</span>
+                                </button>
+                            </div>
+                            <div class="settings-section">
+                                <div class="settings-label">Wake Word — "Hey Knowura"</div>
+                                <button class="choice-pill" data-group="wakeWord" data-value="voice" onclick="setWakeWord('voice')">
+                                    <span class="choice-row"><span class="choice-dot"></span>Voice Mode Only</span>
+                                    <span class="choice-hint">Default — say it mid-call to grab its attention</span>
+                                </button>
+                                <button class="choice-pill" data-group="wakeWord" data-value="both" onclick="setWakeWord('both')">
+                                    <span class="choice-row"><span class="choice-dot"></span>Chat &amp; Voice</span>
+                                    <span class="choice-hint">Say it anytime to jump into a call</span>
+                                </button>
+                                <button class="choice-pill" data-group="wakeWord" data-value="off" onclick="setWakeWord('off')">
+                                    <span class="choice-row"><span class="choice-dot"></span>Off</span>
+                                </button>
+                            </div>
+                            <div class="settings-section">
+                                <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="user-display" style="font-size: 12px; color: var(--cyan); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; margin-left: 6px;"></div>
+                </div>
+            </header>
+            <div id="chat-box"></div>
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
+                <button id="sendBtn" onclick="handleSendClick()">Send <svg class="icon"><use href="#icon-arrow-right"/></svg></button>
+            </div>
+            <div class="tips-bar">
+                <button id="ultraToggleChat" class="ultra-toggle compact" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
+                <span class="tips-sep"></span>
+                <svg class="icon"><use href="#icon-info"/></svg>
+                <span id="tipsText"></span>
+            </div>
+
+            <div id="livePanel" class="live-panel">
+                <button class="live-close" onclick="closeLivePanel()" title="End call"><svg class="icon"><use href="#icon-x"/></svg></button>
+                <div id="orbWrap" class="orb-wrap">
+                    <div class="ring ring1"></div>
+                    <div class="ring ring2"></div>
+                    <div id="ultraBadge" class="ultra-badge" style="display:none;"><svg class="icon"><use href="#icon-bolt"/></svg> Ultra</div>
+                    <img id="liveOrb" class="orb-gif" src="assets/images/bloub-cercle-neutre-bleu.gif" alt="Knowura avatar">
+                </div>
+                <div id="liveStatus" class="live-status">Connecting…</div>
+                <div id="liveTranscript" class="live-transcript"></div>
+                <div class="call-controls">
+                    <button id="muteBtn" class="mic-btn secondary" onclick="toggleMute()" title="Mute / unmute microphone"><svg class="icon"><use href="#icon-mic"/></svg></button>
+                    <button id="pttBtn" class="mic-btn primary" style="display:none;"
+                        onmousedown="pttStart(event)" onmouseup="pttStop(event)" onmouseleave="pttStop(event)"
+                        ontouchstart="pttStart(event)" ontouchend="pttStop(event)"
+                        title="Hold to talk"><svg class="icon"><use href="#icon-mic"/></svg></button>
+                    <button id="endCallBtn" class="mic-btn end-call" onclick="closeLivePanel()" title="End call"><svg class="icon"><use href="#icon-phone"/></svg></button>
+                </div>
+                <div class="live-ultra-row">
+                    <button id="ultraToggleVoice" class="ultra-toggle" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let currentUser = "Learner";
+    // conversationMessages holds the raw text history sent to groq (last 10)
+    let conversationMessages = [];
+    // Owner mode is in-memory only — never persisted, resets on refresh
+    let ownerMode = false;
+    // Ultra Think mode is in-memory only, toggled from chat, voice, or by natural-language command
+    let ultraThinkMode = false;
+    const music = document.getElementById('bgMusic');
+    let tracks = [];
+    let currentTrackIndex = -1;
+
+    // Resume an existing "stay signed in" session before anything else renders,
+    // so returning users skip the startup screen instead of seeing it flash.
+    tryResumeSession();
+
+    // ─── SETTINGS ─────────────────────────────────────────────────────────────
+
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice' };
+
+    function loadSettings() {
+        try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
+        catch (e) { return { ...DEFAULT_SETTINGS }; }
+    }
+
+    let settings = loadSettings();
+
+    function saveSettings() {
+        localStorage.setItem('knowura_settings', JSON.stringify(settings));
+    }
+
+    function updateSettingsUI() {
+        document.querySelectorAll('.choice-pill').forEach(btn => {
+            btn.classList.toggle('selected', settings[btn.dataset.group] === btn.dataset.value);
+        });
+    }
+
+    function toggleSettingsPanel() {
+        document.getElementById('settingsPanel').classList.toggle('open');
+    }
+
+    function setVoiceMode(mode) {
+        settings.voiceMode = mode;
+        saveSettings();
+        updateSettingsUI();
+        if (callActive) {
+            if (mode === 'seamless') {
+                if (!vadRAF) vadLoop();
+            } else if (callState === 'capturing') {
+                finishCapture();
+            }
+            updateCallControlsUI();
+        }
+    }
+
+    function setWakeWord(mode) {
+        settings.wakeWord = mode;
+        saveSettings();
+        updateSettingsUI();
+        applyWakeWordSetting();
+    }
+
+    function logOut() {
+        if (!confirm('Log out of Knowura?')) return;
+        document.getElementById('settingsPanel')?.classList.remove('open');
+        endCall();
+        stopWakeListener();
+        clearSession();
+        try { if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* Google Identity not loaded */ }
+        currentUser = 'Learner';
+        const app = document.getElementById('app');
+        app.style.opacity = '0';
+        setTimeout(() => {
+            app.style.display = 'none';
+            const startup = document.getElementById('startup');
+            startup.style.display = 'flex';
+            requestAnimationFrame(() => { startup.style.opacity = '1'; });
+        }, 400);
+    }
+
+    // ─── WAKE WORD ("Hey Knowura") via the browser's built-in speech recognition ──
+    // Best-effort: only Chromium-based browsers support the Web Speech API well.
+    // Silently does nothing if unsupported, rather than breaking the rest of the app.
+
+    let wakeRecognition = null;
+    let wakeListenerActive = false;
+
+    function supportsSpeechRecognition() {
+        return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    }
+
+    function applyWakeWordSetting() {
+        stopWakeListener();
+        if (settings.wakeWord === 'off') return;
+        const panelOpen = document.getElementById('livePanel').classList.contains('open');
+        if (settings.wakeWord === 'both' || (settings.wakeWord === 'voice' && panelOpen)) {
+            startWakeListener();
+        }
+    }
+
+    function startWakeListener() {
+        if (!supportsSpeechRecognition() || wakeListenerActive) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        wakeRecognition = new SR();
+        wakeRecognition.continuous = true;
+        wakeRecognition.interimResults = true;
+        wakeRecognition.lang = 'en-US';
+        wakeRecognition.onresult = (e) => {
+            const last = e.results[e.results.length - 1];
+            const heard = last[0].transcript.toLowerCase();
+            if (heard.includes('hey knowura') || heard.includes('hey noora') || heard.includes('knowura')) {
+                onWakeWordDetected();
+            }
+        };
+        wakeRecognition.onerror = (e) => { console.warn('Wake word listener error:', e.error); };
+        wakeRecognition.onend = () => {
+            // Chrome auto-stops recognition periodically — restart while the feature is enabled
+            if (wakeListenerActive) { try { wakeRecognition.start(); } catch (e) { /* already starting */ } }
+        };
+        try { wakeRecognition.start(); wakeListenerActive = true; }
+        catch (e) { console.warn('Could not start wake word listener:', e); }
+    }
+
+    function stopWakeListener() {
+        wakeListenerActive = false;
+        if (wakeRecognition) {
+            wakeRecognition.onend = null;
+            try { wakeRecognition.stop(); } catch (e) { /* already stopped */ }
+            wakeRecognition = null;
+        }
+    }
+
+    function onWakeWordDetected() {
+        const panelOpen = document.getElementById('livePanel').classList.contains('open');
+        if (panelOpen) {
+            // Mid-call: treat it as "grab its attention" — interrupt if it's talking, then listen
+            if (callState === 'speaking' && currentReplyAudio) {
+                currentReplyAudio.pause();
+                currentReplyAudio = null;
+            }
+            if (callActive) { setLiveStatus('Yes?'); enterListeningState(); }
+        } else {
+            openLivePanel();
+        }
+    }
+
+    // ─── OWNER MODE (FIDO2 / WebAuthn) ───────────────────────────────────────
+
+    async function unlockOwnerMode() {
+        const btn = document.getElementById('ownerBtn');
+        btn.disabled = true;
+        const originalText = btn.innerText;
+        btn.innerText = "Tap your key...";
+
+        try {
+            const optionsRes = await fetch('/.netlify/functions/webauthn-login-options');
+            if (!optionsRes.ok) {
+                alert("No security key registered yet.");
+                return;
+            }
+            const options = await optionsRes.json();
+
+            const authResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
+
+            const verifyRes = await fetch('/.netlify/functions/webauthn-login-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(authResp)
+            });
+            const result = await verifyRes.json();
+
+            if (result.verified) {
+                ownerMode = true;
+                document.getElementById('owner-badge').style.display = 'inline-block';
+                document.querySelector('header').classList.add('owner-mode');
+                btn.style.display = 'none';
+            } else {
+                alert("Verification failed.");
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        } catch (e) {
+            console.warn("Owner unlock cancelled or failed:", e);
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+
+    // ─── MEMORY HELPERS ──────────────────────────────────────────────────────
+
+    function getMemory() {
+        return {
+            summary: localStorage.getItem('knowura_summary') || '',
+            facts: JSON.parse(localStorage.getItem('knowura_facts') || '[]')
+        };
+    }
+
+    function updateBadge() {
+        const mem = getMemory();
+        const badge = document.getElementById('memory-badge');
+        const hasMemory = mem.summary || mem.facts.length > 0;
+        badge.style.display = hasMemory ? 'inline-block' : 'none';
+        badge.title = hasMemory
+            ? `Facts: ${mem.facts.join(', ') || 'none'}\n\nSummary: ${mem.summary || 'none'}`
+            : '';
+    }
+
+    function clearMemory() {
+        if (!confirm('Clear all Knowura memory? (facts + summary)')) return;
+        localStorage.removeItem('knowura_summary');
+        localStorage.removeItem('knowura_facts');
+        localStorage.removeItem('knowura_chat');
+        localStorage.removeItem('knowura_msg_count');
+        conversationMessages = [];
+        updateBadge();
+        document.getElementById('chat-box').innerHTML = '';
+        addBubble(`Memory cleared. Fresh start, <b>${currentUser}</b>!`, 'ai', false);
+    }
+
+    // ─── ENTITY EXTRACTION (runs after every AI reply) ────────────────────────
+
+    async function extractFacts(userMsg, aiReply) {
+        const existing = JSON.parse(localStorage.getItem('knowura_facts') || '[]');
+
+        try {
+            const res = await fetch("/.netlify/functions/ask-ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    memory: {},
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Extract factual entities about the USER ONLY from this exchange. Focus on: name, subjects they're studying, grade/age, interests, goals, learning style, stru[...]
+
+User said: "${userMsg}"
+AI replied: "${aiReply.substring(0, 300)}"
+
+Already known facts: ${existing.join(', ') || 'none'}
+
+Return ONLY a JSON array of short fact strings like ["User studies biology", "User is in grade 10"]. If no new facts found, return []. No markdown, no explanation, raw JSON only.`
+                        }
+                    ]
+                })
+            });
+
+            const data = await res.json();
+            const raw = data?.choices?.[0]?.message?.content?.trim() || '[]';
+            const newFacts = JSON.parse(raw.replace(/```json|```/g, '').trim());
+
+            if (Array.isArray(newFacts) && newFacts.length > 0) {
+                // Merge, deduplicate, cap at 20 facts
+                const merged = [...new Set([...existing, ...newFacts])].slice(-20);
+                localStorage.setItem('knowura_facts', JSON.stringify(merged));
+                updateBadge();
+            }
+        } catch (e) {
+            console.warn('Entity extraction failed silently:', e);
+        }
+    }
+
+    // ─── SUMMARIZATION (runs every 10 messages) ───────────────────────────────
+
+    async function maybeSummarize() {
+        let count = parseInt(localStorage.getItem('knowura_msg_count') || '0') + 1;
+        localStorage.setItem('knowura_msg_count', count);
+
+        if (count % 10 !== 0) return;
+
+        const history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
+        const recentText = history.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'Knowura'}: ${m.text.replace(/<[^>]+>/g, '')}`).join('\n');
+
+        try {
+            const res = await fetch("/.netlify/functions/ask-ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    memory: {},
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Summarize this conversation in 3-4 sentences. Focus on topics discussed, what the user learned, and any ongoing questions. Be concise.\n\n${recentText}\n\nRe[...]`
+                        }
+                    ]
+                })
+            });
+
+            const data = await res.json();
+            const summary = data?.choices?.[0]?.message?.content?.trim();
+            if (summary) {
+                localStorage.setItem('knowura_summary', summary);
+                updateBadge();
+                console.log('Knowura memory updated');
+            }
+        } catch (e) {
+            console.warn('Summarization failed silently:', e);
+        }
+    }
+
+    // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
+
+    function looksSearchWorthy(text) {
+        const explicitTriggers = ["search for", "search the web", "look up", "google", "find information on", "can you search"];
+        const contextTriggers = [
+            "latest", "current", "today", "recent", "news", "who is", "what is the price",
+            "when did", "how much does", "right now", "this year", "2025", "2026", "score", "weather"
+        ];
+        const lower = text.toLowerCase();
+        return explicitTriggers.some(t => lower.includes(t)) || contextTriggers.some(t => lower.includes(t));
+    }
+
+    // ─── ULTRA THINK MODE ───────────────────────────────────────────────────
+
+    function parseThinkCommand(text) {
+        const lower = text.toLowerCase();
+        const on = ["activate thinking mode", "enable thinking mode", "turn on thinking mode", "ultra think", "think harder", "deep think", "activate ultra mode", "enable ultra mode"];
+        const off = ["deactivate thinking mode", "disable thinking mode", "turn off thinking mode", "disable ultra mode", "exit thinking mode", "normal mode"];
+        if (on.some(p => lower.includes(p))) return true;
+        if (off.some(p => lower.includes(p))) return false;
+        return null;
+    }
+
+    function toggleUltraMode() {
+        ultraThinkMode = !ultraThinkMode;
+        syncUltraToggles();
+    }
+
+    function syncUltraToggles() {
+        document.querySelectorAll('.ultra-toggle').forEach(el => el.classList.toggle('active', ultraThinkMode));
+        const wrap = document.getElementById('orbWrap');
+        const badge = document.getElementById('ultraBadge');
+        if (wrap) wrap.classList.toggle('ultra', ultraThinkMode);
+        if (badge) badge.style.display = ultraThinkMode ? 'inline-block' : 'none';
+        if (typeof setOrbState === 'function' && typeof currentOrbState !== 'undefined') {
+            setOrbState(currentOrbState); // re-evaluate which gif should be showing
+        }
+    }
+
+    // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
+    // `providedText` lets Live Voice mode feed a transcript through the same
+    // pipeline as typed chat. `opts.speak` triggers a spoken reply afterward.
+
+    async function ask(providedText, opts = {}) {
+        const input = document.getElementById('userInput');
+        const text = (providedText !== undefined ? providedText : input.value).trim();
+        if (!text) return;
+
+        // Typed wake word (only meaningful when it's set to work in chat too, and only for typed messages)
+        if (providedText === undefined && settings.wakeWord === 'both' && /hey knowura/i.test(text)) {
+            input.value = '';
+            updateSendBtnUI();
+            openLivePanel();
+            return;
+        }
+
+        const cmd = parseThinkCommand(text);
+        if (cmd !== null && cmd !== ultraThinkMode) {
+            ultraThinkMode = cmd;
+            syncUltraToggles();
+        }
+
+        addBubble(text, 'user', true);
+        if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
+
+        // Add to rolling conversation window (last 10 for groq context)
+        conversationMessages.push({ role: "user", content: text });
+        if (conversationMessages.length > 10) conversationMessages.shift();
+
+        const willSearch = looksSearchWorthy(text);
+        const dots = '<span class="dots"><i></i><i></i><i></i></span>';
+        const thinkingLabel = ultraThinkMode
+            ? '<svg class="icon"><use href="#icon-bolt"/></svg> Ultra thinking'
+            : (willSearch ? '<svg class="icon"><use href="#icon-search"/></svg> Searching the web' : 'Thinking');
+        const thinking = addBubble(`<span class="typing">${thinkingLabel}${dots}</span>`, 'ai', false);
+        let searchStageTimer = null;
+        if (willSearch && !ultraThinkMode) {
+            searchStageTimer = setTimeout(() => {
+                thinking.innerHTML = `<span class="typing">Thinking${dots}</span>`;
+            }, 1200);
+        }
+        if (opts.fromVoice) {
+            setOrbState('thinking');
+            setLiveStatus(ultraThinkMode ? 'Ultra thinking…' : 'Thinking…');
+        }
+
+        try {
+            const res = await fetch("/.netlify/functions/ask-ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    messages: conversationMessages,
+                    memory: getMemory(),
+                    ownerMode: ownerMode,
+                    ultraThink: ultraThinkMode
+                })
+            });
+
+            if (!res.ok) throw new Error("Network issue");
+
+            const data = await res.json();
+
+            if (searchStageTimer) clearTimeout(searchStageTimer);
+
+            if (data?.choices?.[0]) {
+                const reply = data.choices[0].message.content;
+                const reasoning = data.choices[0].message?.reasoning;
+                let html = '';
+                if (reasoning) html += `<details class="reasoning"><summary><svg class="icon"><use href="#icon-bolt"/></svg> Ultra reasoning</summary>${marked.parse(reasoning)}</details>`;
+                html += marked.parse(reply);
+                thinking.innerHTML = html;
+                saveMsg(thinking.innerHTML, 'ai');
+
+                // Add AI reply to conversation window
+                conversationMessages.push({ role: "assistant", content: reply });
+                if (conversationMessages.length > 10) conversationMessages.shift();
+
+                // Run memory updates in background (non-blocking)
+                extractFacts(text, reply);
+                maybeSummarize();
+
+                if (opts.speak) speakReply(reply);
+                return reply;
+            } else {
+                throw new Error("Empty response");
+            }
+
+        } catch (e) {
+            console.error(e);
+            thinking.innerHTML = `<span class="typing" style="color:var(--owner);"><svg class="icon"><use href="#icon-alert"/></svg> Connection lost. Ensure your Netlify Secret Key is set.</span>`;
+            if (opts.fromVoice) {
+                if (typeof callActive !== 'undefined' && callActive) {
+                    setLiveStatus('Something went wrong');
+                    enterListeningState();
+                } else {
+                    setOrbState('idle');
+                }
+            }
+        }
+    }
+
+    // ─── UI HELPERS ───────────────────────────────────────────────────────
+
+    function addBubble(t, c, save) {
+        const box = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.className = `msg ${c}`;
+        div.innerHTML = t;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+        if (save) saveMsg(t, c);
+        return div;
+    }
+
+    function saveMsg(text, type) {
+        let history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
+        history.push({ text, type });
+        localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-30)));
+    }
+
+    function loadHistory() {
+        let history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
+        if (history.length === 0) {
+            addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
+        } else {
+            history.forEach(m => addBubble(m.text, m.type, false));
+            // Rebuild conversationMessages from last 10 saved (plain text only)
+            history.slice(-10).forEach(m => {
+                conversationMessages.push({
+                    role: m.type === 'user' ? 'user' : 'assistant',
+                    content: m.text.replace(/<[^>]+>/g, '')
+                });
+            });
+        }
+        updateBadge();
+    }
+
+    // ─── AUTH ─────────────────────────────────────────────────────────────
+    // "Stay signed in" just remembers the display name locally (localStorage) and
+    // skips the startup screen next visit — there's no server session to restore,
+    // same trust model as the rest of this app's client-side memory/settings.
+
+    function getSession() {
+        try { return JSON.parse(localStorage.getItem('knowura_session') || 'null'); }
+        catch (e) { return null; }
+    }
+
+    function saveSession(user) {
+        if (!document.getElementById('stayInput')?.checked) return;
+        localStorage.setItem('knowura_session', JSON.stringify({ user, savedAt: Date.now() }));
+    }
+
+    function clearSession() {
+        localStorage.removeItem('knowura_session');
+    }
+
+    function tryResumeSession() {
+        const session = getSession();
+        if (!session?.user) return;
+        currentUser = session.user;
+        document.getElementById('user-display').innerText = currentUser;
+        document.getElementById('startup').style.display = 'none';
+        const app = document.getElementById('app');
+        app.style.display = 'flex';
+        app.style.opacity = '1';
+        loadHistory();
+    }
+
+    function onSignIn(response) {
+        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        currentUser = payload.given_name;
+        document.getElementById('user-display').innerText = currentUser;
+        saveSession(currentUser);
+        enterApp();
+    }
+
+    function enterApp(mode) {
+        if (mode === 'Guest') {
+            currentUser = "Guest";
+            document.getElementById('user-display').innerText = "Guest";
+            saveSession(currentUser);
+        }
+        document.getElementById('startup').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('startup').style.display = 'none';
+            const app = document.getElementById('app');
+            app.style.display = 'flex';
+            setTimeout(() => app.style.opacity = '1', 50);
+            loadHistory();
+        }, 800);
+    }
+
+    // ─── LOFI PLAYER (auto-discovers any mp3 dropped in assets/audio) ─────────
+    // Fallback list is only used if manifest.json can't be fetched (e.g. no build step run yet).
+    const FALLBACK_TRACKS = [
+        { file: 'assets/audio/sunflower.mp3', title: 'Sunflower' },
+        { file: 'assets/audio/bean.mp3', title: 'Bean' },
+        { file: 'assets/audio/flower-cup.mp3', title: 'Flower Cup' },
+        { file: 'assets/audio/apple-tree.mp3', title: 'Apple Tree' },
+        { file: 'assets/audio/spaceship.mp3', title: 'Spaceship' }
+    ];
+
+    async function loadTracks() {
+        try {
+            const res = await fetch('assets/audio/manifest.json');
+            if (!res.ok) throw new Error('no manifest');
+            const manifest = await res.json();
+            tracks = manifest.map(t => ({ file: `assets/audio/${t.file}`, title: t.title }));
+            if (!tracks.length) throw new Error('empty manifest');
+        } catch (e) {
+            tracks = FALLBACK_TRACKS;
+        }
+        renderTrackList();
+
+        const savedVolume = parseInt(localStorage.getItem('knowura_volume') || '70');
+        music.volume = savedVolume / 100;
+        document.getElementById('volumeBar').value = savedVolume;
+    }
+
+    function renderTrackList() {
+        const list = document.getElementById('trackList');
+        list.innerHTML = tracks.map((t, i) => `
+            <div class="track-item${i === currentTrackIndex ? ' playing' : ''}" onclick="playTrack(${i})">
+                ${i === currentTrackIndex && !music.paused
+                    ? '<span class="eq"><i></i><i></i><i></i></span>'
+                    : `<span class="idx">${String(i + 1).padStart(2, '0')}</span>`}
+                <span class="name">${t.title}</span>
+            </div>
+        `).join('');
+    }
+
+    function playTrack(index) {
+        if (!tracks[index]) return;
+        currentTrackIndex = index;
+        music.src = tracks[index].file;
+        music.play().catch(() => alert("Click the screen first to enable audio!"));
+        document.getElementById('trackTitle').innerText = tracks[index].title;
+        document.getElementById('miniTrackTitle').innerText = tracks[index].title;
+        renderTrackList();
+    }
+
+    function togglePlay() {
+        if (currentTrackIndex === -1) { playTrack(0); return; }
+        if (music.paused) {
+            music.play().catch(() => alert("Click the screen first to enable audio!"));
+        } else {
+            music.pause();
+        }
+    }
+
+    function nextTrack() {
+        if (!tracks.length) return;
+        playTrack((currentTrackIndex + 1) % tracks.length);
+    }
+
+    function prevTrack() {
+        if (!tracks.length) return;
+        playTrack((currentTrackIndex - 1 + tracks.length) % tracks.length);
+    }
+
+    function toggleMusicPanel() {
+        document.getElementById('musicPanel').classList.toggle('open');
+    }
+
+    function toggleHamburgerMenu() {
+        document.getElementById('hamburgerPanel').classList.toggle('open');
+    }
+
+    document.addEventListener('click', (e) => {
+        const widget = document.querySelector('.music-widget');
+        if (widget && !widget.contains(e.target)) {
+            document.getElementById('musicPanel').classList.remove('open');
+        }
+        const settingsWidget = document.querySelector('.settings-widget');
+        if (settingsWidget && !settingsWidget.contains(e.target)) {
+            document.getElementById('settingsPanel')?.classList.remove('open');
+        }
+        const hamburgerWidget = document.querySelector('.hamburger-widget');
+        if (hamburgerWidget && !hamburgerWidget.contains(e.target)) {
+            document.getElementById('hamburgerPanel')?.classList.remove('open');
+        }
+    });
+
+    function formatTime(s) {
+        if (!isFinite(s)) return '0:00';
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60).toString().padStart(2, '0');
+        return `${m}:${sec}`;
+    }
+
+    music.addEventListener('play', () => {
+        document.getElementById('playPauseBtn').innerHTML = '<svg class="icon"><use href="#icon-pause"/></svg>';
+        document.getElementById('miniPlayPauseBtn').innerHTML = '<svg class="icon"><use href="#icon-pause"/></svg>';
+        document.getElementById('musicBtn').classList.add('active');
+        document.getElementById('trackArt').classList.add('spinning');
+        document.getElementById('miniPlayer').classList.add('show');
+        renderTrackList();
+    });
+    music.addEventListener('pause', () => {
+        document.getElementById('playPauseBtn').innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
+        document.getElementById('miniPlayPauseBtn').innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
+        document.getElementById('musicBtn').classList.remove('active');
+        document.getElementById('trackArt').classList.remove('spinning');
+        document.getElementById('miniPlayer').classList.remove('show');
+        renderTrackList();
+    });
+    music.addEventListener('ended', nextTrack);
+    music.addEventListener('loadedmetadata', () => {
+        document.getElementById('durTime').innerText = formatTime(music.duration);
+    });
+    music.addEventListener('timeupdate', () => {
+        document.getElementById('curTime').innerText = formatTime(music.currentTime);
+        if (music.duration) {
+            document.getElementById('seekBar').value = (music.currentTime / music.duration) * 1000;
+        }
+    });
+
+    document.getElementById('seekBar').addEventListener('input', (e) => {
+        if (music.duration) music.currentTime = (e.target.value / 1000) * music.duration;
+    });
+    document.getElementById('volumeBar').addEventListener('input', (e) => {
+        music.volume = e.target.value / 100;
+        localStorage.setItem('knowura_volume', e.target.value);
+    });
+
+    loadTracks();
+    updateSettingsUI();
+    applyWakeWordSetting();
+
+    // ─── TIPS BAR (rotates every 30s, replaces the old Netlify attribution line) ──
+
+    const TIPS = [
+        'Type "activate thinking mode" to switch Knowura into Ultra Think for tougher questions.',
+        'Tap the mic icon (when the box is empty) to start a live voice call with Knowura.',
+        'Mid-call, say "Hey Knowura" to interrupt it and grab its attention.',
+        'Ultra Think uses a bigger model with higher reasoning effort — great for hard problems, overkill for small talk.',
+        'Drop any .mp3 into public/assets/audio and it shows up in the music player automatically.',
+        'Knowura remembers facts about you across sessions — clear them anytime from the menu.',
+        'Switch between Seamless and Push-to-Talk voice modes from Settings.',
+        'Ask about anything time-sensitive — Knowura automatically searches the web when it needs to.',
+        'Turn on the "Chat & Voice" wake word in Settings to start a call just by saying "Hey Knowura".',
+        'Check "Stay signed in" at login so you skip the sign-in screen next time.',
+        'Owner Mode needs a registered hardware security key — it can\'t be unlocked by typing or talking.'
+    ];
+    let tipIndex = Math.floor(Math.random() * TIPS.length);
+
+    function showNextTip() {
+        const el = document.getElementById('tipsText');
+        if (!el) return;
+        el.style.opacity = '0';
+        setTimeout(() => {
+            tipIndex = (tipIndex + 1) % TIPS.length;
+            el.innerText = TIPS[tipIndex];
+            el.style.opacity = '1';
+        }, 300);
+    }
+
+    function initTips() {
+        const el = document.getElementById('tipsText');
+        if (el) el.innerText = TIPS[tipIndex];
+        setInterval(showNextTip, 30000);
+    }
+
+    initTips();
+
+    // ─── LIVE VOICE MODE (Groq Whisper STT + PlayAI TTS) ───────────────────
+
+    // Your gif art — one loop per avatar state. "ultra" always overrides the others while active.
+    const ORB_GIFS = {
+        idle: 'assets/images/bloub-cercle-neutre-bleu.gif',
+        listening: 'assets/images/bloub-cercle-attentif-bleu.gif',
+        thinking: 'assets/images/bloub-circle-starting-ai.gif',
+        speaking: 'assets/images/bloub-cercle-attentif-bleu.gif',
+        ultra: 'assets/images/bloub-ultra-thinking-mode.gif'
+    };
+    let currentOrbState = 'idle';
+    let audioCtx = null;
+    let currentReplyAudio = null;
+
+    function setOrbState(state) {
+        currentOrbState = state;
+        const orb = document.getElementById('liveOrb');
+        const wrap = document.getElementById('orbWrap');
+        if (!orb) return;
+        const gif = ultraThinkMode ? ORB_GIFS.ultra : (ORB_GIFS[state] || ORB_GIFS.idle);
+        if (!orb.src.endsWith(gif)) orb.src = gif;
+        if (wrap) wrap.classList.toggle('listening', state === 'listening');
+    }
+
+    function setLiveStatus(text) {
+        const el = document.getElementById('liveStatus');
+        if (el) el.innerText = text;
+    }
+
+    function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async function transcribeBlob(blob) {
+        const base64 = await blobToBase64(blob);
+        const res = await fetch("/.netlify/functions/transcribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio: base64, mimeType: blob.type })
+        });
+        const data = await res.json();
+        return (data.text || '').trim();
+    }
+
+    // ─── LIVE CALL (hands-free — auto-listens, auto-detects when you stop talking) ────
+    // Voice-activity detection watches mic volume: speech above VAD_SPEECH_RMS starts a
+    // capture, VAD_SILENCE_MS of quiet ends it and sends it off. No push-to-talk needed.
+
+    const VAD_SPEECH_RMS = 0.025;
+    const VAD_SILENCE_MS = 900;
+    const VAD_MAX_CAPTURE_MS = 20000;
+    const VAD_MIN_BYTES = 3000; // discard near-empty captures (mic bumps, false triggers)
+
+    let callActive = false;
+    let callMuted = false;
+    let callState = 'idle'; // 'listening' | 'capturing' | 'processing' | 'speaking'
+    let vadStream = null, vadCtx = null, vadAnalyser = null, vadData = null, vadRAF = null;
+    let callRecorder = null, callChunks = [];
+    let silenceTimer = null, maxCaptureTimer = null;
+
+    async function openLivePanel() {
+        document.getElementById('livePanel').classList.add('open');
+        syncUltraToggles();
+        await startCall();
+        applyWakeWordSetting();
+    }
+
+    function closeLivePanel() {
+        endCall();
+        document.getElementById('livePanel').classList.remove('open');
+        applyWakeWordSetting();
+    }
+
+    async function startCall() {
+        if (callActive) return;
+        setLiveStatus('Connecting…');
+        try {
+            vadStream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            });
+        } catch (e) {
+            alert("Microphone access is required for Live Mode.");
+            closeLivePanel();
+            return;
+        }
+        callActive = true;
+        callMuted = false;
+        updateCallControlsUI();
+
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const src = audioCtx.createMediaStreamSource(vadStream);
+        vadAnalyser = audioCtx.createAnalyser();
+        vadAnalyser.fftSize = 512;
+        src.connect(vadAnalyser);
+        vadData = new Uint8Array(vadAnalyser.frequencyBinCount);
+
+        enterListeningState();
+        if (settings.voiceMode === 'seamless') vadLoop();
+    }
+
+    // ─── PUSH TO TALK (used instead of the auto-listening VAD loop when settings.voiceMode === 'ptt') ──
+
+    function pttStart(e) {
+        e.preventDefault();
+        if (!callActive || callMuted || callState === 'processing' || callState === 'speaking') return;
+        document.getElementById('pttBtn')?.classList.add('holding');
+        beginCapture();
+    }
+
+    function pttStop(e) {
+        e.preventDefault();
+        document.getElementById('pttBtn')?.classList.remove('holding');
+        if (callState === 'capturing') finishCapture();
+    }
+
+    function endCall() {
+        callActive = false;
+        callState = 'idle';
+        callMuted = false;
+        if (vadRAF) cancelAnimationFrame(vadRAF);
+        vadRAF = null;
+        clearTimeout(silenceTimer); silenceTimer = null;
+        clearTimeout(maxCaptureTimer); maxCaptureTimer = null;
+        if (callRecorder && callRecorder.state !== 'inactive') {
+            callRecorder.onstop = null;
+            try { callRecorder.stop(); } catch (e) { /* already stopped */ }
+        }
+        if (vadStream) { vadStream.getTracks().forEach(t => t.stop()); vadStream = null; }
+        if (currentReplyAudio) { currentReplyAudio.pause(); currentReplyAudio = null; }
+        document.getElementById('pttBtn')?.classList.remove('holding');
+        setOrbState('idle');
+        setLiveStatus('Call ended');
+    }
+
+    function enterListeningState() {
+        if (!callActive) return;
+        callState = 'listening';
+        setOrbState('idle');
+        setLiveStatus(callMuted ? 'Muted' : 'Listening…');
+        document.getElementById('liveTranscript').innerText = '';
+    }
+
+    function toggleMute() {
+        callMuted = !callMuted;
+        updateCallControlsUI();
+        if (callMuted) {
+            if (callState === 'capturing') {
+                clearTimeout(silenceTimer); silenceTimer = null;
+                clearTimeout(maxCaptureTimer); maxCaptureTimer = null;
+                if (callRecorder && callRecorder.state !== 'inactive') callRecorder.stop();
+            }
+            setLiveStatus('Muted');
+        } else if (callState === 'listening' || callState === 'capturing') {
+            enterListeningState();
+        }
+    }
+
+    function updateCallControlsUI() {
+        const muteBtn = document.getElementById('muteBtn');
+        const pttBtn = document.getElementById('pttBtn');
+        if (!muteBtn || !pttBtn) return;
+        const isPTT = settings.voiceMode === 'ptt';
+        muteBtn.style.display = isPTT ? 'none' : 'flex';
+        pttBtn.style.display = isPTT ? 'flex' : 'none';
+        muteBtn.classList.toggle('muted', callMuted);
+        muteBtn.innerHTML = callMuted
+            ? '<svg class="icon"><use href="#icon-mic-off"/></svg>'
+            : '<svg class="icon"><use href="#icon-mic"/></svg>';
+        muteBtn.title = callMuted ? 'Unmute microphone' : 'Mute microphone';
+    }
+
+    function vadLoop() {
+        if (!callActive) return;
+        vadRAF = requestAnimationFrame(vadLoop);
+        if (callMuted || callState === 'processing' || callState === 'speaking') return;
+
+        vadAnalyser.getByteTimeDomainData(vadData);
+        let sumSquares = 0;
+        for (let i = 0; i < vadData.length; i++) {
+            const v = (vadData[i] - 128) / 128;
+            sumSquares += v * v;
+        }
+        const rms = Math.sqrt(sumSquares / vadData.length);
+
+        if (callState === 'listening' && rms > VAD_SPEECH_RMS) {
+            beginCapture();
+        } else if (callState === 'capturing') {
+            if (rms > VAD_SPEECH_RMS) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+            } else if (!silenceTimer) {
+                silenceTimer = setTimeout(finishCapture, VAD_SILENCE_MS);
+            }
+        }
+    }
+
+    function beginCapture() {
+        callState = 'capturing';
+        setOrbState('listening');
+        setLiveStatus('Listening…');
+        callChunks = [];
+        callRecorder = new MediaRecorder(vadStream);
+        callRecorder.ondataavailable = (e) => { if (e.data.size > 0) callChunks.push(e.data); };
+        callRecorder.onstop = onCaptureStop;
+        callRecorder.start();
+        maxCaptureTimer = setTimeout(finishCapture, VAD_MAX_CAPTURE_MS);
+    }
+
+    function finishCapture() {
+        if (callState !== 'capturing') return;
+        clearTimeout(silenceTimer); silenceTimer = null;
+        clearTimeout(maxCaptureTimer); maxCaptureTimer = null;
+        if (callRecorder && callRecorder.state !== 'inactive') callRecorder.stop();
+    }
+
+    async function onCaptureStop() {
+        if (!callActive || callMuted) { enterListeningState(); return; }
+        const blob = new Blob(callChunks, { type: callRecorder.mimeType || 'audio/webm' });
+        if (blob.size < VAD_MIN_BYTES) { enterListeningState(); return; }
+
+        callState = 'processing';
+        setOrbState('thinking');
+        setLiveStatus(ultraThinkMode ? 'Ultra thinking…' : 'Thinking…');
+        try {
+            const text = await transcribeBlob(blob);
+            if (!callActive) return;
+            if (!text) { enterListeningState(); return; }
+            document.getElementById('liveTranscript').innerText = text;
+            await ask(text, { speak: true, fromVoice: true });
+        } catch (e) {
+            console.error('Transcription failed:', e);
+            if (callActive) { setLiveStatus('Something went wrong'); enterListeningState(); }
+        }
+    }
+
+    async function speakReply(text) {
+        callState = 'speaking';
+        setOrbState('thinking');
+        setLiveStatus('Generating voice…');
+        try {
+            const res = await fetch("/.netlify/functions/speak", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text })
+            });
+            const data = await res.json();
+            if (!data.audio) throw new Error('No audio returned');
+
+            currentReplyAudio = new Audio(`data:${data.mimeType || 'audio/mpeg'};base64,${data.audio}`);
+            setOrbState('speaking');
+            setLiveStatus('Speaking…');
+            hookAnalyser(currentReplyAudio);
+            currentReplyAudio.onended = () => {
+                currentReplyAudio = null;
+                if (callActive) enterListeningState(); else setOrbState('idle');
+            };
+            await currentReplyAudio.play();
+        } catch (e) {
+            console.warn('TTS failed:', e);
+            if (callActive) enterListeningState(); else setOrbState('idle');
+        }
+    }
+
+    function hookAnalyser(audioEl) {
+        try {
+            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaElementSource(audioEl);
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            const orb = document.getElementById('liveOrb');
+
+            function tick() {
+                if (audioEl.paused || audioEl.ended) { if (orb) orb.style.transform = ''; return; }
+                analyser.getByteFrequencyData(data);
+                const avg = data.reduce((a, b) => a + b, 0) / data.length;
+                const scale = 1 + Math.min(0.09, avg / 1300);
+                if (orb) orb.style.transform = `scale(${scale.toFixed(3)})`;
+                requestAnimationFrame(tick);
+            }
+            tick();
+        } catch (e) {
+            // Analyser is a visual nicety only — playback still works without it.
+            console.warn('Audio analyser unavailable:', e);
+        }
+    }
+
+    // ─── SMART SEND BUTTON (morphs into a mic when the input is empty; the mic IS the Live Mode trigger) ──
+
+    function playMorph(el) {
+        el.classList.remove('morph');
+        void el.offsetWidth; // force reflow so the animation can replay
+        el.classList.add('morph');
+    }
+
+    function updateSendBtnUI() {
+        const input = document.getElementById('userInput');
+        const btn = document.getElementById('sendBtn');
+        const hasText = input.value.trim().length > 0;
+        const wasMic = btn.classList.contains('mic-mode');
+
+        if (hasText) {
+            btn.classList.remove('mic-mode');
+            btn.innerHTML = 'Send <svg class="icon"><use href="#icon-arrow-right"/></svg>';
+            btn.title = 'Send message';
+            if (wasMic) playMorph(btn);
+        } else {
+            btn.classList.add('mic-mode');
+            btn.innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>';
+            btn.title = 'Talk to Knowura live';
+            if (!wasMic) playMorph(btn);
+        }
+    }
+
+    function handleSendClick() {
+        const input = document.getElementById('userInput');
+        if (input.value.trim().length > 0) {
+            ask();
+        } else {
+            openLivePanel();
+        }
+    }
+
+    document.getElementById('userInput').addEventListener('input', updateSendBtnUI);
+    updateSendBtnUI();
+
+    document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') ask(); });
+</script>
+</body>
+</html>

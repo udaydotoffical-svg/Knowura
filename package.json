@@ -1,6 +1,10 @@
 {
   "name": "knowura-ai",
   "version": "1.0.0",
+  "scripts": {
+    "build": "node scripts/generate-audio-manifest.js",
+    "generate:audio": "node scripts/generate-audio-manifest.js"
+  },
   "dependencies": {
     "node-fetch": "^2.6.7",
     "@simplewebauthn/server": "^11.0.0",
