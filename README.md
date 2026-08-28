@@ -14,15 +14,20 @@ owner — unlock an uncensored "owner mode" with a hardware security key.
   the Tavily API
 - **Persistent memory** — facts about the user and a rolling conversation
   summary are extracted automatically and stored in `localStorage`, then fed
-  back into every request
+  back into every request. Opt-in, on by default — toggle it off from the
+  menu and it stops reading/writing memory (existing memory isn't deleted;
+  use Clear Memory for that)
 - **Google Sign-In** for identity, with a guest mode that skips auth entirely.
   A "Stay signed in on this device" checkbox (checked by default) on the
   startup screen remembers your display name in `localStorage` and skips the
   startup screen on your next visit — there's no server-side session, so
   logging out (Settings → Log Out) just clears that local record
-- **Owner mode** — a FIDO2/WebAuthn hardware security key unlocks an
-  unrestricted system prompt for the site owner only; verification state is
-  never persisted and resets on refresh
+- **Owner mode** — unlocks an unrestricted system prompt for the site owner
+  only, via a FIDO2/WebAuthn hardware security key **or** a password (for
+  when a key isn't handy). Either path returns a short-lived, server-signed
+  token (`OWNER_TOKEN_SECRET`) that `ask-ai.js` actually verifies — the
+  client can't just claim to be the owner. Verification state is in-memory
+  only and resets on refresh
 - **Lofi music player** — a Spotify-inspired panel (now-playing card, seek
   bar, prev/play/next, volume, track queue) that auto-discovers every mp3 in
   `public/assets/audio/`. Drop a new track in that folder and it just shows
@@ -76,6 +81,8 @@ knowura/
 │   ├── ask-ai.js             # chat + web search + Ultra Think, calls Groq
 │   ├── transcribe.js         # speech-to-text via Groq Whisper (Live Voice)
 │   ├── speak.js              # text-to-speech via Groq Orpheus TTS (Live Voice)
+│   ├── owner-password-verify.js  # password fallback for Owner Mode
+│   ├── _ownerToken.js        # shared HMAC token sign/verify (not a route)
 │   ├── webauthn-register-options.js
 │   ├── webauthn-register-verify.js
 │   ├── webauthn-login-options.js
@@ -107,6 +114,8 @@ local `.env` for `netlify dev`:
 | `ORIGIN`              | WebAuthn expected origin (e.g. `https://knowura.example`) |
 | `NETLIFY_SITE_ID`     | Required by `@netlify/blobs` outside Netlify's own runtime |
 | `NETLIFY_BLOBS_TOKEN` | Required by `@netlify/blobs` outside Netlify's own runtime |
+| `OWNER_PASSWORD`      | Password fallback for unlocking Owner Mode without a security key |
+| `OWNER_TOKEN_SECRET`  | Signs the short-lived token both unlock paths issue — pick a long random string. **Owner mode silently fails closed without this set**, on both the security-key and password paths |
 
 Live Voice mode also needs the site to be served over **HTTPS** (or
 `localhost`) and the browser's microphone permission — both `getUserMedia`
@@ -138,13 +147,22 @@ If you fork this project, also swap the Google OAuth client ID hardcoded in
 `public/index.html` (`data-client_id`) for your own, registered at the
 [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
-### 3. Register an owner security key (one-time, admin only)
+### 3. Set up owner unlock (one-time, admin only)
 
-The "Unlock Owner" button in the header only *logs in* with an already
-registered key — there's no UI for registration. To register the owner's
-key, call `webauthn-register-options` then `webauthn-register-verify`
-directly (e.g. via a small script or `curl` sequence using
-`@simplewebauthn/browser`'s `startRegistration`) once, from a trusted device.
+The "Unlock Owner" option (in the ☰ menu) opens a modal offering two ways
+in — pick one or set up both:
+
+- **Security key**: the modal's "Use Security Key" button only *logs in*
+  with an already-registered key — there's no UI for registration. To
+  register one, call `webauthn-register-options` then
+  `webauthn-register-verify` directly (e.g. via a small script or `curl`
+  sequence using `@simplewebauthn/browser`'s `startRegistration`) once,
+  from a trusted device.
+- **Password**: just set the `OWNER_PASSWORD` env var (and
+  `OWNER_TOKEN_SECRET`, required either way) — no registration step.
+
+Both paths verify server-side in `ask-ai.js` via a signed token; there's no
+way to unlock owner mode by sending a raw flag from the browser.
 
 ### 4. Run locally
 

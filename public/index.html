@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Knowura AI | By Uday Singh</title>
     <link rel="icon" type="image/png" href="assets/images/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,8 +18,8 @@
             --blue-deep: #0f2a80;
             --cyan: #22e5ff;
             --ink: #000000;
-            --panel: rgba(18, 34, 68, 0.5);
-            --panel-strong: rgba(9, 18, 40, 0.72);
+            --panel: rgba(18, 34, 68, 0.26);
+            --panel-strong: rgba(9, 18, 40, 0.4);
             --text: #eaf6ff;
             --text-dim: #8fa6cc;
             --owner: #ff3057;
@@ -35,8 +35,9 @@
 
         body {
             height: 100vh;
+            height: 100dvh; /* shrinks with the on-screen keyboard on mobile instead of getting covered by it */
             background:
-                linear-gradient(180deg, rgba(3,6,16,0.4), rgba(3,6,16,0.62)),
+                linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)),
                 url('assets/images/background.jpg') no-repeat center center fixed;
             background-size: cover;
             display: flex; align-items: center; justify-content: center;
@@ -45,8 +46,8 @@
 
         #startup {
             position: fixed; inset: 0; z-index: 100;
-            background: rgba(3, 6, 14, 0.78);
-            backdrop-filter: blur(18px) saturate(140%);
+            background: rgba(3, 6, 14, 0.42);
+            backdrop-filter: blur(14px) saturate(150%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.6s ease;
             padding: 20px;
@@ -100,7 +101,7 @@
         .checkbox-wrap input:checked ~ .checkbox-box .icon { opacity: 1; transform: scale(1); }
         .checkbox-wrap input:focus-visible ~ .checkbox-box { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
-        #app { display: none; width: 100%; height: 100vh; flex-direction: column; padding: 20px; max-width: 1100px; opacity: 0; transition: opacity 0.5s ease; }
+        #app { display: none; width: 100%; height: 100vh; height: 100dvh; flex-direction: column; padding: 20px; max-width: 1100px; opacity: 0; transition: opacity 0.5s ease; }
 
         .chat-container {
             position: relative;
@@ -113,7 +114,8 @@
         }
 
         header {
-            padding: 14px 22px; background: rgba(6, 12, 26, 0.7);
+            padding: 14px 22px; background: rgba(6, 12, 26, 0.32);
+            backdrop-filter: blur(18px) saturate(140%);
             display: flex; justify-content: space-between; align-items: center; gap: 14px;
             flex-wrap: wrap;
             border-bottom: 3px solid var(--ink);
@@ -126,17 +128,7 @@
         }
 
         .brand-lockup { display: flex; align-items: center; gap: 10px; }
-        .header-logo {
-            height: 30px; padding: 3px; background: var(--panel-strong);
-            border: 2px solid var(--ink); border-radius: 8px;
-            box-shadow: var(--shadow-sm);
-        }
-        .brand-name {
-            font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
-            font-weight: 400; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase;
-            background: linear-gradient(135deg, var(--cyan), var(--blue) 110%);
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-        }
+        .header-logo { height: 46px; display: block; }
         .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
         .btn-ui {
@@ -271,13 +263,17 @@
             animation: dotPulse 1.4s ease-in-out infinite;
         }
 
-        .input-area { padding: 18px 22px; display: flex; gap: 12px; background: rgba(4,8,18,0.65); border-top: 3px solid var(--ink); }
+        .input-area {
+            padding: 18px 22px; display: flex; gap: 12px; background: rgba(4,8,18,0.65); border-top: 3px solid var(--ink);
+            padding-bottom: max(18px, env(safe-area-inset-bottom)); /* clear the home-indicator area on notched phones */
+        }
         input#userInput {
             flex: 1; padding: 13px 20px; border-radius: 12px; border: 2.5px solid var(--ink);
             background: var(--panel-strong); color: var(--text); outline: none;
-            font-size: 14.5px; font-weight: 500; transition: all 0.15s ease;
+            font-size: 16px; font-weight: 500; transition: all 0.15s ease;
             box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4);
         }
+        /* 16px stops iOS Safari auto-zooming the page when the input gets focus */
         input#userInput::placeholder { color: var(--text-dim); }
         input#userInput:focus { border-color: var(--cyan); box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4), 0 0 0 3px rgba(34,229,255,0.2); }
 
@@ -410,12 +406,14 @@
             width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim);
             border: 1px solid var(--ink); transition: all 0.15s ease; flex-shrink: 0;
         }
+        .ultra-toggle .icon { color: var(--owner); transition: color 0.15s ease; }
         .ultra-toggle:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
         .ultra-toggle:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
         .ultra-toggle.active {
             color: #fff; background: linear-gradient(135deg, var(--owner), #ff6b8a);
         }
         .ultra-toggle.active .dot { background: #fff; box-shadow: 0 0 6px #fff; }
+        .ultra-toggle.active .icon { color: #fff; }
 
         .ultra-toggle.compact {
             padding: 4px 10px 4px 8px; font-size: 10px; border-width: 1.5px; gap: 6px;
@@ -451,7 +449,7 @@
 
         .live-panel {
             display: none; position: absolute; inset: 0; z-index: 60;
-            background: rgba(3,6,14,0.94); backdrop-filter: blur(22px) saturate(140%);
+            background: rgba(3,6,14,0.55); backdrop-filter: blur(26px) saturate(150%);
             flex-direction: column; align-items: center; justify-content: center;
             padding: 24px; text-align: center;
         }
@@ -565,15 +563,20 @@
         .hamburger-panel {
             display: none;
             position: absolute; top: calc(100% + 10px); left: 0; z-index: 50;
-            width: 230px;
+            width: 280px; max-height: 80vh; overflow-y: auto;
             background: var(--panel-strong); backdrop-filter: blur(24px) saturate(150%);
             border: 3px solid var(--ink); border-radius: 16px;
             box-shadow: var(--shadow-lg);
-            padding: 12px;
+            padding: 14px;
             flex-direction: column; gap: 6px;
             animation: cardIn 0.2s cubic-bezier(.16,1,.3,1);
         }
         .hamburger-panel.open { display: flex; }
+        .hamburger-panel::-webkit-scrollbar { width: 6px; }
+        .hamburger-panel::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 6px; }
+
+        .menu-status-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+        .menu-status-row:empty { display: none; }
 
         .menu-item {
             display: flex; align-items: center; gap: 10px; width: 100%;
@@ -586,21 +589,79 @@
         .menu-item:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
         .menu-item.active { background: var(--cyan); color: #001018; }
 
-        /* ─── SETTINGS ─────────────────────────────────────────────────── */
+        .ultra-toggle.menu-toggle { width: 100%; justify-content: flex-start; }
 
-        .settings-widget { position: relative; }
-
-        .settings-panel {
-            display: none;
-            position: absolute; top: calc(100% + 10px); right: 0; z-index: 50;
-            width: 290px;
-            background: var(--panel-strong); backdrop-filter: blur(24px) saturate(150%);
-            border: 3px solid var(--ink); border-radius: 16px;
-            box-shadow: var(--shadow-lg);
-            padding: 16px;
-            animation: cardIn 0.2s cubic-bezier(.16,1,.3,1);
+        .glass-slider-row { display: flex; align-items: center; gap: 10px; }
+        input[type="range"].glass-slider {
+            -webkit-appearance: none; appearance: none;
+            flex: 1; height: 10px; border-radius: 999px;
+            background: linear-gradient(90deg, rgba(34,229,255,0.4), rgba(47,107,255,0.15));
+            border: 2px solid var(--ink); outline: none; cursor: pointer;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.4);
         }
-        .settings-panel.open { display: block; }
+        input[type="range"].glass-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+            background: rgba(255,255,255,0.4); backdrop-filter: blur(4px);
+            border: 2px solid var(--ink); box-shadow: 0 0 10px rgba(34,229,255,0.6), 2px 2px 0 var(--ink);
+            cursor: pointer;
+        }
+        input[type="range"].glass-slider::-moz-range-thumb {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: rgba(255,255,255,0.4); border: 2px solid var(--ink);
+            box-shadow: 0 0 10px rgba(34,229,255,0.6);
+        }
+        .glass-slider-value {
+            font-size: 10px; color: var(--cyan); font-weight: 700; min-width: 32px; text-align: right; flex-shrink: 0;
+        }
+
+        /* ─── OWNER UNLOCK MODAL ──────────────────────────────────────────── */
+
+        .owner-modal {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: rgba(3,6,14,0.5); backdrop-filter: blur(18px) saturate(150%);
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .owner-modal.open { display: flex; }
+
+        .owner-modal-card {
+            position: relative; width: 100%; max-width: 340px;
+            background: var(--panel-strong); border: 3px solid var(--ink); border-radius: 20px;
+            box-shadow: var(--shadow-lg); padding: 30px 26px; text-align: center;
+            animation: cardIn 0.25s cubic-bezier(.16,1,.3,1);
+        }
+
+        .owner-modal-divider {
+            display: flex; align-items: center; gap: 10px; margin: 2px 0 16px;
+            font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .owner-modal-divider::before, .owner-modal-divider::after {
+            content: ''; flex: 1; height: 1px; background: rgba(148,163,184,0.25);
+        }
+
+        .owner-password-row { display: flex; gap: 8px; }
+        .owner-password-row input {
+            flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 2px solid var(--ink);
+            background: rgba(255,255,255,0.04); color: var(--text); outline: none; font-size: 13px;
+            transition: border-color 0.15s ease;
+        }
+        .owner-password-row input:focus { border-color: var(--cyan); }
+        .owner-password-row .btn-ui { flex-shrink: 0; }
+
+        .owner-modal-status { margin-top: 12px; font-size: 11px; color: var(--owner); min-height: 14px; }
+
+        /* ─── THEMED ALERT / CONFIRM (replaces native alert()/confirm()) ──── */
+
+        .app-dialog-icon {
+            width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 14px;
+            background: var(--owner-bg); border: 2.5px solid var(--owner); color: var(--owner);
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+            box-shadow: var(--shadow-sm);
+        }
+        .app-dialog-message { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 4px 0 20px; }
+        .app-dialog-actions { display: flex; gap: 10px; justify-content: center; }
+        .btn-ui.secondary { background: transparent; }
+
+        /* ─── SETTINGS ─────────────────────────────────────────────────── */
 
         .settings-section { margin-bottom: 14px; }
         .settings-section:last-child { margin-bottom: 0; }
@@ -635,7 +696,7 @@
         @media (max-width: 680px) {
             #app { padding: 8px; }
             header { padding: 12px 14px; }
-            .brand-name { display: none; }
+            .header-logo { height: 36px; }
             #chat-box { padding: 16px; }
             .msg { max-width: 90%; font-size: 14px; }
             .glass-card { padding: 30px 20px; }
@@ -697,9 +758,6 @@
             <header>
                 <div class="brand-lockup">
                     <img src="assets/images/logo.png" class="header-logo">
-                    <span class="brand-name">Knowura</span>
-                    <span id="memory-badge" class="memory-badge" style="display:none;"><svg class="icon"><use href="#icon-tag"/></svg> Memory ON</span>
-                    <span id="owner-badge" class="memory-badge" style="display:none; border-color:var(--ink); color:var(--owner);"><svg class="icon"><use href="#icon-unlock"/></svg> Owner Mode</span>
                 </div>
                 <div class="controls">
                     <div id="miniPlayer" class="mini-player">
@@ -713,40 +771,58 @@
                             <svg class="icon"><use href="#icon-menu"/></svg>
                         </button>
                         <div id="hamburgerPanel" class="hamburger-panel">
-                            <div class="music-widget">
-                                <button id="musicBtn" class="menu-item" onclick="toggleMusicPanel()"><svg class="icon"><use href="#icon-music"/></svg> Music</button>
-                                <div id="musicPanel" class="music-panel">
-                                    <div class="now-playing">
-                                        <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
-                                        <div class="track-meta">
-                                            <div id="trackTitle" class="track-title">No track loaded</div>
-                                            <div class="track-artist">Knowura Lofi Radio</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress-row">
-                                        <span id="curTime" class="time">0:00</span>
-                                        <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
-                                        <span id="durTime" class="time">0:00</span>
-                                    </div>
-                                    <div class="transport">
-                                        <button class="transport-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
-                                        <button id="playPauseBtn" class="transport-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-play"/></svg></button>
-                                        <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
-                                        <div class="volume-row" title="Volume">
-                                            <span><svg class="icon"><use href="#icon-volume"/></svg></span>
-                                            <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
-                                        </div>
-                                    </div>
-                                    <div id="trackList" class="track-list"></div>
+                            <div id="menuStatusRow" class="menu-status-row">
+                                <span id="memory-badge" class="memory-badge" style="display:none;"><svg class="icon"><use href="#icon-tag"/></svg> Memory ON</span>
+                                <span id="owner-badge" class="memory-badge" style="display:none; border-color:var(--ink); color:var(--owner);"><svg class="icon"><use href="#icon-unlock"/></svg> Owner Mode</span>
+                            </div>
+
+                            <div class="settings-section">
+                                <div class="settings-label">Glass Opacity</div>
+                                <div class="glass-slider-row">
+                                    <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
+                                    <span id="glassOpacityValue" class="glass-slider-value">40%</span>
                                 </div>
                             </div>
-                            <button class="menu-item" onclick="clearMemory()" title="Clear all memory"><svg class="icon"><use href="#icon-trash"/></svg> Clear Memory</button>
-                            <button id="ownerBtn" class="menu-item" onclick="unlockOwnerMode()" title="Unlock owner mode with your security key"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
-                        </div>
-                    </div>
-                    <div class="settings-widget">
-                        <button id="settingsBtn" class="btn-ui" onclick="toggleSettingsPanel()" title="Settings"><svg class="icon"><use href="#icon-settings"/></svg> Settings</button>
-                        <div id="settingsPanel" class="settings-panel">
+
+                            <div class="settings-section">
+                                <div class="settings-label">Playback</div>
+                                <div class="music-widget">
+                                    <button id="musicBtn" class="menu-item" onclick="toggleMusicPanel()"><svg class="icon"><use href="#icon-music"/></svg> Music</button>
+                                    <div id="musicPanel" class="music-panel">
+                                        <div class="now-playing">
+                                            <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
+                                            <div class="track-meta">
+                                                <div id="trackTitle" class="track-title">No track loaded</div>
+                                                <div class="track-artist">Knowura Lofi Radio</div>
+                                            </div>
+                                        </div>
+                                        <div class="progress-row">
+                                            <span id="curTime" class="time">0:00</span>
+                                            <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
+                                            <span id="durTime" class="time">0:00</span>
+                                        </div>
+                                        <div class="transport">
+                                            <button class="transport-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
+                                            <button id="playPauseBtn" class="transport-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-play"/></svg></button>
+                                            <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
+                                            <div class="volume-row" title="Volume">
+                                                <span><svg class="icon"><use href="#icon-volume"/></svg></span>
+                                                <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
+                                            </div>
+                                        </div>
+                                        <div id="trackList" class="track-list"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <div class="settings-label">Memory</div>
+                                <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
+                                    <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
+                                </button>
+                                <button class="menu-item" onclick="clearMemory()" title="Clear all memory" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Clear Memory</button>
+                            </div>
+
                             <div class="settings-section">
                                 <div class="settings-label">Voice Mode</div>
                                 <button class="choice-pill" data-group="voiceMode" data-value="seamless" onclick="setVoiceMode('seamless')">
@@ -771,6 +847,10 @@
                                 <button class="choice-pill" data-group="wakeWord" data-value="off" onclick="setWakeWord('off')">
                                     <span class="choice-row"><span class="choice-dot"></span>Off</span>
                                 </button>
+                            </div>
+
+                            <div class="settings-section">
+                                <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
                             </div>
                             <div class="settings-section">
                                 <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
@@ -817,12 +897,56 @@
         </div>
     </div>
 
+    <div id="ownerModal" class="owner-modal" onclick="if (event.target === this) closeOwnerModal()">
+        <div class="owner-modal-card">
+            <button class="live-close" onclick="closeOwnerModal()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
+            <div class="brand-title" style="font-size:16px;">Unlock Owner Mode</div>
+            <div class="brand-sub" style="margin-bottom:20px;">Verify it's really you</div>
+
+            <button class="btn-ui" style="width:100%; justify-content:center; margin-bottom:16px;" onclick="unlockWithSecurityKey()">
+                <svg class="icon"><use href="#icon-lock"/></svg> Use Security Key
+            </button>
+
+            <div class="owner-modal-divider"><span>or</span></div>
+
+            <div class="owner-password-row">
+                <input type="password" id="ownerPasswordInput" placeholder="Owner password" autocomplete="current-password">
+                <button id="ownerPasswordBtn" class="btn-ui" onclick="unlockWithPassword()">Unlock</button>
+            </div>
+
+            <label class="stay-signed-in" style="margin-top:16px;">
+                <span class="checkbox-wrap">
+                    <input type="checkbox" id="ownerNotMyPc">
+                    <span class="checkbox-box"><svg class="icon"><use href="#icon-check"/></svg></span>
+                </span>
+                This isn't my PC — don't remember this unlock
+            </label>
+
+            <div id="ownerModalStatus" class="owner-modal-status"></div>
+        </div>
+    </div>
+
+    <div id="appDialog" class="owner-modal" onclick="if (event.target === this) dialogCancel()">
+        <div class="owner-modal-card app-dialog-card">
+            <div class="app-dialog-icon"><svg class="icon"><use href="#icon-x"/></svg></div>
+            <div id="appDialogTitle" class="brand-title" style="font-size:16px;"></div>
+            <div id="appDialogMessage" class="app-dialog-message"></div>
+            <div class="app-dialog-actions">
+                <button id="appDialogCancelBtn" class="btn-ui secondary" style="display:none;" onclick="dialogCancel()">Cancel</button>
+                <button id="appDialogConfirmBtn" class="btn-ui" onclick="dialogConfirm()">OK</button>
+            </div>
+        </div>
+    </div>
+
 <script>
     let currentUser = "Learner";
     // conversationMessages holds the raw text history sent to groq (last 10)
     let conversationMessages = [];
-    // Owner mode is in-memory only — never persisted, resets on refresh
+    // Owner mode is in-memory only — never persisted, resets on refresh.
+    // ownerToken is the server-signed proof (from a security key or password unlock);
+    // ownerMode is just a UI flag mirroring whether we currently hold one.
     let ownerMode = false;
+    let ownerToken = null;
     // Ultra Think mode is in-memory only, toggled from chat, voice, or by natural-language command
     let ultraThinkMode = false;
     const music = document.getElementById('bgMusic');
@@ -832,10 +956,11 @@
     // Resume an existing "stay signed in" session before anything else renders,
     // so returning users skip the startup screen instead of seeing it flash.
     tryResumeSession();
+    tryResumeOwnerSession();
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40 };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -852,10 +977,38 @@
         document.querySelectorAll('.choice-pill').forEach(btn => {
             btn.classList.toggle('selected', settings[btn.dataset.group] === btn.dataset.value);
         });
+        document.getElementById('memoryToggle')?.classList.toggle('active', settings.memoryEnabled);
+        const slider = document.getElementById('glassOpacitySlider');
+        if (slider) slider.value = settings.glassOpacity;
+        applyGlassOpacity(settings.glassOpacity);
     }
 
-    function toggleSettingsPanel() {
-        document.getElementById('settingsPanel').classList.toggle('open');
+    // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory, ──
+    // it doesn't delete what's already stored; use Clear Memory for that) ──────
+
+    function toggleMemoryEnabled() {
+        settings.memoryEnabled = !settings.memoryEnabled;
+        saveSettings();
+        updateSettingsUI();
+        updateBadge();
+    }
+
+    // ─── GLASS OPACITY (liquid-glass slider controlling panel translucency) ───
+
+    function applyGlassOpacity(value) {
+        const v = Math.min(90, Math.max(10, Number(value) || 40));
+        const panelAlpha = (v / 100 * 0.6).toFixed(2);
+        const strongAlpha = (v / 100 * 0.85).toFixed(2);
+        document.documentElement.style.setProperty('--panel', `rgba(18, 34, 68, ${panelAlpha})`);
+        document.documentElement.style.setProperty('--panel-strong', `rgba(9, 18, 40, ${strongAlpha})`);
+        const label = document.getElementById('glassOpacityValue');
+        if (label) label.innerText = `${v}%`;
+    }
+
+    function setGlassOpacity(value) {
+        settings.glassOpacity = Number(value);
+        saveSettings();
+        applyGlassOpacity(value);
     }
 
     function setVoiceMode(mode) {
@@ -879,14 +1032,20 @@
         applyWakeWordSetting();
     }
 
-    function logOut() {
-        if (!confirm('Log out of Knowura?')) return;
-        document.getElementById('settingsPanel')?.classList.remove('open');
+    async function logOut() {
+        if (!(await showConfirm('Log out of Knowura?', 'Log Out', 'Log Out', 'Cancel'))) return;
+        document.getElementById('hamburgerPanel')?.classList.remove('open');
         endCall();
         stopWakeListener();
         clearSession();
         try { if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* Google Identity not loaded */ }
         currentUser = 'Learner';
+        ownerMode = false;
+        ownerToken = null;
+        localStorage.removeItem('knowura_owner_token');
+        document.getElementById('owner-badge').style.display = 'none';
+        document.querySelector('header').classList.remove('owner-mode');
+        document.getElementById('ownerBtn').style.display = '';
         const app = document.getElementById('app');
         app.style.opacity = '0';
         setTimeout(() => {
@@ -963,22 +1122,64 @@
         }
     }
 
-    // ─── OWNER MODE (FIDO2 / WebAuthn) ───────────────────────────────────────
+    // ─── OWNER MODE (security key OR password, both issue a signed token) ─────
 
-    async function unlockOwnerMode() {
-        const btn = document.getElementById('ownerBtn');
-        btn.disabled = true;
-        const originalText = btn.innerText;
-        btn.innerText = "Tap your key...";
+    function openOwnerModal() {
+        document.getElementById('hamburgerPanel')?.classList.remove('open');
+        document.getElementById('ownerModalStatus').innerText = '';
+        document.getElementById('ownerPasswordInput').value = '';
+        document.getElementById('ownerNotMyPc').checked = false;
+        document.getElementById('ownerModal').classList.add('open');
+    }
 
+    function closeOwnerModal() {
+        document.getElementById('ownerModal').classList.remove('open');
+    }
+
+    // On a device that's actually yours, an unlock is remembered (localStorage) across
+    // refreshes until the token's own 4h expiry — no need to re-key/re-type every reload.
+    // Check "This isn't my PC" to skip that and only stay unlocked for this tab.
+    function setOwnerUnlocked(token) {
+        ownerMode = true;
+        ownerToken = token;
+        document.getElementById('owner-badge').style.display = 'inline-block';
+        document.querySelector('header').classList.add('owner-mode');
+        document.getElementById('ownerBtn').style.display = 'none';
+
+        const notMyPc = document.getElementById('ownerNotMyPc').checked;
+        if (notMyPc) localStorage.removeItem('knowura_owner_token');
+        else localStorage.setItem('knowura_owner_token', token);
+
+        closeOwnerModal();
+    }
+
+    function tryResumeOwnerSession() {
+        try {
+            const token = localStorage.getItem('knowura_owner_token');
+            if (!token) return;
+            const [expStr] = String(token).split('.');
+            if (!expStr || Date.now() >= Number(expStr)) {
+                localStorage.removeItem('knowura_owner_token');
+                return;
+            }
+            ownerMode = true;
+            ownerToken = token;
+            document.getElementById('owner-badge').style.display = 'inline-block';
+            document.querySelector('header').classList.add('owner-mode');
+            document.getElementById('ownerBtn').style.display = 'none';
+        } catch (e) { /* ignore — just stays locked */ }
+    }
+
+    async function unlockWithSecurityKey() {
+        const statusEl = document.getElementById('ownerModalStatus');
+        statusEl.innerText = 'Tap your key…';
         try {
             const optionsRes = await fetch('/.netlify/functions/webauthn-login-options');
             if (!optionsRes.ok) {
-                alert("No security key registered yet.");
+                statusEl.innerText = 'No security key registered yet.';
                 return;
             }
             const options = await optionsRes.json();
-
             const authResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
 
             const verifyRes = await fetch('/.netlify/functions/webauthn-login-verify', {
@@ -988,26 +1189,48 @@
             });
             const result = await verifyRes.json();
 
-            if (result.verified) {
-                ownerMode = true;
-                document.getElementById('owner-badge').style.display = 'inline-block';
-                document.querySelector('header').classList.add('owner-mode');
-                btn.style.display = 'none';
+            if (result.verified && result.token) {
+                setOwnerUnlocked(result.token);
             } else {
-                alert("Verification failed.");
-                btn.disabled = false;
-                btn.innerText = originalText;
+                statusEl.innerText = result.error || 'Verification failed.';
             }
         } catch (e) {
-            console.warn("Owner unlock cancelled or failed:", e);
-            btn.disabled = false;
-            btn.innerText = originalText;
+            console.warn('Owner unlock (security key) cancelled or failed:', e);
+            statusEl.innerText = 'Cancelled or failed.';
+        }
+    }
+
+    async function unlockWithPassword() {
+        const input = document.getElementById('ownerPasswordInput');
+        const statusEl = document.getElementById('ownerModalStatus');
+        const password = input.value;
+        if (!password) { statusEl.innerText = 'Enter a password.'; return; }
+
+        statusEl.innerText = 'Checking…';
+        try {
+            const res = await fetch('/.netlify/functions/owner-password-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const data = await res.json();
+            if (data.verified && data.token) {
+                setOwnerUnlocked(data.token);
+            } else {
+                statusEl.innerText = data.error || 'Wrong password.';
+            }
+        } catch (e) {
+            console.warn('Owner unlock (password) failed:', e);
+            statusEl.innerText = 'Something went wrong.';
+        } finally {
+            input.value = '';
         }
     }
 
     // ─── MEMORY HELPERS ──────────────────────────────────────────────────────
 
     function getMemory() {
+        if (!settings.memoryEnabled) return { summary: '', facts: [] };
         return {
             summary: localStorage.getItem('knowura_summary') || '',
             facts: JSON.parse(localStorage.getItem('knowura_facts') || '[]')
@@ -1017,15 +1240,15 @@
     function updateBadge() {
         const mem = getMemory();
         const badge = document.getElementById('memory-badge');
-        const hasMemory = mem.summary || mem.facts.length > 0;
+        const hasMemory = settings.memoryEnabled && (mem.summary || mem.facts.length > 0);
         badge.style.display = hasMemory ? 'inline-block' : 'none';
         badge.title = hasMemory
             ? `Facts: ${mem.facts.join(', ') || 'none'}\n\nSummary: ${mem.summary || 'none'}`
             : '';
     }
 
-    function clearMemory() {
-        if (!confirm('Clear all Knowura memory? (facts + summary)')) return;
+    async function clearMemory() {
+        if (!(await showConfirm('Clear all Knowura memory? (facts + summary)', 'Clear Memory', 'Clear', 'Cancel'))) return;
         localStorage.removeItem('knowura_summary');
         localStorage.removeItem('knowura_facts');
         localStorage.removeItem('knowura_chat');
@@ -1132,8 +1355,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function parseThinkCommand(text) {
         const lower = text.toLowerCase();
-        const on = ["activate thinking mode", "enable thinking mode", "turn on thinking mode", "ultra think", "think harder", "deep think", "activate ultra mode", "enable ultra mode"];
-        const off = ["deactivate thinking mode", "disable thinking mode", "turn off thinking mode", "disable ultra mode", "exit thinking mode", "normal mode"];
+        // Deliberately explicit phrases only — "think harder"/"deep think" were removed
+        // because people say those in normal conversation and it kept switching on by itself.
+        const on = ["activate thinking mode", "enable thinking mode", "turn on thinking mode", "activate ultra mode", "enable ultra mode", "turn on ultra mode", "ultra think mode"];
+        const off = ["deactivate thinking mode", "disable thinking mode", "turn off thinking mode", "disable ultra mode", "exit thinking mode", "turn off ultra mode", "normal mode"];
         if (on.some(p => lower.includes(p))) return true;
         if (off.some(p => lower.includes(p))) return false;
         return null;
@@ -1209,7 +1434,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 body: JSON.stringify({
                     messages: conversationMessages,
                     memory: getMemory(),
-                    ownerMode: ownerMode,
+                    ownerToken: ownerToken,
                     ultraThink: ultraThinkMode
                 })
             });
@@ -1224,7 +1449,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 const reply = data.choices[0].message.content;
                 const reasoning = data.choices[0].message?.reasoning;
                 let html = '';
-                if (reasoning) html += `<details class="reasoning"><summary><svg class="icon"><use href="#icon-bolt"/></svg> Ultra reasoning</summary>${marked.parse(reasoning)}</details>`;
+                if (reasoning) html += `<details class="reasoning"><summary><svg class="icon"><use href="#icon-bolt"/></svg> Thought Process</summary>${marked.parse(reasoning)}</details>`;
                 html += marked.parse(reply);
                 thinking.innerHTML = html;
                 saveMsg(thinking.innerHTML, 'ai');
@@ -1233,9 +1458,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 conversationMessages.push({ role: "assistant", content: reply });
                 if (conversationMessages.length > 10) conversationMessages.shift();
 
-                // Run memory updates in background (non-blocking)
-                extractFacts(text, reply);
-                maybeSummarize();
+                // Run memory updates in background (non-blocking) — skip entirely if opted out
+                if (settings.memoryEnabled) {
+                    extractFacts(text, reply);
+                    maybeSummarize();
+                }
 
                 if (opts.speak) speakReply(reply);
                 return reply;
@@ -1391,7 +1618,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!tracks[index]) return;
         currentTrackIndex = index;
         music.src = tracks[index].file;
-        music.play().catch(() => alert("Click the screen first to enable audio!"));
+        music.play().catch(() => showAlert("Click the screen first to enable audio!", "Playback blocked"));
         document.getElementById('trackTitle').innerText = tracks[index].title;
         document.getElementById('miniTrackTitle').innerText = tracks[index].title;
         renderTrackList();
@@ -1400,7 +1627,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function togglePlay() {
         if (currentTrackIndex === -1) { playTrack(0); return; }
         if (music.paused) {
-            music.play().catch(() => alert("Click the screen first to enable audio!"));
+            music.play().catch(() => showAlert("Click the screen first to enable audio!", "Playback blocked"));
         } else {
             music.pause();
         }
@@ -1424,14 +1651,44 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.getElementById('hamburgerPanel').classList.toggle('open');
     }
 
+    // ─── THEMED ALERT / CONFIRM (replaces native alert()/confirm()) ───────────
+
+    let dialogResolve = null;
+
+    function showDialog({ title = '', message = '', confirmText = 'OK', cancelText = null }) {
+        document.getElementById('appDialogTitle').innerText = title;
+        document.getElementById('appDialogMessage').innerText = message;
+        const confirmBtn = document.getElementById('appDialogConfirmBtn');
+        const cancelBtn = document.getElementById('appDialogCancelBtn');
+        confirmBtn.innerText = confirmText;
+        if (cancelText) { cancelBtn.style.display = ''; cancelBtn.innerText = cancelText; }
+        else { cancelBtn.style.display = 'none'; }
+        document.getElementById('appDialog').classList.add('open');
+        return new Promise((resolve) => { dialogResolve = resolve; });
+    }
+
+    function dialogConfirm() {
+        document.getElementById('appDialog').classList.remove('open');
+        if (dialogResolve) { dialogResolve(true); dialogResolve = null; }
+    }
+
+    function dialogCancel() {
+        document.getElementById('appDialog').classList.remove('open');
+        if (dialogResolve) { dialogResolve(false); dialogResolve = null; }
+    }
+
+    function showAlert(message, title = 'Notice') {
+        return showDialog({ title, message, confirmText: 'OK' });
+    }
+
+    function showConfirm(message, title = 'Are you sure?', confirmText = 'Yes', cancelText = 'Cancel') {
+        return showDialog({ title, message, confirmText, cancelText });
+    }
+
     document.addEventListener('click', (e) => {
         const widget = document.querySelector('.music-widget');
         if (widget && !widget.contains(e.target)) {
             document.getElementById('musicPanel').classList.remove('open');
-        }
-        const settingsWidget = document.querySelector('.settings-widget');
-        if (settingsWidget && !settingsWidget.contains(e.target)) {
-            document.getElementById('settingsPanel')?.classList.remove('open');
         }
         const hamburgerWidget = document.querySelector('.hamburger-widget');
         if (hamburgerWidget && !hamburgerWidget.contains(e.target)) {
@@ -1607,7 +1864,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
             });
         } catch (e) {
-            alert("Microphone access is required for Live Mode.");
+            showAlert("Microphone access is required for Live Mode.", "Microphone needed");
             closeLivePanel();
             return;
         }
@@ -1861,6 +2118,30 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     updateSendBtnUI();
 
     document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') ask(); });
+    document.getElementById('ownerPasswordInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') unlockWithPassword(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        closeOwnerModal();
+        if (document.getElementById('appDialog').classList.contains('open')) dialogCancel();
+    });
+
+    // ─── MOBILE DETECTION & KEYBOARD HANDLING ──────────────────────────────────
+    // 100dvh (in the CSS above) + interactive-widget=resizes-content (meta viewport)
+    // handle most of the "keyboard covers the input" problem on modern mobile
+    // browsers on their own. This just tags the page for CSS/JS hooks and nudges
+    // the input above the keyboard on browsers that don't resize the layout.
+
+    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isTouchDevice || isMobileUA) document.documentElement.classList.add('is-touch');
+    if (isMobileUA) document.documentElement.classList.add('is-mobile');
+
+    document.getElementById('userInput').addEventListener('focus', () => {
+        if (!document.documentElement.classList.contains('is-mobile')) return;
+        setTimeout(() => {
+            document.getElementById('userInput').scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 300); // let the keyboard finish animating in first
+    });
 </script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
 const { getStore } = require('@netlify/blobs');
+const { sign } = require('./_ownerToken');
 
 function store() {
     return getStore({
@@ -38,9 +39,20 @@ exports.handler = async (event) => {
         });
     }
 
+    if (verification.verified && !process.env.OWNER_TOKEN_SECRET) {
+        return {
+            statusCode: 500,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ verified: false, error: "Server is missing OWNER_TOKEN_SECRET — key verified but can't issue a session token." })
+        };
+    }
+
     return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ verified: verification.verified })
+        body: JSON.stringify({
+            verified: verification.verified,
+            token: verification.verified ? sign(process.env.OWNER_TOKEN_SECRET) : undefined
+        })
     };
 };
