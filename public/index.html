@@ -119,8 +119,9 @@
             display: flex; justify-content: space-between; align-items: center; gap: 14px;
             flex-wrap: wrap;
             border-bottom: 3px solid var(--ink);
-            transition: background 0.4s ease, border-color 0.4s ease;
+            transition: background 0.4s ease, border-color 0.4s ease, padding 0.4s cubic-bezier(.34, 1.56, .64, 1);
         }
+        header.scrolled { padding: 8px 22px; }
 
         header.owner-mode {
             background: var(--owner-bg);
@@ -128,7 +129,25 @@
         }
 
         .brand-lockup { display: flex; align-items: center; gap: 10px; }
-        .header-logo { height: 46px; display: block; }
+
+        /* Big and proud at the top of the chat; shrinks + gains a wordmark once you scroll down */
+        .header-logo {
+            height: 64px; display: block;
+            transition: height 0.4s cubic-bezier(.34, 1.56, .64, 1);
+        }
+        header.scrolled .header-logo { height: 30px; }
+
+        .brand-name {
+            font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+            font-weight: 400; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase;
+            background: linear-gradient(135deg, var(--cyan), var(--blue) 110%);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
+            transform: translateX(-10px);
+            transition: max-width 0.4s cubic-bezier(.34, 1.56, .64, 1), opacity 0.3s ease, transform 0.4s cubic-bezier(.34, 1.56, .64, 1);
+        }
+        header.scrolled .brand-name { max-width: 160px; opacity: 1; transform: translateX(0); }
+
         .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
         .btn-ui {
@@ -710,7 +729,10 @@
         @media (max-width: 680px) {
             #app { padding: 8px; }
             header { padding: 12px 14px; }
-            .header-logo { height: 36px; }
+            header.scrolled { padding: 6px 14px; }
+            .header-logo { height: 42px; }
+            header.scrolled .header-logo { height: 26px; }
+            .brand-name { font-size: 13px; }
             #chat-box { padding: 16px; }
             .msg { max-width: 90%; font-size: 14px; }
             .glass-card { padding: 30px 20px; }
@@ -773,6 +795,7 @@
             <header>
                 <div class="brand-lockup">
                     <img src="assets/images/logo.png" class="header-logo">
+                    <span class="brand-name">Knowura</span>
                 </div>
                 <div class="controls">
                     <div id="miniPlayer" class="mini-player">
@@ -828,6 +851,18 @@
                                     <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
                                     <span id="glassOpacityValue" class="glass-slider-value">40%</span>
                                 </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <div class="settings-label">Header Style</div>
+                                <button class="choice-pill" data-group="logoView" data-value="big" onclick="setLogoView('big')">
+                                    <span class="choice-row"><span class="choice-dot"></span>Full Logo</span>
+                                    <span class="choice-hint">Default — big logo up top, shrinks with a wordmark as you scroll</span>
+                                </button>
+                                <button class="choice-pill" data-group="logoView" data-value="normal" onclick="setLogoView('normal')">
+                                    <span class="choice-row"><span class="choice-dot"></span>Compact</span>
+                                    <span class="choice-hint">Small top bar always, no shrink animation</span>
+                                </button>
                             </div>
 
                             <div class="settings-section">
@@ -984,7 +1019,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40 };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, logoView: 'big' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1005,6 +1040,26 @@
         const slider = document.getElementById('glassOpacitySlider');
         if (slider) slider.value = settings.glassOpacity;
         applyGlassOpacity(settings.glassOpacity);
+        applyLogoView();
+    }
+
+    // ─── HEADER STYLE (Full Logo shrinks on scroll; Compact stays small always) ──
+
+    function applyLogoView() {
+        const header = document.querySelector('header');
+        if (!header) return;
+        if (settings.logoView === 'normal') {
+            header.classList.add('scrolled');
+        } else {
+            const chatBox = document.getElementById('chat-box');
+            header.classList.toggle('scrolled', (chatBox?.scrollTop || 0) > 12);
+        }
+    }
+
+    function setLogoView(mode) {
+        settings.logoView = mode;
+        saveSettings();
+        updateSettingsUI();
     }
 
     // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory, ──
@@ -2169,6 +2224,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         setTimeout(() => {
             document.getElementById('userInput').scrollIntoView({ block: 'center', behavior: 'smooth' });
         }, 300); // let the keyboard finish animating in first
+    });
+
+    // ─── SHRINKING HEADER (big logo up top, compacts + gains a wordmark on scroll) ──
+    // Only applies in "Full Logo" mode (Settings → Header Style) — "Compact" stays small always.
+    document.getElementById('chat-box').addEventListener('scroll', (e) => {
+        if (settings.logoView === 'normal') return;
+        document.querySelector('header').classList.toggle('scrolled', e.target.scrollTop > 12);
     });
 </script>
 </body>
