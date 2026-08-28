@@ -1461,8 +1461,19 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function toggleUltraMode() {
-        ultraThinkMode = !ultraThinkMode;
+        setUltraThinkMode(!ultraThinkMode);
+    }
+
+    // Central place ultraThinkMode ever actually changes, so the one-time activation
+    // flash (gif + red aura) fires exactly once per off→on transition, from any trigger
+    // (menu toggle, voice toggle, or the typed/spoken "activate thinking mode" command).
+    function setUltraThinkMode(value) {
+        const turningOn = value && !ultraThinkMode;
+        ultraThinkMode = value;
         syncUltraToggles();
+        if (turningOn && document.getElementById('livePanel')?.classList.contains('open')) {
+            flashOrbOnce(ORB_GIFS.ultra, 1500);
+        }
     }
 
     function syncUltraToggles() {
@@ -1471,9 +1482,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const badge = document.getElementById('ultraBadge');
         if (wrap) wrap.classList.toggle('ultra', ultraThinkMode);
         if (badge) badge.style.display = ultraThinkMode ? 'inline-block' : 'none';
-        if (typeof setOrbState === 'function' && typeof currentOrbState !== 'undefined') {
-            setOrbState(currentOrbState); // re-evaluate which gif should be showing
-        }
     }
 
     // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
@@ -1495,8 +1503,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
         const cmd = parseThinkCommand(text);
         if (cmd !== null && cmd !== ultraThinkMode) {
-            ultraThinkMode = cmd;
-            syncUltraToggles();
+            setUltraThinkMode(cmd);
         }
 
         addBubble(text, 'user', true);
@@ -1876,7 +1883,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     // ─── LIVE VOICE MODE (Groq Whisper STT + Orpheus TTS) ───────────────────
 
-    // Your gif art — one loop per avatar state. "ultra" always overrides the others while active.
+    // Your gif art — one loop per avatar state. "ultra" is only ever a one-time flash
+    // (on call start / when Ultra Think switches on), never a persistent state — the
+    // red "holo aura" ring/glow (.orb-wrap.ultra in CSS) is what stays on afterward.
     const ORB_GIFS = {
         idle: 'assets/images/bloub-cercle-neutre-bleu.gif',
         listening: 'assets/images/bloub-cercle-attentif-bleu.gif',
@@ -1885,17 +1894,33 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         ultra: 'assets/images/bloub-ultra-thinking-mode.gif'
     };
     let currentOrbState = 'idle';
+    let orbFlashTimer = null;
     let audioCtx = null;
     let currentReplyAudio = null;
 
     function setOrbState(state) {
         currentOrbState = state;
+        clearTimeout(orbFlashTimer);
+        orbFlashTimer = null;
         const orb = document.getElementById('liveOrb');
         const wrap = document.getElementById('orbWrap');
         if (!orb) return;
-        const gif = ultraThinkMode ? ORB_GIFS.ultra : (ORB_GIFS[state] || ORB_GIFS.idle);
+        const gif = ORB_GIFS[state] || ORB_GIFS.idle;
         if (!orb.src.endsWith(gif)) orb.src = gif;
         if (wrap) wrap.classList.toggle('listening', state === 'listening');
+    }
+
+    // Shows a gif once for `holdMs`, then reverts to whatever the current state's
+    // gif actually is — used for the call-start intro and the Ultra Think activation flash.
+    function flashOrbOnce(gifSrc, holdMs) {
+        const orb = document.getElementById('liveOrb');
+        if (!orb) return;
+        clearTimeout(orbFlashTimer);
+        orb.src = gifSrc;
+        orbFlashTimer = setTimeout(() => {
+            orbFlashTimer = null;
+            orb.src = ORB_GIFS[currentOrbState] || ORB_GIFS.idle;
+        }, holdMs);
     }
 
     function setLiveStatus(text) {
@@ -1976,6 +2001,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         vadData = new Uint8Array(vadAnalyser.frequencyBinCount);
 
         enterListeningState();
+        flashOrbOnce(ORB_GIFS.thinking, 1500); // one-time "booting up" intro, then settles into idle/listening
         if (settings.voiceMode === 'seamless') vadLoop();
     }
 
