@@ -1521,7 +1521,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     initTips();
 
-    // ─── LIVE VOICE MODE (Groq Whisper STT + PlayAI TTS) ───────────────────
+    // ─── LIVE VOICE MODE (Groq Whisper STT + Orpheus TTS) ───────────────────
 
     // Your gif art — one loop per avatar state. "ultra" always overrides the others while active.
     const ORB_GIFS = {
@@ -1772,7 +1772,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 body: JSON.stringify({ text })
             });
             const data = await res.json();
-            if (!data.audio) throw new Error('No audio returned');
+            if (!data.audio) throw new Error(data.error || 'No audio returned');
 
             currentReplyAudio = new Audio(`data:${data.mimeType || 'audio/mpeg'};base64,${data.audio}`);
             setOrbState('speaking');
@@ -1785,7 +1785,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             await currentReplyAudio.play();
         } catch (e) {
             console.warn('TTS failed:', e);
-            if (callActive) enterListeningState(); else setOrbState('idle');
+            setOrbState('idle');
+            setLiveStatus("Couldn't generate voice — check console for details");
+            setTimeout(() => { if (callActive) enterListeningState(); }, 2200);
         }
     }
 

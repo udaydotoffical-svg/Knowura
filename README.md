@@ -31,7 +31,7 @@ owner — unlock an uncensored "owner mode" with a hardware security key.
   Knowura. Default is **Seamless**: it auto-detects when you start/stop
   talking (client-side voice-activity detection on mic volume, no button
   press), transcribes with Groq Whisper, runs it through the same chat
-  pipeline as typed messages, and speaks the reply back with Groq's PlayAI
+  pipeline as typed messages, and speaks the reply back with Groq's Orpheus
   TTS — then automatically starts listening again. **Push to Talk** is
   available as an alternative in Settings if you'd rather control exactly
   when it listens. The avatar is a full-screen animated gif (your own art,
@@ -75,7 +75,7 @@ knowura/
 ├── functions/                # Netlify Functions (serverless backend)
 │   ├── ask-ai.js             # chat + web search + Ultra Think, calls Groq
 │   ├── transcribe.js         # speech-to-text via Groq Whisper (Live Voice)
-│   ├── speak.js              # text-to-speech via Groq PlayAI TTS (Live Voice)
+│   ├── speak.js              # text-to-speech via Groq Orpheus TTS (Live Voice)
 │   ├── webauthn-register-options.js
 │   ├── webauthn-register-verify.js
 │   ├── webauthn-login-options.js
@@ -101,7 +101,7 @@ local `.env` for `netlify dev`:
 
 | Variable              | Used for                                              |
 |-----------------------|--------------------------------------------------------|
-| `GROQ_API_KEY`        | Chat completions, Whisper transcription, and PlayAI TTS — all via Groq |
+| `GROQ_API_KEY`        | Chat completions, Whisper transcription, and Orpheus TTS — all via Groq |
 | `TAVILY_API_KEY`      | Live web search results                                 |
 | `RP_ID`               | WebAuthn relying party ID (your domain, e.g. `knowura.example`) |
 | `ORIGIN`              | WebAuthn expected origin (e.g. `https://knowura.example`) |
@@ -124,7 +124,15 @@ and `AudioContext` require a secure context.
   will silently just not enable it. Treat it as a bonus, not a guarantee.
 - None of the voice code was tested against real microphone/speaker hardware
   or a live Groq key while building this — worth a real run-through after
-  deploying, especially the VAD threshold and PlayAI voice name.
+  deploying, especially the VAD threshold and the Orpheus voice name.
+- Groq deprecates models on a fairly short cycle (this project already hit
+  it twice: `llama-3.1-8b-instant` and `playai-tts` were both retired mid-
+  project). If chat, transcription, or TTS suddenly stop working, check
+  [console.groq.com/docs/deprecations](https://console.groq.com/docs/deprecations)
+  before assuming it's a code bug — the model name in `ask-ai.js`/`speak.js`/
+  `transcribe.js` may just need updating. Some models (Orpheus TTS included)
+  also require accepting their terms once in the Groq console before the API
+  key can use them: `console.groq.com/playground?model=canopylabs/orpheus-v1-english`.
 
 If you fork this project, also swap the Google OAuth client ID hardcoded in
 `public/index.html` (`data-client_id`) for your own, registered at the

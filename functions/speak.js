@@ -1,4 +1,4 @@
-// Text-to-speech for Live Voice mode. Sends reply text to Groq's PlayAI TTS
+// Text-to-speech for Live Voice mode. Sends reply text to Groq's Orpheus TTS
 // endpoint and returns the generated audio as base64 so the browser can play
 // it directly from a data: URI. Uses Node's built-in fetch (no dependency).
 
@@ -15,7 +15,7 @@ exports.handler = async (event) => {
         const { text, voice } = JSON.parse(event.body);
         if (!text) throw new Error("No text provided");
 
-        // PlayAI TTS caps input length; keep clips short and strip Markdown noise.
+        // Orpheus TTS caps input length; keep clips short and strip Markdown noise.
         const clean = text.replace(/[*_`#>]/g, "").slice(0, 1800);
 
         const res = await fetch("https://api.groq.com/openai/v1/audio/speech", {
@@ -25,9 +25,9 @@ exports.handler = async (event) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "playai-tts",
+                model: "canopylabs/orpheus-v1-english",
                 input: clean,
-                voice: voice || "Fritz-PlayAI",
+                voice: voice || "autumn",
                 response_format: "mp3"
             })
         });
