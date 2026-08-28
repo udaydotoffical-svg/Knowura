@@ -1889,10 +1889,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     const ORB_GIFS = {
         idle: 'assets/images/bloub-cercle-neutre-bleu.gif',
         listening: 'assets/images/bloub-cercle-attentif-bleu.gif',
-        thinking: 'assets/images/bloub-circle-starting-ai.gif',
+        thinking: 'assets/images/bloub-normal-thinking.gif',
         speaking: 'assets/images/bloub-cercle-attentif-bleu.gif',
         ultra: 'assets/images/bloub-ultra-thinking-mode.gif'
     };
+    // Played once as a "booting up" flash when a call starts — distinct from the
+    // normal-thinking gif above, which plays every time the AI is actually thinking.
+    const ORB_INTRO_GIF = 'assets/images/bloub-circle-starting-ai.gif';
     let currentOrbState = 'idle';
     let orbFlashTimer = null;
     let audioCtx = null;
@@ -2001,7 +2004,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         vadData = new Uint8Array(vadAnalyser.frequencyBinCount);
 
         enterListeningState();
-        flashOrbOnce(ORB_GIFS.thinking, 1500); // one-time "booting up" intro, then settles into idle/listening
+        flashOrbOnce(ORB_INTRO_GIF, 1500); // one-time "booting up" intro, then settles into idle/listening
         if (settings.voiceMode === 'seamless') vadLoop();
     }
 
