@@ -101,16 +101,108 @@
         .checkbox-wrap input:checked ~ .checkbox-box .icon { opacity: 1; transform: scale(1); }
         .checkbox-wrap input:focus-visible ~ .checkbox-box { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
-        #app { display: none; width: 100%; height: 100vh; height: 100dvh; flex-direction: column; padding: 14px; opacity: 0; transition: opacity 0.5s ease; }
+        #app { display: none; width: 100%; height: 100vh; height: 100dvh; flex-direction: row; gap: 14px; padding: 14px; opacity: 0; transition: opacity 0.5s ease; }
 
         .chat-container {
             position: relative;
-            flex: 1; background: var(--panel); backdrop-filter: blur(22px) saturate(140%);
+            flex: 1; min-width: 0; background: var(--panel); backdrop-filter: blur(22px) saturate(140%);
             border: 3px solid var(--ink); border-radius: 20px;
             box-shadow: var(--shadow-lg);
             display: flex; flex-direction: column; overflow: hidden;
             background-image: linear-gradient(rgba(34,229,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(34,229,255,0.035) 1px, transparent 1px);
             background-size: 26px 26px;
+        }
+
+        /* ─── SIDEBAR (chat list) ─────────────────────────────────────────── */
+
+        .sidebar {
+            width: 270px; flex-shrink: 0;
+            background: var(--panel); backdrop-filter: blur(22px) saturate(140%);
+            border: 3px solid var(--ink); border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: width 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.2s ease, border-width 0.2s ease;
+        }
+        .sidebar.collapsed { width: 0; border-width: 0; box-shadow: none; opacity: 0; pointer-events: none; }
+
+        .sidebar-top { display: flex; gap: 8px; padding: 14px 14px 10px; flex-shrink: 0; }
+        .new-chat-btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: var(--blue); color: #fff; border: 2.5px solid var(--ink); border-radius: 12px;
+            padding: 10px; font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.4px;
+            cursor: pointer; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
+        }
+        .new-chat-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: var(--cyan); color: #001018; }
+        .new-chat-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+
+        .sidebar-search {
+            display: flex; align-items: center; gap: 8px; margin: 0 14px 10px;
+            background: rgba(255,255,255,0.04); border: 2px solid var(--ink); border-radius: 10px;
+            padding: 8px 10px; flex-shrink: 0;
+        }
+        .sidebar-search .icon { color: var(--text-dim); flex-shrink: 0; }
+        .sidebar-search input {
+            flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+            color: var(--text); font-size: 13px;
+        }
+        .sidebar-search input::placeholder { color: var(--text-dim); }
+
+        .chat-list { flex: 1; overflow-y: auto; padding: 0 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+        .chat-list::-webkit-scrollbar { width: 6px; }
+        .chat-list::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 6px; }
+        .chat-list-empty {
+            text-align: center; color: var(--text-dim); font-size: 11.5px; padding: 20px 10px;
+            text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700;
+        }
+
+        .chat-list-item {
+            display: flex; align-items: center; gap: 8px; width: 100%;
+            background: rgba(255,255,255,0.03); border: 2px solid var(--ink); border-radius: 10px;
+            padding: 9px 10px; cursor: pointer; text-align: left;
+            color: var(--text-dim); font-size: 12.5px; font-weight: 600;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
+        }
+        .chat-list-item:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: rgba(47,107,255,0.12); color: var(--text); }
+        .chat-list-item.active { background: linear-gradient(135deg, var(--blue-deep), var(--blue)); color: #fff; border-color: var(--ink); }
+        .chat-list-item .chat-icon { color: var(--cyan); flex-shrink: 0; }
+        .chat-list-item.active .chat-icon { color: #fff; }
+        .chat-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chat-rename-input {
+            flex: 1; min-width: 0; background: rgba(255,255,255,0.1); border: 1.5px solid var(--cyan); border-radius: 6px;
+            color: var(--text); font-size: 12.5px; font-weight: 600; padding: 2px 6px; outline: none;
+        }
+        .chat-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
+        .chat-list-item:hover .chat-actions { display: flex; }
+        .chat-action-btn {
+            width: 22px; height: 22px; border-radius: 6px; background: transparent; border: none;
+            color: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px;
+            transition: color 0.12s ease, background 0.12s ease;
+        }
+        .chat-action-btn:hover { color: var(--owner); background: rgba(255,48,87,0.18); }
+
+        .sidebar-footer { flex-shrink: 0; padding: 12px 14px; border-top: 2px solid rgba(148,163,184,0.15); }
+        .sidebar-user { font-size: 12px; color: var(--cyan); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; min-height: 1em; }
+
+        .sidebar-toggle-header-btn { margin-right: 2px; }
+
+        .sidebar-backdrop {
+            display: none; position: fixed; inset: 0; z-index: 149;
+            background: rgba(3,6,14,0.6); backdrop-filter: blur(6px);
+        }
+        .sidebar-backdrop.show { display: block; }
+
+        @media (max-width: 680px) {
+            #app { gap: 0; }
+            .sidebar {
+                position: fixed; top: 14px; left: 14px; bottom: 14px; z-index: 150;
+                width: 82vw !important; max-width: 300px; border-width: 3px !important;
+                opacity: 1 !important; pointer-events: auto !important;
+                transform: translateX(-115%);
+                transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+            }
+            .sidebar.open { transform: translateX(0); }
         }
 
         header {
@@ -773,6 +865,10 @@
             <symbol id="icon-check" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
             <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
             <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10" width="2" height="7" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/></symbol>
+            <symbol id="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+            <symbol id="icon-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="9.5" y1="4" x2="9.5" y2="20" stroke="currentColor" stroke-width="2"/></symbol>
+            <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5l3.5 3.5L8.5 19 4 20z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+            <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
         </defs>
     </svg>
 
@@ -797,9 +893,28 @@
     </div>
 
     <div id="app">
+        <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeSidebarMobile()"></div>
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-top">
+                <button class="new-chat-btn" onclick="newChat()">
+                    <svg class="icon"><use href="#icon-plus"/></svg> New Chat
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <svg class="icon"><use href="#icon-search"/></svg>
+                <input type="text" id="chatSearchInput" placeholder="Search chats…" oninput="filterChatList(this.value)">
+            </div>
+            <div id="chatList" class="chat-list"></div>
+            <div class="sidebar-footer">
+                <div id="user-display" class="sidebar-user"></div>
+            </div>
+        </aside>
         <div class="chat-container">
             <header>
                 <div class="brand-lockup">
+                    <button id="sidebarToggleBtn" class="btn-ui icon-only sidebar-toggle-header-btn" onclick="toggleSidebar()" title="Toggle chat list">
+                        <svg class="icon"><use href="#icon-sidebar"/></svg>
+                    </button>
                     <img src="assets/images/logo.png" class="header-logo">
                     <span class="brand-name">Knowura</span>
                 </div>
@@ -842,7 +957,6 @@
                             <svg class="icon"><use href="#icon-menu"/></svg>
                         </button>
                     </div>
-                    <div id="user-display" style="font-size: 12px; color: var(--cyan); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; margin-left: 6px;"></div>
                 </div>
             </header>
             <div id="chat-box"></div>
@@ -918,7 +1032,7 @@
                 <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
                     <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
                 </button>
-                <button class="menu-item" onclick="clearMemory()" title="Clear all memory" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Clear Memory</button>
+                <button class="menu-item" onclick="deleteAllChats()" title="Delete all chats" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Delete All Chats</button>
             </div>
 
             <div class="settings-section">
@@ -1022,7 +1136,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, logoView: 'big', captionsEnabled: true };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, logoView: 'big', captionsEnabled: true, sidebarCollapsed: false };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1075,8 +1189,7 @@
         updateSettingsUI();
     }
 
-    // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory, ──
-    // it doesn't delete what's already stored; use Clear Memory for that) ──────
+    // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory) ──
 
     function toggleMemoryEnabled() {
         settings.memoryEnabled = !settings.memoryEnabled;
@@ -1343,16 +1456,12 @@
             : '';
     }
 
-    async function clearMemory() {
-        if (!(await showConfirm('Clear all Knowura memory? (facts + summary)', 'Clear Memory', 'Clear', 'Cancel'))) return;
-        localStorage.removeItem('knowura_summary');
-        localStorage.removeItem('knowura_facts');
-        localStorage.removeItem('knowura_chat');
-        localStorage.removeItem('knowura_msg_count');
-        conversationMessages = [];
-        updateBadge();
-        document.getElementById('chat-box').innerHTML = '';
-        addBubble(`Memory cleared. Fresh start, <b>${currentUser}</b>!`, 'ai', false);
+    async function deleteAllChats() {
+        if (!(await showConfirm('Delete all chats? This can\'t be undone.', 'Delete All Chats', 'Delete All', 'Cancel'))) return;
+        document.getElementById('hamburgerPanel')?.classList.remove('open');
+        chatStore = { chats: [], activeChatId: null };
+        saveChatStore();
+        newChat();
     }
 
     // ─── ENTITY EXTRACTION (runs after every AI reply) ────────────────────────
@@ -1405,7 +1514,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
         if (count % 10 !== 0) return;
 
-        const history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
+        const history = getActiveChat()?.messages || [];
         const recentText = history.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'Knowura'}: ${m.text.replace(/<[^>]+>/g, '')}`).join('\n');
 
         try {
@@ -1555,7 +1664,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 if (reasoning) html += `<details class="reasoning"><summary><svg class="icon"><use href="#icon-bolt"/></svg> Thought Process</summary>${marked.parse(reasoning)}</details>`;
                 html += marked.parse(reply);
                 thinking.innerHTML = html;
-                saveMsg(thinking.innerHTML, 'ai');
+                saveActiveChat(thinking.innerHTML, 'ai');
 
                 // Add AI reply to conversation window
                 conversationMessages.push({ role: "assistant", content: reply });
@@ -1596,31 +1705,176 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         div.innerHTML = t;
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
-        if (save) saveMsg(t, c);
+        if (save) saveActiveChat(t, c);
         return div;
     }
 
-    function saveMsg(text, type) {
-        let history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
-        history.push({ text, type });
-        localStorage.setItem('knowura_chat', JSON.stringify(history.slice(-30)));
+    // ─── CHAT STORE (guest, client-side multi-chat) ────────────────────────
+
+    function loadChatStore() {
+        try {
+            const raw = JSON.parse(localStorage.getItem('knowura_guest_chats') || 'null');
+            if (raw && Array.isArray(raw.chats)) return raw;
+        } catch (e) { /* fall through */ }
+        return { chats: [], activeChatId: null };
+    }
+    let chatStore = loadChatStore();
+    function saveChatStore() { localStorage.setItem('knowura_guest_chats', JSON.stringify(chatStore)); }
+    function getActiveChat() { return chatStore.chats.find(c => c.id === chatStore.activeChatId) || null; }
+    function makeChatId() { return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6); }
+
+    function migrateOldChatHistory() {
+        if (chatStore.chats.length > 0) return;
+        let old;
+        try { old = JSON.parse(localStorage.getItem('knowura_chat') || '[]'); } catch (e) { old = []; }
+        if (!old.length) return;
+        const chat = {
+            id: makeChatId(), title: 'Imported Chat', createdAt: Date.now(), updatedAt: Date.now(),
+            messages: old.map(m => ({ text: m.text, type: m.type }))
+        };
+        chatStore.chats.push(chat);
+        chatStore.activeChatId = chat.id;
+        saveChatStore();
     }
 
-    function loadHistory() {
-        let history = JSON.parse(localStorage.getItem('knowura_chat') || '[]');
-        if (history.length === 0) {
+    function ensureActiveChat() {
+        migrateOldChatHistory();
+        if (!chatStore.chats.length) { newChat(); return; }
+        if (!getActiveChat()) { chatStore.activeChatId = chatStore.chats[0].id; saveChatStore(); }
+    }
+
+    function newChat() {
+        const chat = { id: makeChatId(), title: 'New Chat', createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
+        chatStore.chats.unshift(chat);
+        chatStore.activeChatId = chat.id;
+        saveChatStore();
+        renderActiveChat();
+        renderChatList();
+        closeSidebarMobile();
+    }
+
+    function switchChat(id) {
+        if (id === chatStore.activeChatId) { closeSidebarMobile(); return; }
+        chatStore.activeChatId = id;
+        saveChatStore();
+        renderActiveChat();
+        renderChatList();
+        closeSidebarMobile();
+    }
+
+    function renderActiveChat() {
+        const box = document.getElementById('chat-box');
+        box.innerHTML = '';
+        conversationMessages = [];
+        const chat = getActiveChat();
+        if (!chat || chat.messages.length === 0) {
             addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
         } else {
-            history.forEach(m => addBubble(m.text, m.type, false));
-            // Rebuild conversationMessages from last 10 saved (plain text only)
-            history.slice(-10).forEach(m => {
-                conversationMessages.push({
-                    role: m.type === 'user' ? 'user' : 'assistant',
-                    content: m.text.replace(/<[^>]+>/g, '')
-                });
+            chat.messages.forEach(m => addBubble(m.text, m.type, false));
+            chat.messages.slice(-10).forEach(m => {
+                conversationMessages.push({ role: m.type === 'user' ? 'user' : 'assistant', content: m.text.replace(/<[^>]+>/g, '') });
             });
         }
         updateBadge();
+    }
+
+    function saveActiveChat(text, type) {
+        let chat = getActiveChat();
+        if (!chat) { newChat(); chat = getActiveChat(); }
+        chat.messages.push({ text, type });
+        if (chat.messages.length > 60) chat.messages = chat.messages.slice(-60);
+        chat.updatedAt = Date.now();
+        if (type === 'user' && chat.title === 'New Chat') {
+            const plain = text.replace(/<[^>]+>/g, '').trim();
+            chat.title = plain.length > 42 ? plain.slice(0, 42).trim() + '…' : (plain || 'New Chat');
+        }
+        saveChatStore();
+        renderChatList();
+    }
+
+    function renderChatList(filter) {
+        const list = document.getElementById('chatList');
+        if (!list) return;
+        const q = (filter ?? document.getElementById('chatSearchInput')?.value ?? '').trim().toLowerCase();
+        const sorted = [...chatStore.chats].sort((a, b) => b.updatedAt - a.updatedAt);
+        const filtered = q ? sorted.filter(c => c.title.toLowerCase().includes(q)) : sorted;
+        if (!filtered.length) { list.innerHTML = `<div class="chat-list-empty">No chats yet</div>`; return; }
+        list.innerHTML = filtered.map(c => `
+            <div class="chat-list-item${c.id === chatStore.activeChatId ? ' active' : ''}" data-id="${c.id}" onclick="switchChat('${c.id}')">
+                <svg class="icon chat-icon"><use href="#icon-chat"/></svg>
+                <span class="chat-title">${escapeHtml(c.title)}</span>
+                <span class="chat-actions">
+                    <button class="chat-action-btn" onclick="event.stopPropagation(); renameChat('${c.id}')" title="Rename"><svg class="icon"><use href="#icon-edit"/></svg></button>
+                    <button class="chat-action-btn" onclick="event.stopPropagation(); deleteChat('${c.id}')" title="Delete"><svg class="icon"><use href="#icon-trash"/></svg></button>
+                </span>
+            </div>
+        `).join('');
+    }
+
+    function filterChatList(query) { renderChatList(query); }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function renameChat(id) {
+        const chat = chatStore.chats.find(c => c.id === id);
+        if (!chat) return;
+        const titleEl = document.querySelector(`.chat-list-item[data-id="${id}"] .chat-title`);
+        if (!titleEl) return;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'chat-rename-input';
+        input.value = chat.title;
+        titleEl.replaceWith(input);
+        input.focus();
+        input.select();
+        const commit = () => {
+            const val = input.value.trim();
+            chat.title = val || chat.title;
+            saveChatStore();
+            renderChatList();
+        };
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') input.blur();
+            if (e.key === 'Escape') { input.value = chat.title; input.blur(); }
+        });
+        input.addEventListener('blur', commit, { once: true });
+    }
+
+    async function deleteChat(id) {
+        const chat = chatStore.chats.find(c => c.id === id);
+        if (!chat) return;
+        if (!(await showConfirm(`Delete "${chat.title}"? This can't be undone.`, 'Delete Chat', 'Delete', 'Cancel'))) return;
+        chatStore.chats = chatStore.chats.filter(c => c.id !== id);
+        if (chatStore.activeChatId === id) {
+            chatStore.activeChatId = chatStore.chats[0]?.id || null;
+            if (!chatStore.activeChatId) { newChat(); return; }
+        }
+        saveChatStore();
+        renderActiveChat();
+        renderChatList();
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        if (window.matchMedia('(max-width: 680px)').matches) {
+            const opening = !sidebar.classList.contains('open');
+            sidebar.classList.toggle('open', opening);
+            backdrop.classList.toggle('show', opening);
+        } else {
+            settings.sidebarCollapsed = !settings.sidebarCollapsed;
+            saveSettings();
+            sidebar.classList.toggle('collapsed', settings.sidebarCollapsed);
+        }
+    }
+
+    function closeSidebarMobile() {
+        document.getElementById('sidebar')?.classList.remove('open');
+        document.getElementById('sidebarBackdrop')?.classList.remove('show');
     }
 
     // ─── AUTH ─────────────────────────────────────────────────────────────
@@ -1651,7 +1905,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const app = document.getElementById('app');
         app.style.display = 'flex';
         app.style.opacity = '1';
-        loadHistory();
+        ensureActiveChat();
+        renderActiveChat();
+        renderChatList();
+        if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
     }
 
     function onSignIn(response) {
@@ -1674,7 +1931,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const app = document.getElementById('app');
             app.style.display = 'flex';
             setTimeout(() => app.style.opacity = '1', 50);
-            loadHistory();
+            ensureActiveChat();
+            renderActiveChat();
+            renderChatList();
+            if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
         }, 800);
     }
 
