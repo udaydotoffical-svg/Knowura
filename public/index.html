@@ -1245,6 +1245,8 @@
         clearSession();
         try { if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* Google Identity not loaded */ }
         currentUser = 'Learner';
+        userSub = null;
+        userToken = null;
         ownerMode = false;
         ownerToken = null;
         localStorage.removeItem('knowura_owner_token');
@@ -1887,9 +1889,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         catch (e) { return null; }
     }
 
-    function saveSession(user) {
+    function saveSession(user, extra = {}) {
         if (!document.getElementById('stayInput')?.checked) return;
-        localStorage.setItem('knowura_session', JSON.stringify({ user, savedAt: Date.now() }));
+        localStorage.setItem('knowura_session', JSON.stringify({ user, savedAt: Date.now(), ...extra }));
     }
 
     function clearSession() {
@@ -1900,6 +1902,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const session = getSession();
         if (!session?.user) return;
         currentUser = session.user;
+        userSub = session.sub || null;
+        userToken = session.sessionToken || null;
         document.getElementById('user-display').innerText = currentUser;
         document.getElementById('startup').style.display = 'none';
         const app = document.getElementById('app');
@@ -1911,19 +1915,42 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
     }
 
-    function onSignIn(response) {
-        const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        currentUser = payload.given_name;
-        document.getElementById('user-display').innerText = currentUser;
-        saveSession(currentUser);
-        enterApp();
+    // sub/token for a verified Google session — chat sync (chat-load/chat-save)
+    // isn't wired up to actually use these yet, still riding the local/guest
+    // chat store, but the session is real (server-verified) as of this point.
+    let userSub = null;
+    let userToken = null;
+
+    async function onSignIn(response) {
+        try {
+            const res = await fetch("/.netlify/functions/google-signin-verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: response.credential })
+            });
+            const data = await res.json();
+            if (!data.verified) {
+                showAlert(data.error || "Google couldn't verify that sign-in. Please try again.", "Sign-in failed");
+                return;
+            }
+            currentUser = data.profile.given_name;
+            userSub = data.profile.sub;
+            userToken = data.token;
+            document.getElementById('user-display').innerText = currentUser;
+            saveSession(currentUser, { mode: 'google', sub: userSub, sessionToken: userToken });
+            enterApp();
+        } catch (e) {
+            showAlert("Couldn't reach Knowura's sign-in service. Check your connection and try again.", "Sign-in failed");
+        }
     }
 
     function enterApp(mode) {
         if (mode === 'Guest') {
             currentUser = "Guest";
+            userSub = null;
+            userToken = null;
             document.getElementById('user-display').innerText = "Guest";
-            saveSession(currentUser);
+            saveSession(currentUser, { mode: 'guest' });
         }
         document.getElementById('startup').style.opacity = '0';
         setTimeout(() => {

@@ -89,7 +89,11 @@ knowura/
 │   ├── webauthn-register-options.js
 │   ├── webauthn-register-verify.js
 │   ├── webauthn-login-options.js
-│   └── webauthn-login-verify.js
+│   ├── webauthn-login-verify.js
+│   ├── google-signin-verify.js   # server-side Google ID-token verification
+│   ├── _userToken.js         # shared HMAC user-session token sign/verify (not a route)
+│   ├── chat-load.js          # loads a signed-in user's cloud chat document
+│   └── chat-save.js          # overwrites a signed-in user's cloud chat document
 ├── scripts/
 │   ├── generate-audio-manifest.js  # scans assets/audio/, writes manifest.json
 │   └── check-init.js         # runs public/index.html's inline script against a stub
@@ -123,6 +127,8 @@ local `.env` for `netlify dev`:
 | `NETLIFY_BLOBS_TOKEN` | Required by `@netlify/blobs` outside Netlify's own runtime |
 | `OWNER_PASSWORD`      | Password fallback for unlocking Owner Mode without a security key |
 | `OWNER_TOKEN_SECRET`  | Signs the short-lived token both unlock paths issue — pick a long random string. **Owner mode silently fails closed without this set**, on both the security-key and password paths |
+| `GOOGLE_CLIENT_ID`    | Server-side copy of the OAuth client ID (same value as the `data-client_id` hardcoded in `index.html`) — used by `google-signin-verify.js` to check a credential's `aud` before trusting it |
+| `KNOWURA_USER_TOKEN_SECRET` | Signs the session token issued after a verified Google sign-in (`_userToken.js`), used by `chat-load.js`/`chat-save.js` to trust which account's blob to read/write. Separate secret from `OWNER_TOKEN_SECRET` — different trust domain, don't reuse |
 
 Live Voice mode also needs the site to be served over **HTTPS** (or
 `localhost`) and the browser's microphone permission — both `getUserMedia`
