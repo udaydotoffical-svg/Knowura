@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="assets/images/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
@@ -29,7 +29,7 @@
             --shadow-lg: 8px 8px 0 var(--ink);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'DotGothic16', 'Segoe UI', sans-serif; }
 
         .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
 
@@ -76,7 +76,7 @@
         }
 
         .brand-title {
-            font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+            font-family: 'DotGothic16', sans-serif;
             font-size: 22px; font-weight: 400; letter-spacing: 0.5px; color: var(--text);
             text-transform: uppercase;
         }
@@ -124,8 +124,14 @@
             transition: width 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.2s ease, border-width 0.2s ease;
         }
         .sidebar.collapsed { width: 0; border-width: 0; box-shadow: none; opacity: 0; pointer-events: none; }
+        .sidebar.owner-mode { background: var(--owner-bg); border-color: var(--owner); }
 
-        .sidebar-top { display: flex; gap: 8px; padding: 14px 14px 10px; flex-shrink: 0; }
+        .sidebar-top { display: flex; flex-direction: column; gap: 10px; padding: 16px 14px 10px; flex-shrink: 0; }
+        .sidebar-brand { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
+        .sidebar-logo { height: 28px; display: block; }
+        .sidebar-brand .brand-name {
+            max-width: none; opacity: 1; transform: none; font-size: 14px;
+        }
         .new-chat-btn {
             flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
             background: var(--blue); color: #fff; border: 2.5px solid var(--ink); border-radius: 12px;
@@ -182,10 +188,24 @@
         }
         .chat-action-btn:hover { color: var(--owner); background: rgba(255,48,87,0.18); }
 
-        .sidebar-footer { flex-shrink: 0; padding: 12px 14px; border-top: 2px solid rgba(148,163,184,0.15); }
-        .sidebar-user { font-size: 12px; color: var(--cyan); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; min-height: 1em; }
+        .sidebar-footer { flex-shrink: 0; padding: 10px 14px 14px; border-top: 2px solid rgba(148,163,184,0.15); }
+        .sidebar-footer-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .sidebar-user {
+            font-size: 12px; color: var(--cyan); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+            min-height: 1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sidebar-footer-icons { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .sidebar-footer .mini-player { margin-bottom: 8px; width: 100%; box-sizing: border-box; }
+        .sidebar-footer .mini-track-title { max-width: none; flex: 1; }
 
-        .sidebar-toggle-header-btn { margin-right: 2px; }
+        /* The music panel normally drops down from a header button; anchored in the
+           sidebar footer instead, it needs to open upward so it doesn't run off-screen. */
+        .music-panel-up { top: auto !important; bottom: calc(100% + 10px); left: 0; right: auto !important; }
+
+        .chat-sidebar-toggle {
+            position: absolute; top: 16px; left: 16px; z-index: 5;
+            background: var(--panel-strong);
+        }
 
         .sidebar-backdrop {
             display: none; position: fixed; inset: 0; z-index: 149;
@@ -205,42 +225,12 @@
             .sidebar.open { transform: translateX(0); }
         }
 
-        header {
-            padding: 14px 22px; background: rgba(6, 12, 26, 0.32);
-            backdrop-filter: blur(18px) saturate(140%);
-            display: flex; justify-content: space-between; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-            border-bottom: 3px solid var(--ink);
-            transition: background 0.4s ease, border-color 0.4s ease, padding 0.4s cubic-bezier(.34, 1.56, .64, 1);
-        }
-        header.scrolled { padding: 8px 22px; }
-
-        header.owner-mode {
-            background: var(--owner-bg);
-            border-bottom: 3px solid var(--owner);
-        }
-
-        .brand-lockup { display: flex; align-items: center; gap: 10px; }
-
-        /* Big and proud at the top of the chat; shrinks + gains a wordmark once you scroll down */
-        .header-logo {
-            height: 64px; display: block;
-            transition: height 0.4s cubic-bezier(.34, 1.56, .64, 1);
-        }
-        header.scrolled .header-logo { height: 30px; }
-
         .brand-name {
-            font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+            font-family: 'DotGothic16', sans-serif;
             font-weight: 400; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase;
             background: linear-gradient(135deg, var(--cyan), var(--blue) 110%);
             -webkit-background-clip: text; background-clip: text; color: transparent;
-            max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
-            transform: translateX(-10px);
-            transition: max-width 0.4s cubic-bezier(.34, 1.56, .64, 1), opacity 0.3s ease, transform 0.4s cubic-bezier(.34, 1.56, .64, 1);
         }
-        header.scrolled .brand-name { max-width: 160px; opacity: 1; transform: translateX(0); }
-
-        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
         .btn-ui {
             background: var(--panel-strong); border: 2.5px solid var(--ink);
@@ -267,7 +257,7 @@
         .btn-ui:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: var(--shadow-sm); }
 
         #chat-box {
-            flex: 1; padding: 26px; overflow-y: auto; overflow-x: hidden;
+            flex: 1; padding: 26px; padding-top: 64px; overflow-y: auto; overflow-x: hidden;
             display: flex; flex-direction: column; gap: 16px;
         }
         #chat-box::-webkit-scrollbar { width: 10px; }
@@ -303,6 +293,44 @@
         .msg ul, .msg ol { margin: 6px 0 10px 20px; }
         .msg li { margin-bottom: 4px; }
         .msg a { color: var(--cyan); text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
+        /* ─── EMPTY-STATE LANDING ──────────────────────────────────────── */
+
+        .empty-state {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; gap: 6px; padding: 20px; animation: fadeInUp 0.35s cubic-bezier(.16,1,.3,1);
+        }
+        .empty-logo { height: 60px; margin-bottom: 10px; filter: drop-shadow(0 4px 0 var(--ink)); }
+        .empty-greeting {
+            font-family: 'DotGothic16', sans-serif; font-weight: 400;
+            font-size: clamp(22px, 4vw, 32px); color: var(--text); margin: 0;
+        }
+        .empty-greeting b {
+            background: linear-gradient(135deg, var(--cyan), var(--blue) 110%);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .empty-sub { color: var(--text-dim); font-size: 13.5px; margin: 0 0 22px; }
+        .empty-suggestions {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 560px;
+        }
+        .suggestion-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--panel-strong); border: 2px solid var(--ink); border-radius: 999px;
+            padding: 10px 16px; font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+            cursor: pointer; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
+        }
+        .suggestion-chip .icon { color: var(--cyan); width: 0.95em; height: 0.95em; }
+        .suggestion-chip:hover {
+            transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink);
+            background: rgba(47,107,255,0.15); color: var(--text);
+        }
+        .suggestion-chip:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+
+        @media (max-width: 680px) {
+            .empty-logo { height: 44px; }
+            .empty-suggestions { max-width: 100%; }
+        }
+
         .msg a:hover { color: #9df1ff; }
         .msg strong { color: #fff; font-weight: 700; }
         .msg blockquote {
@@ -325,7 +353,7 @@
         }
 
         .msg code {
-            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-family: 'DotGothic16', 'Courier New', monospace;
             font-size: 12.5px;
             color: var(--cyan);
             display: block;
@@ -446,7 +474,7 @@
         .track-artist { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
         .progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .time { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; min-width: 30px; }
+        .time { font-size: 10px; color: var(--text-dim); font-family: 'DotGothic16', monospace; min-width: 30px; }
         .time:last-child { text-align: right; }
 
         input[type="range"].seek-bar {
@@ -491,7 +519,7 @@
         }
         .track-item:hover { background: rgba(47,107,255,0.15); border-color: rgba(34,229,255,0.2); color: var(--text); }
         .track-item.playing { background: rgba(34,229,255,0.12); border-color: var(--cyan); color: var(--cyan); }
-        .track-item .idx { font-family: 'JetBrains Mono', monospace; font-size: 10px; width: 16px; flex-shrink: 0; }
+        .track-item .idx { font-family: 'DotGothic16', monospace; font-size: 10px; width: 16px; flex-shrink: 0; }
         .track-item .eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 10px; width: 12px; flex-shrink: 0; }
         .track-item .eq i { width: 2px; background: var(--cyan); animation: eqBounce 0.9s ease-in-out infinite; }
         .track-item .eq i:nth-child(1) { height: 40%; animation-delay: 0s; }
@@ -532,6 +560,25 @@
         }
         .ultra-toggle.compact:hover { box-shadow: 3px 3px 0 var(--ink); }
         .ultra-toggle.compact .icon { width: 0.85em; height: 0.85em; }
+
+        /* ─── MODEL SELECTOR (fused with the Ultra Think row) ────────────── */
+
+        .model-select-wrap {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: var(--panel-strong); border: 1.5px solid var(--ink); border-radius: 999px;
+            padding: 4px 10px 4px 9px; box-shadow: 2px 2px 0 var(--ink);
+            transition: box-shadow 0.12s ease, transform 0.12s ease;
+        }
+        .model-select-wrap:hover { box-shadow: 3px 3px 0 var(--ink); transform: translate(-1px, -1px); }
+        .model-select-wrap .icon { color: var(--cyan); width: 0.85em; height: 0.85em; flex-shrink: 0; }
+        .model-select {
+            appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
+            color: var(--text-dim); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+            cursor: pointer; padding-right: 2px;
+        }
+        .model-select option { background: var(--panel-strong); color: var(--text); }
+        .live-ultra-row .model-select-wrap { margin-right: 8px; padding: 6px 12px 6px 11px; }
+        .live-ultra-row .model-select { font-size: 11px; }
 
         .tips-bar {
             display: flex; align-items: center; gap: 10px;
@@ -645,7 +692,7 @@
             50% { box-shadow: 0 0 0 7px rgba(34,229,255,0.3), var(--shadow-md); }
         }
 
-        .live-ultra-row { margin-top: 20px; }
+        .live-ultra-row { margin-top: 20px; display: flex; align-items: center; justify-content: center; }
 
         /* ─── MINI PLAYER (appears in the top bar while a track is playing) ──── */
 
@@ -826,12 +873,8 @@
 
         @media (max-width: 680px) {
             #app { padding: 8px; }
-            header { padding: 12px 14px; }
-            header.scrolled { padding: 6px 14px; }
-            .header-logo { height: 42px; }
-            header.scrolled .header-logo { height: 26px; }
             .brand-name { font-size: 13px; }
-            #chat-box { padding: 16px; }
+            #chat-box { padding: 16px; padding-top: 56px; }
             .msg { max-width: 90%; font-size: 14px; }
             .glass-card { padding: 30px 20px; }
         }
@@ -869,6 +912,7 @@
             <symbol id="icon-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="9.5" y1="4" x2="9.5" y2="20" stroke="currentColor" stroke-width="2"/></symbol>
             <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5l3.5 3.5L8.5 19 4 20z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/></symbol>
             <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+            <symbol id="icon-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="10" y="10" width="4" height="4" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="9" y1="2" x2="9" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="2" x2="15" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="18" x2="9" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="18" x2="15" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="9" x2="6" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="15" x2="6" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18" y1="9" x2="22" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18" y1="15" x2="22" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
         </defs>
     </svg>
 
@@ -896,6 +940,10 @@
         <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeSidebarMobile()"></div>
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-top">
+                <div class="sidebar-brand">
+                    <img src="assets/images/logo.png" class="sidebar-logo">
+                    <span class="brand-name sidebar-brand-name">Knowura</span>
+                </div>
                 <button class="new-chat-btn" onclick="newChat()">
                     <svg class="icon"><use href="#icon-plus"/></svg> New Chat
                 </button>
@@ -906,65 +954,68 @@
             </div>
             <div id="chatList" class="chat-list"></div>
             <div class="sidebar-footer">
-                <div id="user-display" class="sidebar-user"></div>
+                <div id="miniPlayer" class="mini-player">
+                    <button class="mini-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
+                    <button id="miniPlayPauseBtn" class="mini-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-pause"/></svg></button>
+                    <button class="mini-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
+                    <span id="miniTrackTitle" class="mini-track-title">—</span>
+                </div>
+                <div class="sidebar-footer-row">
+                    <div id="user-display" class="sidebar-user"></div>
+                    <div class="sidebar-footer-icons">
+                        <div class="music-widget">
+                            <button id="musicBtn" class="btn-ui icon-only" onclick="toggleMusicPanel()" title="Music"><svg class="icon"><use href="#icon-music"/></svg></button>
+                            <div id="musicPanel" class="music-panel music-panel-up">
+                                <div class="now-playing">
+                                    <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
+                                    <div class="track-meta">
+                                        <div id="trackTitle" class="track-title">No track loaded</div>
+                                        <div class="track-artist">Knowura Lofi Radio</div>
+                                    </div>
+                                </div>
+                                <div class="progress-row">
+                                    <span id="curTime" class="time">0:00</span>
+                                    <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
+                                    <span id="durTime" class="time">0:00</span>
+                                </div>
+                                <div class="transport">
+                                    <button class="transport-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
+                                    <button id="playPauseBtn" class="transport-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-play"/></svg></button>
+                                    <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
+                                    <div class="volume-row" title="Volume">
+                                        <span><svg class="icon"><use href="#icon-volume"/></svg></span>
+                                        <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
+                                    </div>
+                                </div>
+                                <div id="trackList" class="track-list"></div>
+                            </div>
+                        </div>
+                        <div class="hamburger-widget">
+                            <button id="hamburgerBtn" class="btn-ui icon-only" onclick="toggleHamburgerMenu()" title="Menu">
+                                <svg class="icon"><use href="#icon-menu"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </aside>
         <div class="chat-container">
-            <header>
-                <div class="brand-lockup">
-                    <button id="sidebarToggleBtn" class="btn-ui icon-only sidebar-toggle-header-btn" onclick="toggleSidebar()" title="Toggle chat list">
-                        <svg class="icon"><use href="#icon-sidebar"/></svg>
-                    </button>
-                    <img src="assets/images/logo.png" class="header-logo">
-                    <span class="brand-name">Knowura</span>
-                </div>
-                <div class="controls">
-                    <div id="miniPlayer" class="mini-player">
-                        <button class="mini-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
-                        <button id="miniPlayPauseBtn" class="mini-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-pause"/></svg></button>
-                        <button class="mini-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
-                        <span id="miniTrackTitle" class="mini-track-title">—</span>
-                    </div>
-                    <div class="music-widget">
-                        <button id="musicBtn" class="btn-ui" onclick="toggleMusicPanel()"><svg class="icon"><use href="#icon-music"/></svg> Music</button>
-                        <div id="musicPanel" class="music-panel">
-                            <div class="now-playing">
-                                <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
-                                <div class="track-meta">
-                                    <div id="trackTitle" class="track-title">No track loaded</div>
-                                    <div class="track-artist">Knowura Lofi Radio</div>
-                                </div>
-                            </div>
-                            <div class="progress-row">
-                                <span id="curTime" class="time">0:00</span>
-                                <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
-                                <span id="durTime" class="time">0:00</span>
-                            </div>
-                            <div class="transport">
-                                <button class="transport-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
-                                <button id="playPauseBtn" class="transport-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-play"/></svg></button>
-                                <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
-                                <div class="volume-row" title="Volume">
-                                    <span><svg class="icon"><use href="#icon-volume"/></svg></span>
-                                    <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
-                                </div>
-                            </div>
-                            <div id="trackList" class="track-list"></div>
-                        </div>
-                    </div>
-                    <div class="hamburger-widget">
-                        <button id="hamburgerBtn" class="btn-ui icon-only" onclick="toggleHamburgerMenu()" title="Menu">
-                            <svg class="icon"><use href="#icon-menu"/></svg>
-                        </button>
-                    </div>
-                </div>
-            </header>
+            <button id="sidebarToggleBtn" class="btn-ui icon-only chat-sidebar-toggle" onclick="toggleSidebar()" title="Toggle chat list">
+                <svg class="icon"><use href="#icon-sidebar"/></svg>
+            </button>
             <div id="chat-box"></div>
             <div class="input-area">
                 <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
                 <button id="sendBtn" onclick="handleSendClick()">Send <svg class="icon"><use href="#icon-arrow-right"/></svg></button>
             </div>
             <div class="tips-bar">
+                <div class="model-select-wrap" title="Choose model">
+                    <svg class="icon"><use href="#icon-cpu"/></svg>
+                    <select id="modelSelectChat" class="model-select" onchange="setModelChoice(this.value)">
+                        <option value="oss">OSS 20B</option>
+                        <option value="qwen">Qwen3 32B</option>
+                    </select>
+                </div>
                 <button id="ultraToggleChat" class="ultra-toggle compact" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
                 <span class="tips-sep"></span>
                 <svg class="icon"><use href="#icon-info"/></svg>
@@ -991,6 +1042,13 @@
                     <button id="endCallBtn" class="mic-btn end-call" onclick="closeLivePanel()" title="End call"><svg class="icon"><use href="#icon-phone"/></svg></button>
                 </div>
                 <div class="live-ultra-row">
+                    <div class="model-select-wrap" title="Choose model">
+                        <svg class="icon"><use href="#icon-cpu"/></svg>
+                        <select id="modelSelectVoice" class="model-select" onchange="setModelChoice(this.value)">
+                            <option value="oss">OSS 20B</option>
+                            <option value="qwen">Qwen3 32B</option>
+                        </select>
+                    </div>
                     <button id="ultraToggleVoice" class="ultra-toggle" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
                 </div>
             </div>
@@ -1013,18 +1071,6 @@
                     <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
                     <span id="glassOpacityValue" class="glass-slider-value">40%</span>
                 </div>
-            </div>
-
-            <div class="settings-section">
-                <div class="settings-label">Header Style</div>
-                <button class="choice-pill" data-group="logoView" data-value="big" onclick="setLogoView('big')">
-                    <span class="choice-row"><span class="choice-dot"></span>Full Logo</span>
-                    <span class="choice-hint">Default — big logo up top, shrinks with a wordmark as you scroll</span>
-                </button>
-                <button class="choice-pill" data-group="logoView" data-value="normal" onclick="setLogoView('normal')">
-                    <span class="choice-row"><span class="choice-dot"></span>Compact</span>
-                    <span class="choice-hint">Small top bar always, no shrink animation</span>
-                </button>
             </div>
 
             <div class="settings-section">
@@ -1136,7 +1182,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, logoView: 'big', captionsEnabled: true, sidebarCollapsed: false };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'oss' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1158,7 +1204,19 @@
         const slider = document.getElementById('glassOpacitySlider');
         if (slider) slider.value = settings.glassOpacity;
         applyGlassOpacity(settings.glassOpacity);
-        applyLogoView();
+        syncModelSelectors();
+    }
+
+    // ─── MODEL SELECTOR (Groq OSS 20B/120B vs Qwen3 32B — fused with Ultra Think) ──
+
+    function setModelChoice(value) {
+        settings.modelChoice = (value === 'qwen') ? 'qwen' : 'oss';
+        saveSettings();
+        syncModelSelectors();
+    }
+
+    function syncModelSelectors() {
+        document.querySelectorAll('.model-select').forEach(sel => { sel.value = settings.modelChoice; });
     }
 
     function toggleCaptions() {
@@ -1168,25 +1226,6 @@
         if (!settings.captionsEnabled && callState === 'speaking') {
             document.getElementById('liveTranscript').innerText = '';
         }
-    }
-
-    // ─── HEADER STYLE (Full Logo shrinks on scroll; Compact stays small always) ──
-
-    function applyLogoView() {
-        const header = document.querySelector('header');
-        if (!header) return;
-        if (settings.logoView === 'normal') {
-            header.classList.add('scrolled');
-        } else {
-            const chatBox = document.getElementById('chat-box');
-            header.classList.toggle('scrolled', (chatBox?.scrollTop || 0) > 12);
-        }
-    }
-
-    function setLogoView(mode) {
-        settings.logoView = mode;
-        saveSettings();
-        updateSettingsUI();
     }
 
     // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory) ──
@@ -1257,7 +1296,7 @@
         ownerToken = null;
         localStorage.removeItem('knowura_owner_token');
         document.getElementById('owner-badge').style.display = 'none';
-        document.querySelector('header').classList.remove('owner-mode');
+        document.getElementById('sidebar')?.classList.remove('owner-mode');
         document.getElementById('ownerBtn').style.display = '';
         const app = document.getElementById('app');
         app.style.opacity = '0';
@@ -1356,7 +1395,7 @@
         ownerMode = true;
         ownerToken = token;
         document.getElementById('owner-badge').style.display = 'inline-block';
-        document.querySelector('header').classList.add('owner-mode');
+        document.getElementById('sidebar')?.classList.add('owner-mode');
         document.getElementById('ownerBtn').style.display = 'none';
 
         const notMyPc = document.getElementById('ownerNotMyPc').checked;
@@ -1378,7 +1417,7 @@
             ownerMode = true;
             ownerToken = token;
             document.getElementById('owner-badge').style.display = 'inline-block';
-            document.querySelector('header').classList.add('owner-mode');
+            document.getElementById('sidebar')?.classList.add('owner-mode');
             document.getElementById('ownerBtn').style.display = 'none';
         } catch (e) { /* ignore — just stays locked */ }
     }
@@ -1658,7 +1697,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     messages: conversationMessages,
                     memory: getMemory(),
                     ownerToken: ownerToken,
-                    ultraThink: ultraThinkMode
+                    ultraThink: ultraThinkMode,
+                    model: settings.modelChoice
                 })
             });
 
@@ -1711,6 +1751,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function addBubble(t, c, save) {
         const box = document.getElementById('chat-box');
+        box.querySelector('.empty-state')?.remove();
         const div = document.createElement('div');
         div.className = `msg ${c}`;
         div.innerHTML = t;
@@ -1784,7 +1825,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         conversationMessages = [];
         const chat = getActiveChat();
         if (!chat || chat.messages.length === 0) {
-            addBubble(`Hello <b>${currentUser}</b>. I am Knowura, developed by <b>Uday Singh</b>. How can I help you today?`, 'ai', false);
+            renderEmptyState();
         } else {
             chat.messages.forEach(m => addBubble(m.text, m.type, false));
             chat.messages.slice(-10).forEach(m => {
@@ -1792,6 +1833,37 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             });
         }
         updateBadge();
+    }
+
+    // ─── EMPTY-STATE LANDING (shown in a fresh, message-less chat) ────────────
+
+    const SUGGESTIONS = [
+        { icon: 'icon-tag', label: 'Explain a concept', prompt: 'Explain a concept I\'m stuck on — ask me what it is, then break it down simply.' },
+        { icon: 'icon-info', label: 'Quiz me', prompt: 'Quiz me on a topic I\'m studying — ask what subject, then fire questions one at a time.' },
+        { icon: 'icon-edit', label: 'Help me plan', prompt: 'Help me build a study schedule — ask what I\'m preparing for and by when.' },
+        { icon: 'icon-search', label: "What's new today", prompt: "What's the latest news today?" }
+    ];
+
+    function renderEmptyState() {
+        const box = document.getElementById('chat-box');
+        box.innerHTML = `
+            <div class="empty-state">
+                <img src="assets/images/logo.png" class="empty-logo" alt="Knowura">
+                <h1 class="empty-greeting">Hi, <b>${escapeHtml(currentUser)}</b></h1>
+                <p class="empty-sub">What do you want to know?</p>
+                <div class="empty-suggestions">
+                    ${SUGGESTIONS.map(s => `
+                        <button class="suggestion-chip" onclick="useSuggestion('${s.prompt.replace(/'/g, "\\'")}')">
+                            <svg class="icon"><use href="#${s.icon}"/></svg> ${escapeHtml(s.label)}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function useSuggestion(text) {
+        ask(text);
     }
 
     function saveActiveChat(text, type) {
@@ -2669,12 +2741,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }, 300); // let the keyboard finish animating in first
     });
 
-    // ─── SHRINKING HEADER (big logo up top, compacts + gains a wordmark on scroll) ──
-    // Only applies in "Full Logo" mode (Settings → Header Style) — "Compact" stays small always.
-    document.getElementById('chat-box').addEventListener('scroll', (e) => {
-        if (settings.logoView === 'normal') return;
-        document.querySelector('header').classList.toggle('scrolled', e.target.scrollTop > 12);
-    });
 
     // Resume an existing "stay signed in" / owner-unlock session. Must run LAST —
     // it transitively touches `settings`, `callActive`, `currentOrbState`, etc., which

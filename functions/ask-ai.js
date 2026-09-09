@@ -46,11 +46,12 @@ exports.handler = async (event, context) => {
     };
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
     try {
-        const { messages, memory, ownerToken, ultraThink } = JSON.parse(event.body);
+        const { messages, memory, ownerToken, ultraThink, model } = JSON.parse(event.body);
         // Owner mode requires a valid server-issued token (from WebAuthn or the
         // password fallback) — a raw client-supplied boolean is not real auth.
         const isOwner = verifyOwnerToken(ownerToken, process.env.OWNER_TOKEN_SECRET);
         const isUltra = ultraThink === true;
+        const isQwen = model === "qwen";
 
         let memoryBlock = "";
         if (memory?.summary) memoryBlock += `\nConversation summary so far:\n${memory.summary}`;
@@ -72,14 +73,20 @@ exports.handler = async (event, context) => {
 
         const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + memoryBlock + searchBlock + (isUltra ? ultraPrompt : "");
 
+        // Two Groq model families to pick from: OpenAI's open-weight OSS models
+        // (20B normally, 120B under Ultra Think) or Qwen3 32B (one model either
+        // way — Ultra Think just switches its native reasoning mode on/off).
         const payload = {
-            model: isUltra ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b",
+            model: isQwen ? "qwen/qwen3-32b" : (isUltra ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b"),
             messages: [
                 { role: "system", content: systemPrompt },
                 ...messages
             ]
         };
-        if (isUltra) {
+        if (isQwen) {
+            payload.reasoning_effort = isUltra ? "default" : "none";
+            if (isUltra) payload.include_reasoning = true;
+        } else if (isUltra) {
             payload.reasoning_effort = "high";
             payload.include_reasoning = true;
         }
@@ -93,7 +100,7 @@ exports.handler = async (event, context) => {
             body: JSON.stringify(payload)
         });
         const data = await response.json();
-        return { statusCode: 200, headers, body: JSON.stringify({ ...data, ownerMode: isOwner, ultraThink: isUltra }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ ...data, ownerMode: isOwner, ultraThink: isUltra, model: payload.model }) };
     } catch (error) {
         return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
     }
