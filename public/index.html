@@ -1734,8 +1734,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (searchStageTimer) clearTimeout(searchStageTimer);
 
             if (data?.choices?.[0]) {
-                const reply = data.choices[0].message.content;
-                const reasoning = data.choices[0].message?.reasoning;
+                // Groq's OSS models return reasoning separately (message.reasoning);
+                // Qwen instead wraps it inline as a leading <think>...</think> block
+                // right inside message.content — strip that out here so it never
+                // shows up as raw, un-rendered chain-of-thought text in the reply.
+                const rawReply = data.choices[0].message.content;
+                const inlineThink = /^\s*<think>([\s\S]*?)<\/think>\s*/i.exec(rawReply || '');
+                const reply = inlineThink ? rawReply.slice(inlineThink[0].length) : rawReply;
+                const reasoning = data.choices[0].message?.reasoning || (inlineThink ? inlineThink[1].trim() : '');
                 let html = '';
                 if (reasoning) html += `<details class="reasoning"><summary><svg class="icon"><use href="#icon-bolt"/></svg> Thought Process</summary>${marked.parse(reasoning)}</details>`;
                 html += marked.parse(reply);
