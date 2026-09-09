@@ -1264,6 +1264,7 @@
         saveSettings();
         document.getElementById('ccBtn')?.classList.toggle('active', settings.captionsEnabled);
         if (!settings.captionsEnabled && callState === 'speaking') {
+            clearCaptionTimer();
             document.getElementById('liveTranscript').innerText = '';
         }
     }
@@ -2637,6 +2638,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         callActive = false;
         callState = 'idle';
         callMuted = false;
+        clearCaptionTimer();
         if (vadRAF) cancelAnimationFrame(vadRAF);
         vadRAF = null;
         clearTimeout(silenceTimer); silenceTimer = null;
@@ -2654,6 +2656,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function enterListeningState() {
         if (!callActive) return;
+        clearCaptionTimer();
         callState = 'listening';
         setOrbState('idle');
         setLiveStatus(callMuted ? 'Muted' : 'Listening…');
@@ -2772,7 +2775,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             currentReplyAudio = new Audio(`data:${data.mimeType || 'audio/wav'};base64,${data.audio}`);
             setOrbState('speaking');
             setLiveStatus('Speaking…');
-            if (settings.captionsEnabled) document.getElementById('liveTranscript').innerText = text;
+            if (settings.captionsEnabled) playCaptions(text, currentReplyAudio);
             hookAnalyser(currentReplyAudio);
             currentReplyAudio.onended = () => {
                 currentReplyAudio = null;
@@ -2785,6 +2788,62 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             setLiveStatus("Couldn't generate voice — check console for details");
             setTimeout(() => { if (callActive) enterListeningState(); }, 2200);
         }
+    }
+
+    // ─── LIVE CAPTIONS (one line at a time, paced to the reply, not a wall of text) ──
+
+    let captionTimer = null;
+
+    function clearCaptionTimer() {
+        if (captionTimer) { clearTimeout(captionTimer); captionTimer = null; }
+    }
+
+    function stripMarkdownForCaptions(md) {
+        return (md || '')
+            .replace(/```[\s\S]*?```/g, ' ')
+            .replace(/`([^`]+)`/g, '$1')
+            .replace(/^#{1,6}\s+/gm, '')
+            .replace(/\*\*([^*]+)\*\*/g, '$1')
+            .replace(/\*([^*]+)\*/g, '$1')
+            .replace(/__([^_]+)__/g, '$1')
+            .replace(/_([^_]+)_/g, '$1')
+            .replace(/^\s*[-*+]\s+/gm, '')
+            .replace(/^\s*\d+\.\s+/gm, '')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            .replace(/^>\s?/gm, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function splitIntoCaptionLines(text) {
+        const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
+        return sentences.map(s => s.trim()).filter(Boolean);
+    }
+
+    // Paces one sentence/line onto the screen at a time (like real captions)
+    // instead of dumping the whole reply as one unformatted block, timed
+    // proportionally to the audio's actual duration when known, or a rough
+    // speaking-rate estimate otherwise.
+    function playCaptions(rawText, audioEl) {
+        clearCaptionTimer();
+        const el = document.getElementById('liveTranscript');
+        const lines = splitIntoCaptionLines(stripMarkdownForCaptions(rawText));
+        if (!lines.length) { el.innerText = ''; return; }
+
+        const wordsIn = (s) => s.split(/\s+/).filter(Boolean).length;
+        const totalWords = lines.reduce((n, l) => n + wordsIn(l), 0) || 1;
+        const totalMs = () => (audioEl?.duration && isFinite(audioEl.duration))
+            ? audioEl.duration * 1000
+            : (totalWords / 2.5) * 1000; // ~150 wpm fallback if duration isn't known yet
+
+        const showLine = (i) => {
+            if (i >= lines.length) return;
+            el.innerText = lines[i];
+            const share = wordsIn(lines[i]) / totalWords;
+            const durationMs = Math.max(900, share * totalMs());
+            captionTimer = setTimeout(() => showLine(i + 1), durationMs);
+        };
+        showLine(0);
     }
 
     function hookAnalyser(audioEl) {
