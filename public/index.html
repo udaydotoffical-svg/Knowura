@@ -1244,9 +1244,15 @@
         stopWakeListener();
         clearSession();
         try { if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* Google Identity not loaded */ }
+        clearTimeout(cloudSaveTimer);
         currentUser = 'Learner';
         userSub = null;
         userToken = null;
+        userProfile = null;
+        cloudMemory = { summary: '', facts: [] };
+        chatStore = { chats: [], activeChatId: null };
+        document.getElementById('chat-box').innerHTML = '';
+        conversationMessages = [];
         ownerMode = false;
         ownerToken = null;
         localStorage.removeItem('knowura_owner_token');
@@ -1442,6 +1448,7 @@
 
     function getMemory() {
         if (!settings.memoryEnabled) return { summary: '', facts: [] };
+        if (isCloudUser()) return cloudMemory;
         return {
             summary: localStorage.getItem('knowura_summary') || '',
             facts: JSON.parse(localStorage.getItem('knowura_facts') || '[]')
@@ -1469,7 +1476,7 @@
     // ─── ENTITY EXTRACTION (runs after every AI reply) ────────────────────────
 
     async function extractFacts(userMsg, aiReply) {
-        const existing = JSON.parse(localStorage.getItem('knowura_facts') || '[]');
+        const existing = isCloudUser() ? cloudMemory.facts : JSON.parse(localStorage.getItem('knowura_facts') || '[]');
 
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
@@ -1500,7 +1507,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (Array.isArray(newFacts) && newFacts.length > 0) {
                 // Merge, deduplicate, cap at 20 facts
                 const merged = [...new Set([...existing, ...newFacts])].slice(-20);
-                localStorage.setItem('knowura_facts', JSON.stringify(merged));
+                if (isCloudUser()) { cloudMemory.facts = merged; scheduleCloudSave(); }
+                else localStorage.setItem('knowura_facts', JSON.stringify(merged));
                 updateBadge();
             }
         } catch (e) {
@@ -1537,7 +1545,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const data = await res.json();
             const summary = data?.choices?.[0]?.message?.content?.trim();
             if (summary) {
-                localStorage.setItem('knowura_summary', summary);
+                if (isCloudUser()) { cloudMemory.summary = summary; scheduleCloudSave(); }
+                else localStorage.setItem('knowura_summary', summary);
                 updateBadge();
                 console.log('Knowura memory updated');
             }
@@ -1721,11 +1730,16 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         return { chats: [], activeChatId: null };
     }
     let chatStore = loadChatStore();
-    function saveChatStore() { localStorage.setItem('knowura_guest_chats', JSON.stringify(chatStore)); }
+    function isCloudUser() { return !!(userSub && userToken); }
+    function saveChatStore() {
+        if (isCloudUser()) { scheduleCloudSave(); return; }
+        localStorage.setItem('knowura_guest_chats', JSON.stringify(chatStore));
+    }
     function getActiveChat() { return chatStore.chats.find(c => c.id === chatStore.activeChatId) || null; }
     function makeChatId() { return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6); }
 
     function migrateOldChatHistory() {
+        if (isCloudUser()) return; // cloud accounts are seeded via loadCloudChats()'s own migration prompt, not this local one
         if (chatStore.chats.length > 0) return;
         let old;
         try { old = JSON.parse(localStorage.getItem('knowura_chat') || '[]'); } catch (e) { old = []; }
@@ -1879,6 +1893,92 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.getElementById('sidebarBackdrop')?.classList.remove('show');
     }
 
+    // ─── CLOUD CHAT SYNC (signed-in users — no local chat storage) ─────────
+    // Full-document debounced writes, same simplicity trade-off as the plan:
+    // personal-scale app, no per-chat granularity or locking needed.
+
+    let cloudSaveTimer = null;
+
+    function scheduleCloudSave() {
+        if (!isCloudUser()) return;
+        clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = setTimeout(persistCloudStore, 1500);
+    }
+
+    async function persistCloudStore() {
+        if (!isCloudUser()) return;
+        const doc = {
+            version: 1,
+            profile: userProfile || { sub: userSub },
+            chats: chatStore.chats,
+            activeChatId: chatStore.activeChatId,
+            memory: cloudMemory,
+            updatedAt: Date.now()
+        };
+        try {
+            await fetch("/.netlify/functions/chat-save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: userToken, doc })
+            });
+        } catch (e) {
+            console.warn('Cloud chat save failed silently:', e);
+        }
+    }
+
+    // Flush a pending debounced save immediately when the tab is hidden/closed
+    // so the last few messages before a close aren't lost to the 1.5s delay.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && cloudSaveTimer) {
+            clearTimeout(cloudSaveTimer);
+            cloudSaveTimer = null;
+            persistCloudStore();
+        }
+    });
+
+    async function loadCloudChats() {
+        try {
+            const res = await fetch("/.netlify/functions/chat-load", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: userToken })
+            });
+            const data = await res.json();
+            if (data.found && data.doc) {
+                chatStore = {
+                    chats: Array.isArray(data.doc.chats) ? data.doc.chats : [],
+                    activeChatId: data.doc.activeChatId || null
+                };
+                cloudMemory = data.doc.memory && typeof data.doc.memory === 'object'
+                    ? { summary: data.doc.memory.summary || '', facts: Array.isArray(data.doc.memory.facts) ? data.doc.memory.facts : [] }
+                    : { summary: '', facts: [] };
+            } else {
+                // Brand-new account — offer to bring over this device's local guest
+                // chats rather than dropping them, same non-destructive spirit as
+                // the guest-side knowura_chat migration.
+                const guestStore = loadChatStore();
+                cloudMemory = { summary: '', facts: [] };
+                if (guestStore.chats.length && await showConfirm('Bring your existing local chats into this account?', 'Import Chats', 'Import', 'Start Fresh')) {
+                    chatStore = guestStore;
+                    cloudMemory = {
+                        summary: localStorage.getItem('knowura_summary') || '',
+                        facts: JSON.parse(localStorage.getItem('knowura_facts') || '[]')
+                    };
+                } else {
+                    chatStore = { chats: [], activeChatId: null };
+                }
+                await persistCloudStore();
+            }
+        } catch (e) {
+            showAlert("Couldn't load your saved chats from the cloud. Starting a local session for now — sign out and back in to retry.", "Cloud sync failed");
+            chatStore = { chats: [], activeChatId: null };
+        }
+        ensureActiveChat();
+        renderActiveChat();
+        renderChatList();
+        if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
+    }
+
     // ─── AUTH ─────────────────────────────────────────────────────────────
     // "Stay signed in" just remembers the display name locally (localStorage) and
     // skips the startup screen next visit — there's no server session to restore,
@@ -1904,22 +2004,29 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         currentUser = session.user;
         userSub = session.sub || null;
         userToken = session.sessionToken || null;
+        userProfile = userSub ? { sub: userSub, given_name: currentUser, email: session.email, picture: session.picture } : null;
         document.getElementById('user-display').innerText = currentUser;
         document.getElementById('startup').style.display = 'none';
         const app = document.getElementById('app');
         app.style.display = 'flex';
         app.style.opacity = '1';
-        ensureActiveChat();
-        renderActiveChat();
-        renderChatList();
-        if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
+        if (isCloudUser()) {
+            loadCloudChats();
+        } else {
+            ensureActiveChat();
+            renderActiveChat();
+            renderChatList();
+            if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
+        }
     }
 
-    // sub/token for a verified Google session — chat sync (chat-load/chat-save)
-    // isn't wired up to actually use these yet, still riding the local/guest
-    // chat store, but the session is real (server-verified) as of this point.
+    // sub/token/profile for a verified Google session — signed-in users' chats
+    // and memory live in the cloud (chat-load.js/chat-save.js), keyed to `sub`.
+    // Guest mode never sets these and keeps using the local chat store/memory.
     let userSub = null;
     let userToken = null;
+    let userProfile = null;
+    let cloudMemory = { summary: '', facts: [] };
 
     async function onSignIn(response) {
         try {
@@ -1936,8 +2043,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             currentUser = data.profile.given_name;
             userSub = data.profile.sub;
             userToken = data.token;
+            userProfile = data.profile;
             document.getElementById('user-display').innerText = currentUser;
-            saveSession(currentUser, { mode: 'google', sub: userSub, sessionToken: userToken });
+            saveSession(currentUser, { mode: 'google', sub: userSub, sessionToken: userToken, email: data.profile.email, picture: data.profile.picture });
             enterApp();
         } catch (e) {
             showAlert("Couldn't reach Knowura's sign-in service. Check your connection and try again.", "Sign-in failed");
@@ -1949,6 +2057,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             currentUser = "Guest";
             userSub = null;
             userToken = null;
+            userProfile = null;
             document.getElementById('user-display').innerText = "Guest";
             saveSession(currentUser, { mode: 'guest' });
         }
@@ -1958,10 +2067,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const app = document.getElementById('app');
             app.style.display = 'flex';
             setTimeout(() => app.style.opacity = '1', 50);
-            ensureActiveChat();
-            renderActiveChat();
-            renderChatList();
-            if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
+            if (isCloudUser()) {
+                loadCloudChats();
+            } else {
+                ensureActiveChat();
+                renderActiveChat();
+                renderChatList();
+                if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
+            }
         }, 800);
     }
 
