@@ -1176,6 +1176,15 @@
     </div>
 
 <script>
+    // Declared first (not just where they're used) so every function can safely
+    // read them regardless of call order — this file already got bitten once
+    // this session by a TDZ bug from a const being read before its declaration
+    // line ran, so early/top-level detection consts live up here from now on.
+    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isTouchDevice || isMobileUA) document.documentElement.classList.add('is-touch');
+    if (isMobileUA) document.documentElement.classList.add('is-mobile');
+
     let currentUser = "Learner";
     // conversationMessages holds the raw text history sent to groq (last 10)
     let conversationMessages = [];
@@ -1333,6 +1342,12 @@
         stopWakeListener();
         if (settings.wakeWord === 'off') return;
         const panelOpen = document.getElementById('livePanel').classList.contains('open');
+        // On mobile, the Web Speech API's own mic stream fights the call's
+        // getUserMedia/VAD stream for the microphone — two concurrent consumers
+        // there reliably breaks the call (the native "listening" indicator is
+        // a symptom of that second stream opening). Desktop Chrome handles the
+        // two side by side fine, so this only skips it on mobile mid-call.
+        if (isMobileUA && panelOpen) return;
         if (settings.wakeWord === 'both' || (settings.wakeWord === 'voice' && panelOpen)) {
             startWakeListener();
         }
@@ -2733,16 +2748,12 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (document.getElementById('appDialog').classList.contains('open')) dialogCancel();
     });
 
-    // ─── MOBILE DETECTION & KEYBOARD HANDLING ──────────────────────────────────
+    // ─── MOBILE KEYBOARD HANDLING ───────────────────────────────────────────
     // 100dvh (in the CSS above) + interactive-widget=resizes-content (meta viewport)
     // handle most of the "keyboard covers the input" problem on modern mobile
-    // browsers on their own. This just tags the page for CSS/JS hooks and nudges
-    // the input above the keyboard on browsers that don't resize the layout.
-
-    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-    const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isTouchDevice || isMobileUA) document.documentElement.classList.add('is-touch');
-    if (isMobileUA) document.documentElement.classList.add('is-mobile');
+    // browsers on their own. This just nudges the input above the keyboard on
+    // browsers that don't resize the layout (isTouchDevice/isMobileUA/is-mobile
+    // class are set up top of the script, not here).
 
     document.getElementById('userInput').addEventListener('focus', () => {
         if (!document.documentElement.classList.contains('is-mobile')) return;
