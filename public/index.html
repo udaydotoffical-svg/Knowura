@@ -1089,6 +1089,7 @@
                     <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
                 </button>
                 <button class="menu-item" onclick="deleteAllChats()" title="Delete all chats" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Delete All Chats</button>
+                <button class="menu-item" onclick="resetMemory()" title="Forget stored facts and summary" style="margin-top:6px;"><svg class="icon"><use href="#icon-tag"/></svg> Forget Remembered Facts</button>
             </div>
 
             <div class="settings-section">
@@ -1535,6 +1536,24 @@
         chatStore = { chats: [], activeChatId: null };
         saveChatStore();
         newChat();
+    }
+
+    // Recovery path for bad/hallucinated facts getting stuck in stored memory
+    // (e.g. a leaked reasoning block once got fed into fact-extraction and
+    // stuck a fabricated detail in there) — clears facts + summary only,
+    // chats are untouched either way.
+    async function resetMemory() {
+        if (!(await showConfirm('Forget everything Knowura has remembered about you (facts + summary)? Your chats are untouched.', 'Forget Remembered Facts', 'Forget', 'Cancel'))) return;
+        document.getElementById('hamburgerPanel')?.classList.remove('open');
+        if (isCloudUser()) {
+            cloudMemory = { summary: '', facts: [] };
+            scheduleCloudSave();
+        } else {
+            localStorage.removeItem('knowura_summary');
+            localStorage.removeItem('knowura_facts');
+        }
+        localStorage.removeItem('knowura_msg_count');
+        updateBadge();
     }
 
     // ─── ENTITY EXTRACTION (runs after every AI reply) ────────────────────────
