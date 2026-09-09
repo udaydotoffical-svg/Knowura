@@ -1084,6 +1084,18 @@
             </div>
 
             <div class="settings-section">
+                <div class="settings-label">On Refresh / Sign-In</div>
+                <button class="choice-pill" data-group="resumeChat" data-value="new" onclick="setResumeChat('new')">
+                    <span class="choice-row"><span class="choice-dot"></span>Start New Chat</span>
+                    <span class="choice-hint">Default — always land on a fresh chat, like ChatGPT</span>
+                </button>
+                <button class="choice-pill" data-group="resumeChat" data-value="last" onclick="setResumeChat('last')">
+                    <span class="choice-row"><span class="choice-dot"></span>Resume Last Chat</span>
+                    <span class="choice-hint">Reopen exactly where you left off</span>
+                </button>
+            </div>
+
+            <div class="settings-section">
                 <div class="settings-label">Memory</div>
                 <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
                     <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
@@ -1202,7 +1214,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'oss' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'oss', resumeChat: 'new' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1237,6 +1249,14 @@
 
     function syncModelSelectors() {
         document.querySelectorAll('.model-select').forEach(sel => { sel.value = settings.modelChoice; });
+    }
+
+    // ─── ON-LOAD BEHAVIOR (what a refresh/re-open lands on) ────────────────
+
+    function setResumeChat(mode) {
+        settings.resumeChat = (mode === 'last') ? 'last' : 'new';
+        saveSettings();
+        updateSettingsUI();
     }
 
     function toggleCaptions() {
@@ -1638,6 +1658,42 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     }
 
+    // ─── AI-GENERATED CHAT TITLES (runs once, after a chat's first reply) ─────
+    // Same idea as ChatGPT's auto-titling — the instant truncated-first-message
+    // title from saveActiveChat is just a placeholder until this quietly swaps
+    // in something better a moment later.
+
+    async function generateChatTitle(chatId, userMsg, aiReply) {
+        try {
+            const res = await fetch("/.netlify/functions/ask-ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    memory: {},
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Write a short title (3-6 words, no quotes, no trailing punctuation, no markdown) summarizing this chat.\n\nUser: ${userMsg.replace(/<[^>]+>/g, '').slice(0, 300)}\nAssistant: ${aiReply.replace(/<[^>]+>/g, '').slice(0, 300)}\n\nReturn ONLY the title text, nothing else.`
+                        }
+                    ]
+                })
+            });
+            const data = await res.json();
+            let title = data?.choices?.[0]?.message?.content?.trim() || '';
+            title = title.replace(/^["'“”]+|["'“”]+$/g, '').replace(/[.!?]+$/, '').trim();
+            if (!title) return;
+            if (title.length > 48) title = title.slice(0, 48).trim() + '…';
+
+            const chat = chatStore.chats.find(c => c.id === chatId);
+            if (!chat) return; // chat was deleted while this was in flight
+            chat.title = title;
+            saveChatStore();
+            renderChatList();
+        } catch (e) {
+            console.warn('Chat title generation failed silently:', e);
+        }
+    }
+
     // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
 
     function looksSearchWorthy(text) {
@@ -1711,6 +1767,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
         addBubble(text, 'user', true);
         if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
+        // Captured now (not later) so a background chat-title generation always
+        // targets the chat this message actually landed in, even if the user
+        // switches chats before the AI reply comes back.
+        const chatIdForTitle = chatStore.activeChatId;
 
         // Add to rolling conversation window (last 10 for groq context)
         conversationMessages.push({ role: "user", content: text });
@@ -1766,6 +1826,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 html += marked.parse(reply);
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai');
+
+                // First exchange of a chat — quietly generate a real title in the
+                // background instead of leaving the instant truncated-message one.
+                const titledChat = chatStore.chats.find(c => c.id === chatIdForTitle);
+                if (titledChat && titledChat.messages.length === 2) {
+                    generateChatTitle(chatIdForTitle, text, reply);
+                }
 
                 // Add AI reply to conversation window
                 conversationMessages.push({ role: "assistant", content: reply });
@@ -1846,15 +1913,42 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function ensureActiveChat() {
         migrateOldChatHistory();
-        if (!chatStore.chats.length) { newChat(); return; }
-        if (!getActiveChat()) { chatStore.activeChatId = chatStore.chats[0].id; saveChatStore(); }
+        if (!getActiveChat() && chatStore.chats.length) {
+            chatStore.activeChatId = chatStore.chats[0].id;
+            saveChatStore();
+        }
     }
 
-    function newChat() {
+    // Called whenever the app loads/resumes (page refresh, sign-in, guest entry).
+    // Respects settings.resumeChat: 'new' (default) lands on the empty-state
+    // landing screen every time — nothing is actually created until the first
+    // message is sent (saveActiveChat's own lazy-newChat fallback handles
+    // that) — 'last' reopens whatever chat was active before.
+    function landOnChat() {
+        ensureActiveChat();
+        if (settings.resumeChat !== 'last') {
+            chatStore.activeChatId = null;
+            saveChatStore();
+        }
+        renderActiveChat();
+        renderChatList();
+    }
+
+    // Creates and activates a chat without touching the DOM — used both by the
+    // explicit "New Chat" button (newChat(), below) and by saveActiveChat's lazy
+    // fallback when the very first message of a session is sent with no active
+    // chat (the default "land on empty state" resume mode relies on this: the
+    // chat doesn't actually exist until you send something).
+    function createChat() {
         const chat = { id: makeChatId(), title: 'New Chat', createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
         chatStore.chats.unshift(chat);
         chatStore.activeChatId = chat.id;
         saveChatStore();
+        return chat;
+    }
+
+    function newChat() {
+        createChat();
         renderActiveChat();
         renderChatList();
         closeSidebarMobile();
@@ -1918,7 +2012,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function saveActiveChat(text, type) {
         let chat = getActiveChat();
-        if (!chat) { newChat(); chat = getActiveChat(); }
+        if (!chat) chat = createChat();
         chat.messages.push({ text, type });
         if (chat.messages.length > 60) chat.messages = chat.messages.slice(-60);
         chat.updatedAt = Date.now();
@@ -2095,9 +2189,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             showAlert("Couldn't load your saved chats from the cloud. Starting a local session for now — sign out and back in to retry.", "Cloud sync failed");
             chatStore = { chats: [], activeChatId: null };
         }
-        ensureActiveChat();
-        renderActiveChat();
-        renderChatList();
+        landOnChat();
         if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
     }
 
@@ -2135,9 +2227,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (isCloudUser()) {
             loadCloudChats();
         } else {
-            ensureActiveChat();
-            renderActiveChat();
-            renderChatList();
+            landOnChat();
             if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
         }
     }
@@ -2192,9 +2282,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (isCloudUser()) {
                 loadCloudChats();
             } else {
-                ensureActiveChat();
-                renderActiveChat();
-                renderChatList();
+                landOnChat();
                 if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
             }
         }, 800);
