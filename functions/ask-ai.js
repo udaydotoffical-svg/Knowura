@@ -74,10 +74,10 @@ exports.handler = async (event, context) => {
         const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + memoryBlock + searchBlock + (isUltra ? ultraPrompt : "");
 
         // Two Groq model families to pick from: OpenAI's open-weight OSS models
-        // (20B normally, 120B under Ultra Think) or Qwen3 32B (one model either
+        // (20B normally, 120B under Ultra Think) or Qwen3.6 27B (one model either
         // way — Ultra Think just switches its native reasoning mode on/off).
         const payload = {
-            model: isQwen ? "qwen/qwen3-32b" : (isUltra ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b"),
+            model: isQwen ? "qwen/qwen3.6-27b" : (isUltra ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b"),
             messages: [
                 { role: "system", content: systemPrompt },
                 ...messages

@@ -200,7 +200,17 @@
 
         /* The music panel normally drops down from a header button; anchored in the
            sidebar footer instead, it needs to open upward so it doesn't run off-screen. */
-        .music-panel-up { top: auto !important; bottom: calc(100% + 10px); left: 0; right: auto !important; }
+        /* The music panel normally drops down from a header button; anchored in the
+           sidebar footer instead, it needs to open upward and right-align to the
+           icon so it doesn't run off the sidebar or the viewport. Scoped to
+           .sidebar-footer (specificity 0,2,0) so it wins over the plain
+           .music-panel rule below regardless of source order, mobile media query
+           included — no !important needed. */
+        .sidebar-footer .music-panel {
+            top: auto; bottom: calc(100% + 10px);
+            left: auto; right: 0;
+            width: 280px; max-width: calc(100vw - 24px);
+        }
 
         .chat-sidebar-toggle {
             position: absolute; top: 16px; left: 16px; z-index: 5;
@@ -965,7 +975,7 @@
                     <div class="sidebar-footer-icons">
                         <div class="music-widget">
                             <button id="musicBtn" class="btn-ui icon-only" onclick="toggleMusicPanel()" title="Music"><svg class="icon"><use href="#icon-music"/></svg></button>
-                            <div id="musicPanel" class="music-panel music-panel-up">
+                            <div id="musicPanel" class="music-panel">
                                 <div class="now-playing">
                                     <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
                                     <div class="track-meta">
@@ -1013,7 +1023,7 @@
                     <svg class="icon"><use href="#icon-cpu"/></svg>
                     <select id="modelSelectChat" class="model-select" onchange="setModelChoice(this.value)">
                         <option value="oss">OSS 20B</option>
-                        <option value="qwen">Qwen3 32B</option>
+                        <option value="qwen">Qwen3.6 27B</option>
                     </select>
                 </div>
                 <button id="ultraToggleChat" class="ultra-toggle compact" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
@@ -1046,7 +1056,7 @@
                         <svg class="icon"><use href="#icon-cpu"/></svg>
                         <select id="modelSelectVoice" class="model-select" onchange="setModelChoice(this.value)">
                             <option value="oss">OSS 20B</option>
-                            <option value="qwen">Qwen3 32B</option>
+                            <option value="qwen">Qwen3.6 27B</option>
                         </select>
                     </div>
                     <button id="ultraToggleVoice" class="ultra-toggle" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
@@ -1207,7 +1217,7 @@
         syncModelSelectors();
     }
 
-    // ─── MODEL SELECTOR (Groq OSS 20B/120B vs Qwen3 32B — fused with Ultra Think) ──
+    // ─── MODEL SELECTOR (Groq OSS 20B/120B vs Qwen3.6 27B — fused with Ultra Think) ──
 
     function setModelChoice(value) {
         settings.modelChoice = (value === 'qwen') ? 'qwen' : 'oss';
