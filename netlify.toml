@@ -3,6 +3,13 @@
   publish = "public"
   functions = "functions"
 
+[build.environment]
+  # GOOGLE_CLIENT_ID isn't a secret — OAuth client IDs are meant to be public
+  # and are intentionally embedded in public/index.html (data-client_id) for
+  # Google Identity Services. Netlify's scanner can't tell public IDs from
+  # real secrets, so it flags the env var matching that hardcoded value.
+  SECRETS_SCAN_OMIT_KEYS = "GOOGLE_CLIENT_ID"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
