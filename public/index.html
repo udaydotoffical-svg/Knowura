@@ -575,49 +575,182 @@
             z-index: 1;
         }
 
-        /* prompt box: the glow card replaces the input's own border */
-        .prompt-glow { flex: 1; min-width: 0; border: 2.5px solid var(--ink); box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-        .prompt-glow .border-glow-inner { flex-direction: row; overflow: visible; }
-        .prompt-glow:focus-within { border-color: var(--cyan); box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4), 0 0 0 3px rgba(34,229,255,0.2); }
-        .prompt-glow input#userInput { border: none; background: transparent; box-shadow: none; border-radius: inherit; min-width: 0; }
-        .prompt-glow input#userInput:focus { border: none; box-shadow: none; }
+        /* ─── PROMPT BAR (React Bits <PromptBar />, ported to vanilla + Knowura liquid glass) ── */
 
         .input-area {
-            padding: 18px 22px; display: flex; gap: 12px; background: rgba(4,8,18,0.65); border-top: 3px solid var(--ink);
-            padding-bottom: max(18px, env(safe-area-inset-bottom)); /* clear the home-indicator area on notched phones */
+            padding: 8px 22px 14px; display: flex; justify-content: center;
+            background: linear-gradient(180deg, transparent, rgba(4,8,18,0.45));
+            padding-bottom: max(14px, env(safe-area-inset-bottom)); /* clear the home-indicator area on notched phones */
         }
-        input#userInput {
-            flex: 1; padding: 13px 20px; border-radius: 12px; border: 2.5px solid var(--ink);
-            background: var(--panel-strong); color: var(--text); outline: none;
-            font-size: 16px; font-weight: 500; transition: all 0.15s ease;
-            box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4);
-        }
-        /* 16px stops iOS Safari auto-zooming the page when the input gets focus */
-        input#userInput::placeholder { color: var(--text-dim); }
-        input#userInput:focus { border-color: var(--cyan); box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4), 0 0 0 3px rgba(34,229,255,0.2); }
+        .prompt-bar { position: relative; width: 100%; max-width: 820px; }
 
-        #sendBtn {
-            background: var(--blue);
-            color: #fff; border: 2.5px solid var(--ink); padding: 0 28px; border-radius: 12px;
-            height: 46px; width: 110px;
-            font-weight: 700; letter-spacing: 0.6px; cursor: pointer; font-size: 13px;
-            text-transform: uppercase;
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: var(--shadow-md);
-            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, width 0.2s ease, border-radius 0.2s ease, padding 0.2s ease;
+        /* the BorderGlow card becomes the liquid-glass shell */
+        .prompt-glow {
+            border: 2.5px solid var(--ink);
+            background: linear-gradient(135deg, rgba(255,255,255,0.17) 0%, rgba(110,190,255,0.07) 46%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(22px) saturate(190%) brightness(1.08);
+            -webkit-backdrop-filter: blur(22px) saturate(190%) brightness(1.08);
+            box-shadow:
+                5px 5px 0 var(--ink),
+                inset 1.5px 1.5px 0 rgba(255,255,255,0.5),
+                inset -1px -1px 0 rgba(255,255,255,0.12),
+                inset 0 0 28px rgba(110,190,255,0.10);
+            transition: border-color 0.15s ease;
         }
-        #sendBtn:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); background: var(--cyan); color: #001018; }
-        #sendBtn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+        .prompt-glow:focus-within { border-color: var(--cyan); }
+        .prompt-glow .border-glow-inner { overflow: visible; }
 
-        #sendBtn.mic-mode {
-            width: 46px; padding: 0; border-radius: 50%;
-            background: var(--panel-strong); color: var(--cyan); font-size: 17px;
+        /* glass: only the 1px mesh-gradient ring of ::before shows (masked to the
+           border), so the translucent fill isn't covered by the component's opaque one */
+        .prompt-glow::before {
+            background:
+                var(--gradient-one) border-box,
+                var(--gradient-two) border-box,
+                var(--gradient-three) border-box,
+                var(--gradient-four) border-box,
+                var(--gradient-five) border-box,
+                var(--gradient-six) border-box,
+                var(--gradient-seven) border-box,
+                var(--gradient-base) border-box;
+            mask-image:
+                conic-gradient(
+                    from var(--cursor-angle) at center,
+                    black calc(var(--cone-spread) * 1%),
+                    transparent calc((var(--cone-spread) + 15) * 1%),
+                    transparent calc((100 - var(--cone-spread) - 15) * 1%),
+                    black calc((100 - var(--cone-spread)) * 1%)
+                ),
+                linear-gradient(#000 0 0),
+                linear-gradient(#000 0 0);
+            mask-clip: border-box, padding-box, border-box;
+            mask-composite: intersect, exclude;
         }
-        #sendBtn.mic-mode:hover { background: var(--cyan); color: #001018; }
-        #sendBtn.morph { animation: morphPop 0.25s cubic-bezier(.34,1.56,.64,1); }
+
+        .pb-field { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 10px; cursor: text; border-radius: inherit; }
+        .pb-field::before {
+            content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+            background: radial-gradient(140% 120% at 0% 100%, color-mix(in srgb, var(--pb-spark) 30%, transparent), transparent 62%);
+            opacity: 0; transition: opacity 500ms ease;
+        }
+        .pb-field.max::before { opacity: 1; }
+        /* liquid-glass specular sheen across the top */
+        .pb-field::after {
+            content: ''; position: absolute; inset: 0 0 auto 0; height: 46%; z-index: -1; pointer-events: none;
+            border-radius: 20px 20px 60% 60% / 20px 20px 24px 24px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0));
+        }
+        .pb-sparks { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
+
+        .pb-input {
+            display: block; width: 100%; padding: 2px 0; border: 0; background: transparent; color: var(--text);
+            font-size: 16px; /* 16px stops iOS Safari auto-zooming on focus */
+            font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden;
+        }
+        .pb-input::placeholder { color: var(--text-dim); }
+
+        .pb-bar { display: flex; align-items: center; gap: 6px; }
+        .pb-spacer { flex: 1 1 auto; }
+
+        .pb-pick {
+            display: inline-flex; align-items: center; gap: 6px; height: 30px; max-width: 200px; padding: 0 12px 0 10px;
+            background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.22); border-radius: 999px;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.28); color: var(--text-dim);
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer;
+            -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+            transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+        }
+        .pb-pick .icon { width: 0.95em; height: 0.95em; color: var(--cyan); flex-shrink: 0; }
+        .pb-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pb-pick:hover, .pb-pick[data-on] { background: rgba(255,255,255,0.15); color: var(--text); }
+        .pb-pick:active { transform: scale(0.96); }
+        .pb-pick.max { color: var(--pb-spark); border-color: color-mix(in srgb, var(--pb-spark) 55%, transparent); }
+        .pb-pick.max .icon { color: var(--pb-spark); }
+
+        /* send tile: arrow <-> stop square morph, or a glass mic when the box is empty */
+        .pb-send {
+            position: relative; flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0;
+            border: 2.5px solid var(--ink); border-radius: 13px; cursor: pointer; color: #001018;
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            box-shadow: 3px 3px 0 var(--ink), inset 1px 1px 0 rgba(255,255,255,0.55);
+            -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease, color 0.15s ease, border-radius 0.2s ease;
+        }
+        .pb-send:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink), inset 1px 1px 0 rgba(255,255,255,0.55); }
+        .pb-send:active { transform: translate(2px, 2px) scale(0.96); box-shadow: 1px 1px 0 var(--ink); }
+        .pb-send .pb-glyph { width: 20px; height: 20px; display: block; transform-origin: 50% 50%; }
+        .pb-send .pb-mic { display: none; width: 18px; height: 18px; }
+        .pb-send.mic-mode {
+            border-radius: 50%; color: var(--cyan);
+            background: rgba(255,255,255,0.10);
+            box-shadow: 3px 3px 0 var(--ink), inset 1.5px 1.5px 0 rgba(255,255,255,0.4);
+        }
+        .pb-send.mic-mode:hover { background: var(--cyan); color: #001018; }
+        .pb-send.mic-mode .pb-glyph { display: none; }
+        .pb-send.mic-mode .pb-mic { display: block; }
+        .pb-send.morph { animation: morphPop 0.25s cubic-bezier(.34,1.56,.64,1); }
         @keyframes morphPop {
             0% { transform: scale(0.55) rotate(-18deg); opacity: 0.4; }
             100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .pb-menu {
+            position: absolute; left: 0; bottom: calc(100% + 12px); z-index: 6; width: min(280px, 100%);
+            padding: 6px; border: 3px solid var(--ink); border-radius: 18px; transform-origin: bottom left;
+            background: linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05)), var(--panel-strong);
+            backdrop-filter: blur(24px) saturate(190%); -webkit-backdrop-filter: blur(24px) saturate(190%);
+            box-shadow: var(--shadow-md), inset 1.5px 1.5px 0 rgba(255,255,255,0.35);
+            animation: cardIn 0.18s cubic-bezier(.16,1,.3,1);
+            max-height: min(320px, 50vh); overflow-y: auto;
+        }
+        .pb-menu[hidden] { display: none; }
+        .pb-menu::-webkit-scrollbar { width: 6px; }
+        .pb-menu::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 6px; }
+        .pb-row {
+            display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 10px; text-align: left;
+            background: transparent; border: 2px solid transparent; border-radius: 11px; color: var(--text-dim);
+            font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.12s ease, color 0.12s ease;
+        }
+        .pb-row:hover { background: rgba(255,255,255,0.10); color: var(--text); }
+        .pb-row.selected { background: linear-gradient(135deg, var(--blue-deep), var(--blue)); color: #fff; border-color: var(--ink); }
+        .pb-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pb-row .ctx { opacity: 0.6; font-size: 10px; flex-shrink: 0; }
+        .pb-row .icon { width: 0.95em; height: 0.95em; opacity: 0; flex-shrink: 0; }
+        .pb-row.selected .icon { opacity: 1; }
+
+        /* effort popover */
+        .pb-effort { padding: 8px 10px 10px; }
+        .pb-effort-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+        .pb-effort-title { color: var(--text-dim); }
+        .pb-effort-level { color: var(--text); }
+        .pb-effort-level.max { color: var(--pb-spark); }
+        .pb-effort-ends { display: flex; justify-content: space-between; margin-top: 10px; color: var(--text-dim); font-size: 11px; }
+        .pb-effort-track {
+            position: relative; height: 24px; margin-top: 8px; border-radius: 12px; cursor: pointer; outline: none;
+            background: rgba(255,255,255,0.10); border: 2px solid var(--ink); touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+        .pb-effort-track:focus-visible { border-color: var(--cyan); }
+        .pb-effort-fill {
+            position: absolute; top: 0; bottom: 0; left: 0; width: var(--pb-fill, 50%); border-radius: 10px;
+            background: rgba(34,229,255,0.30); transition: width 220ms cubic-bezier(.23,1,.32,1), background-color 300ms ease;
+        }
+        .pb-effort-dot { position: absolute; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(255,255,255,0.35); }
+        .pb-effort-thumb {
+            position: absolute; top: -5px; left: var(--pb-x, 50%); width: 14px; height: 30px; margin-left: -7px;
+            border-radius: 7px; background: var(--text); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink);
+            transition: left 220ms cubic-bezier(.23,1,.32,1), background-color 300ms ease;
+        }
+        .pb-effort-track.max .pb-effort-fill { background: color-mix(in srgb, var(--pb-spark) 40%, transparent); }
+        .pb-effort-track.max .pb-effort-thumb { background: var(--pb-spark); }
+
+        .prompt-bar { --pb-spark: #ff4d6d; }
+
+        @media (max-width: 680px) {
+            .input-area { padding: 6px 12px 10px; }
+            .pb-pick { max-width: 150px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pb-menu { animation: none; }
+            .pb-effort-fill, .pb-effort-thumb { transition: background-color 300ms ease; }
         }
 
         /* ─── LOFI PLAYER ─────────────────────────────────────────────── */
@@ -1192,21 +1325,29 @@
             </button>
             <div id="chat-box"></div>
             <div class="input-area">
-                <div id="promptGlow" class="border-glow-card prompt-glow">
-                    <span class="edge-light"></span>
-                    <div class="border-glow-inner">
-                        <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
+                <div class="prompt-bar" id="promptBar">
+                    <div class="pb-menu" id="pbMenu" role="listbox" hidden></div>
+                    <div id="promptGlow" class="border-glow-card prompt-glow">
+                        <span class="edge-light"></span>
+                        <div class="border-glow-inner">
+                            <div class="pb-field" id="pbField">
+                                <canvas id="pbSparks" class="pb-sparks" aria-hidden="true"></canvas>
+                                <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt"></textarea>
+                                <div class="pb-bar">
+                                    <button type="button" id="pbModelBtn" class="pb-pick" aria-label="Choose model" onclick="togglePbMenu('model')"><svg class="icon"><use href="#icon-cpu"/></svg><span id="pbModelLabel">Model</span><svg class="icon"><use href="#icon-chevron-down"/></svg></button>
+                                    <button type="button" id="pbEffortBtn" class="pb-pick" aria-label="Choose effort" onclick="togglePbMenu('effort')"><svg class="icon"><use href="#icon-bolt"/></svg><span id="pbEffortLabel">Medium</span></button>
+                                    <span class="pb-spacer"></span>
+                                    <button type="button" id="sendBtn" class="pb-send" onclick="handleSendClick()">
+                                        <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path id="pbGlyphPath" d="M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z"/></svg>
+                                        <svg class="icon pb-mic" aria-hidden="true"><use href="#icon-mic"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <button id="sendBtn" onclick="handleSendClick()">Send <svg class="icon"><use href="#icon-arrow-right"/></svg></button>
             </div>
             <div class="tips-bar">
-                <div class="model-dd" title="Choose model">
-                    <button class="model-dd-btn" type="button" onclick="toggleModelMenu(this)"><svg class="icon"><use href="#icon-cpu"/></svg><span class="model-dd-label">Model</span><svg class="icon model-dd-chev"><use href="#icon-chevron-down"/></svg></button>
-                    <div class="model-dd-menu" role="listbox"></div>
-                </div>
-                <button id="ultraToggleChat" class="ultra-toggle compact" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
-                <span class="tips-sep"></span>
                 <svg class="icon"><use href="#icon-info"/></svg>
                 <span id="tipsText"></span>
             </div>
@@ -1410,13 +1551,16 @@
     let ownerToken = null;
     // Ultra Think mode is in-memory only, toggled from chat, voice, or by natural-language command
     let ultraThinkMode = false;
+    let pbBusy = false, pbMenuKind = null, currentAskController = null;
+    let pbMorphT = 0, pbMorphRaf = 0, pbSparkStop = null;
+    const pbTyping = { energy: 0, strokes: 0 };
     const music = document.getElementById('bgMusic');
     let tracks = [];
     let currentTrackIndex = -1;
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', resumeChat: 'new' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', resumeChat: 'new', effortLevel: 'medium' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1499,6 +1643,7 @@
         const current = normalizeModelChoice(settings.modelChoice);
         document.querySelectorAll('.model-dd-label').forEach(el => { el.textContent = modelLabel(current); });
         document.querySelectorAll('.model-dd-item').forEach(el => el.classList.toggle('selected', el.dataset.id === current));
+        pbSyncModel();
     }
 
     function toggleModelMenu(btn) {
@@ -1844,6 +1989,10 @@
     async function extractFacts(userMsg, aiReply) {
         const existing = isCloudUser() ? cloudMemory.facts : JSON.parse(localStorage.getItem('knowura_facts') || '[]');
 
+        const controller = new AbortController();
+        currentAskController = controller;
+        setPromptBusy(true);
+
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
@@ -1999,6 +2148,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function syncUltraToggles() {
+        syncEffortUI();
         document.querySelectorAll('.ultra-toggle').forEach(el => el.classList.toggle('active', ultraThinkMode));
         const wrap = document.getElementById('orbWrap');
         const badge = document.getElementById('ultraBadge');
@@ -2065,8 +2215,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     memory: getMemory(),
                     ownerToken: ownerToken,
                     ultraThink: ultraThinkMode,
-                    model: settings.modelChoice
-                })
+                    model: settings.modelChoice,
+                    effort: settings.effortLevel
+                }),
+                signal: controller.signal
             });
 
             if (!res.ok) throw new Error("Network issue");
@@ -2114,6 +2266,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             }
 
         } catch (e) {
+            if (searchStageTimer) clearTimeout(searchStageTimer);
+            if (e.name === 'AbortError') { thinking.remove(); return; }
             console.error(e);
             thinking.innerHTML = `<span class="typing" style="color:var(--owner);"><svg class="icon"><use href="#icon-alert"/></svg> Connection lost. Ensure your Netlify Secret Key is set.</span>`;
             if (opts.fromVoice) {
@@ -2123,6 +2277,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 } else {
                     setOrbState('idle');
                 }
+            }
+        } finally {
+            if (currentAskController === controller) {
+                currentAskController = null;
+                setPromptBusy(false);
             }
         }
     }
@@ -2662,6 +2821,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     document.addEventListener('click', (e) => {
+        if (pbMenuKind && !e.target.closest?.('.prompt-bar')) closePbMenu();
         if (!e.target.closest?.('.model-dd')) document.querySelectorAll('.model-dd.open').forEach(d => d.classList.remove('open'));
         const widget = document.querySelector('.music-widget');
         const musicPanel = document.getElementById('musicPanel');
@@ -3137,7 +3297,19 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     }
 
-    // ─── SMART SEND BUTTON (morphs into a mic when the input is empty; the mic IS the Live Mode trigger) ──
+    // ─── PROMPT BAR (port of React Bits <PromptBar />; vanilla, no React) ─────
+    // Auto-growing prompt, model picker, effort slider (top step = Ultra Think, with
+    // typing-reactive sparks), and a send tile that morphs arrow <-> stop, or acts as
+    // the Live Voice mic when the box is empty. Attachments, @sources and /commands
+    // from the original are intentionally left out for now.
+
+    const PB_ARROW = [12, 4.5, 18.5, 11, 14.25, 11, 14.25, 19.5, 9.75, 19.5, 9.75, 11, 5.5, 11];
+    const PB_SQUARE = [12, 6, 18, 6, 18, 12, 18, 18, 6, 18, 6, 12, 6, 6];
+    const PB_EFFORTS = [
+        { key: 'low', label: 'Low' }, { key: 'medium', label: 'Medium' },
+        { key: 'high', label: 'High' }, { key: 'ultra', label: 'Ultra' }
+    ];
+    const pbReduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     function playMorph(el) {
         el.classList.remove('morph');
@@ -3145,26 +3317,70 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         el.classList.add('morph');
     }
 
+    function pbGlyphAt(t) {
+        const path = document.getElementById('pbGlyphPath');
+        if (!path) return;
+        let d = '';
+        for (let i = 0; i < PB_ARROW.length; i += 2) {
+            const x = PB_ARROW[i] + (PB_SQUARE[i] - PB_ARROW[i]) * t;
+            const y = PB_ARROW[i + 1] + (PB_SQUARE[i + 1] - PB_ARROW[i + 1]) * t;
+            d += `${i ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
+        }
+        path.setAttribute('d', d + 'Z');
+        const svg = path.ownerSVGElement;
+        const goo = pbReduceMotion() ? 0 : Math.sin(t * Math.PI);
+        const sx = 1 - 0.12 * goo;
+        if (svg) svg.style.transform = goo ? `rotate(${(pbBusy ? 1 : -1) * 8 * goo}deg) scale(${sx}, ${1 / sx})` : '';
+    }
+
+    function pbMorphTo(target) {
+        cancelAnimationFrame(pbMorphRaf);
+        const from = pbMorphT, dur = pbReduceMotion() ? 0 : 240, t0 = performance.now();
+        const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+        const tick = (now) => {
+            const k = dur ? Math.min((now - t0) / dur, 1) : 1;
+            pbMorphT = from + (target - from) * ease(k);
+            pbGlyphAt(pbMorphT);
+            if (k < 1) pbMorphRaf = requestAnimationFrame(tick);
+        };
+        pbMorphRaf = requestAnimationFrame(tick);
+    }
+
+    function setPromptBusy(value) {
+        if (pbBusy === value) return;
+        pbBusy = value;
+        pbMorphTo(value ? 1 : 0);
+        updateSendBtnUI();
+    }
+
+    function abortAsk() { currentAskController?.abort(); }
+
+    function autosizePrompt() {
+        const el = document.getElementById('userInput');
+        if (!el) return;
+        el.style.height = '0px';
+        const max = 22 * 5;
+        el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+        el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
+    }
+
     function updateSendBtnUI() {
         const input = document.getElementById('userInput');
         const btn = document.getElementById('sendBtn');
         const hasText = input.value.trim().length > 0;
         const wasMic = btn.classList.contains('mic-mode');
+        const micNow = !hasText && !pbBusy;
 
-        if (hasText) {
-            btn.classList.remove('mic-mode');
-            btn.innerHTML = 'Send <svg class="icon"><use href="#icon-arrow-right"/></svg>';
-            btn.title = 'Send message';
-            if (wasMic) playMorph(btn);
-        } else {
-            btn.classList.add('mic-mode');
-            btn.innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>';
-            btn.title = 'Talk to Knowura live';
-            if (!wasMic) playMorph(btn);
-        }
+        btn.classList.toggle('mic-mode', micNow);
+        const label = pbBusy ? 'Stop generating' : (hasText ? 'Send message' : 'Talk to Knowura live');
+        btn.title = label;
+        btn.setAttribute('aria-label', label);
+        if (wasMic !== micNow) playMorph(btn);
+        autosizePrompt();
     }
 
     function handleSendClick() {
+        if (pbBusy) { abortAsk(); return; }
         const input = document.getElementById('userInput');
         if (input.value.trim().length > 0) {
             ask();
@@ -3173,14 +3389,236 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     }
 
-    document.getElementById('userInput').addEventListener('input', updateSendBtnUI);
-    updateSendBtnUI();
+    // ── menus (model + effort) ──
 
-    document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') ask(); });
+    function pbEffortIndex() {
+        if (ultraThinkMode) return PB_EFFORTS.length - 1;
+        const i = PB_EFFORTS.findIndex(e => e.key === settings.effortLevel);
+        return i < 0 || i === PB_EFFORTS.length - 1 ? 1 : i;
+    }
+
+    function setPbEffort(i) {
+        const next = Math.max(0, Math.min(PB_EFFORTS.length - 1, i));
+        if (next === PB_EFFORTS.length - 1) {
+            if (!ultraThinkMode) setUltraThinkMode(true);
+        } else {
+            settings.effortLevel = PB_EFFORTS[next].key;
+            saveSettings();
+            if (ultraThinkMode) setUltraThinkMode(false);
+        }
+        syncEffortUI();
+    }
+
+    function stepAt(i) {
+        return `calc(11px + (100% - 22px) * ${i / (PB_EFFORTS.length - 1)})`;
+    }
+
+    function pbUpdateEffortMenu() {
+        const track = document.getElementById('pbEffortTrack');
+        if (!track) return;
+        const i = pbEffortIndex();
+        const maxed = i === PB_EFFORTS.length - 1;
+        track.style.setProperty('--pb-x', stepAt(i));
+        track.style.setProperty('--pb-fill', maxed ? '100%' : `calc(${stepAt(i)} + 7px)`);
+        track.classList.toggle('max', maxed);
+        track.setAttribute('aria-valuenow', i);
+        track.setAttribute('aria-valuetext', PB_EFFORTS[i].label);
+        const level = document.getElementById('pbEffortLevel');
+        if (level) { level.textContent = PB_EFFORTS[i].label; level.classList.toggle('max', maxed); }
+    }
+
+    function renderPbMenu() {
+        const menu = document.getElementById('pbMenu');
+        if (!menu) return;
+        menu.dataset.kind = pbMenuKind || '';
+        if (pbMenuKind === 'model') {
+            const current = normalizeModelChoice(settings.modelChoice);
+            menu.setAttribute('role', 'listbox');
+            menu.innerHTML = availableModels.length
+                ? availableModels.map(m => {
+                    const ctx = m.context_window ? `<span class="ctx">${Math.round(m.context_window / 1000)}k</span>` : '';
+                    return `<button type="button" class="pb-row${m.id === current ? ' selected' : ''}" role="option" data-id="${escapeHtml(m.id)}" onclick="pbPickModel(this.dataset.id)"><span class="pb-row-name">${escapeHtml(m.label || modelLabel(m.id))}</span>${ctx}<svg class="icon"><use href="#icon-check"/></svg></button>`;
+                }).join('')
+                : '<div class="pb-row">Loading models…</div>';
+        } else if (pbMenuKind === 'effort') {
+            menu.setAttribute('role', 'dialog');
+            menu.innerHTML = `
+                <div class="pb-effort">
+                    <div class="pb-effort-head"><span class="pb-effort-title">Effort</span><span class="pb-effort-level" id="pbEffortLevel"></span></div>
+                    <div class="pb-effort-ends"><span>Faster</span><span>Smarter</span></div>
+                    <div class="pb-effort-track" id="pbEffortTrack" role="slider" tabindex="0" aria-label="Effort" aria-valuemin="0" aria-valuemax="${PB_EFFORTS.length - 1}">
+                        <span class="pb-effort-fill"></span>
+                        ${PB_EFFORTS.map((e, i) => `<i class="pb-effort-dot" style="left:${stepAt(i)}"></i>`).join('')}
+                        <span class="pb-effort-thumb"></span>
+                    </div>
+                </div>`;
+            const track = document.getElementById('pbEffortTrack');
+            const fromPointer = (e) => {
+                const rect = track.getBoundingClientRect();
+                const k = (e.clientX - rect.left - 11) / Math.max(1, rect.width - 22);
+                setPbEffort(Math.round(k * (PB_EFFORTS.length - 1)));
+            };
+            track.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                try { track.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+                track.focus({ preventScroll: true });
+                fromPointer(e);
+            });
+            track.addEventListener('pointermove', (e) => { if (e.buttons & 1) fromPointer(e); });
+            track.addEventListener('keydown', (e) => {
+                const i = pbEffortIndex();
+                if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); setPbEffort(i + 1); }
+                else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); setPbEffort(i - 1); }
+                else if (e.key === 'Home') { e.preventDefault(); setPbEffort(0); }
+                else if (e.key === 'End') { e.preventDefault(); setPbEffort(PB_EFFORTS.length - 1); }
+                else if (e.key === 'Escape') { closePbMenu(); document.getElementById('userInput').focus(); }
+            });
+            pbUpdateEffortMenu();
+        }
+    }
+
+    function openPbMenu(kind) {
+        pbMenuKind = kind;
+        renderPbMenu();
+        document.getElementById('pbMenu').hidden = false;
+        document.getElementById('pbModelBtn')?.toggleAttribute('data-on', kind === 'model');
+        document.getElementById('pbEffortBtn')?.toggleAttribute('data-on', kind === 'effort');
+    }
+
+    function closePbMenu() {
+        pbMenuKind = null;
+        const menu = document.getElementById('pbMenu');
+        if (menu) menu.hidden = true;
+        document.getElementById('pbModelBtn')?.removeAttribute('data-on');
+        document.getElementById('pbEffortBtn')?.removeAttribute('data-on');
+    }
+
+    function togglePbMenu(kind) {
+        if (pbMenuKind === kind) closePbMenu(); else openPbMenu(kind);
+    }
+
+    function pbPickModel(id) {
+        setModelChoice(id);
+        closePbMenu();
+        document.getElementById('userInput').focus();
+    }
+
+    function pbSyncModel() {
+        const label = document.getElementById('pbModelLabel');
+        if (label) label.textContent = modelLabel(normalizeModelChoice(settings.modelChoice));
+        if (pbMenuKind === 'model') renderPbMenu();
+    }
+
+    function syncEffortUI() {
+        const i = pbEffortIndex();
+        const maxed = i === PB_EFFORTS.length - 1;
+        const label = document.getElementById('pbEffortLabel');
+        if (label) label.textContent = PB_EFFORTS[i].label;
+        document.getElementById('pbEffortBtn')?.classList.toggle('max', maxed);
+        const field = document.getElementById('pbField');
+        if (field) {
+            const was = field.classList.contains('max');
+            field.classList.toggle('max', maxed);
+            if (maxed && !was) startPbSparks();
+            if (!maxed && was) stopPbSparks();
+        }
+        if (pbMenuKind === 'effort') pbUpdateEffortMenu();
+    }
+
+    // ── sparks at the top effort step (rise faster / brighter as you type) ──
+
+    function stopPbSparks() {
+        if (pbSparkStop) { pbSparkStop(); pbSparkStop = null; }
+    }
+
+    function startPbSparks() {
+        stopPbSparks();
+        const canvas = document.getElementById('pbSparks');
+        const ctx = canvas?.getContext?.('2d');
+        if (!ctx || pbReduceMotion() || typeof ResizeObserver === 'undefined') return;
+        const color = getComputedStyle(canvas).getPropertyValue('--pb-spark').trim() || '#ff4d6d';
+        pbTyping.strokes = 0;
+        let raf = 0, last = performance.now(), w = 0, h = 0, due = 0, speed = 1, pulse = 0;
+        const parts = [];
+        const resize = () => {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = Math.min(2, window.devicePixelRatio || 1);
+            w = rect.width; h = rect.height;
+            canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        const spawn = (burst) => parts.push({
+            x: Math.random() * w, y: burst ? h * (0.2 + Math.random() * 0.8) : h + 3,
+            r: 0.9 + Math.random() * 1.1, vy: -(7 + Math.random() * 9), sway: (Math.random() - 0.5) * 10,
+            phase: Math.random() * Math.PI * 2, life: burst ? Math.random() * 1.2 : 0, span: 2.4 + Math.random() * 2.4
+        });
+        const tick = (now) => {
+            const dt = Math.min(0.05, (now - last) / 1000);
+            last = now;
+            pbTyping.energy *= Math.exp(-dt / 0.8);
+            pulse *= Math.exp(-dt / 0.16);
+            if (pbTyping.strokes > 0) { pbTyping.strokes = 0; pulse = 1; }
+            const energy = pbTyping.energy;
+            speed += (1 + energy * 6 - speed) * (1 - Math.exp(-dt / 0.15));
+            due += dt;
+            while (due > 0.14) { due -= 0.14; if (parts.length < 30) spawn(false); }
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 6 + energy * 10 + pulse * 6;
+            for (let i = parts.length - 1; i >= 0; i--) {
+                const p = parts[i];
+                p.life += dt;
+                if (p.life > p.span) { parts.splice(i, 1); continue; }
+                const k = p.life / p.span;
+                const twinkle = 0.7 + 0.3 * Math.sin((now / 160) * (1 + energy) + p.phase);
+                p.y += p.vy * dt * speed;
+                if (p.y < -4) { p.y = h + 3; p.x = Math.random() * w; }
+                const edge = Math.min(1, Math.max(0, p.y / 14), Math.max(0, (h - p.y) / 14));
+                ctx.globalAlpha = Math.min(1, Math.sin(k * Math.PI) * (0.9 + energy * 0.25) * twinkle) * edge;
+                ctx.beginPath();
+                ctx.arc(p.x + Math.sin((now / 900) * (1 + energy * 0.8) + p.phase) * p.sway, p.y, p.r * twinkle * (1 + energy * 0.35), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            raf = requestAnimationFrame(tick);
+        };
+        resize();
+        for (let i = 0; i < 26; i++) spawn(true);
+        const ro = new ResizeObserver(resize);
+        ro.observe(canvas);
+        raf = requestAnimationFrame(tick);
+        pbSparkStop = () => { cancelAnimationFrame(raf); ro.disconnect(); ctx.clearRect(0, 0, w, h); };
+    }
+
+    // ── wiring ──
+
+    const pbInput = document.getElementById('userInput');
+    pbInput.addEventListener('input', () => {
+        pbTyping.energy = Math.min(1.6, pbTyping.energy + 0.22);
+        pbTyping.strokes = Math.min(4, pbTyping.strokes + 1);
+        if (pbMenuKind) closePbMenu();
+        updateSendBtnUI();
+    });
+    pbInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+            e.preventDefault();
+            if (!pbBusy) ask();
+        } else if (e.key === 'Escape') {
+            closePbMenu();
+        }
+    });
+    document.getElementById('pbField').addEventListener('click', (e) => {
+        if (!e.target.closest('button')) pbInput.focus();
+    });
+    updateSendBtnUI();
+    syncEffortUI();
+    pbSyncModel();
+
     document.getElementById('ownerPasswordInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') unlockWithPassword(); });
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         closeOwnerModal();
+        closePbMenu();
         if (document.getElementById('appDialog').classList.contains('open')) dialogCancel();
     });
 
@@ -3250,7 +3688,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         });
     }
 
-    initBorderGlow(document.getElementById('promptGlow'));
+    initBorderGlow(document.getElementById('promptGlow'), { borderRadius: 22, glowRadius: 34, backgroundColor: 'rgba(0,0,0,0)' });
 
     // ─── COOKIE NOTICE ──────────────────────────────────────────────────────
     // Informational only: Knowura sets no advertising/analytics cookies, just

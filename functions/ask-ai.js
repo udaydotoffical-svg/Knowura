@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
     };
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
     try {
-        const { messages, memory, ownerToken, ultraThink, model } = JSON.parse(event.body);
+        const { messages, memory, ownerToken, ultraThink, model, effort } = JSON.parse(event.body);
         // Owner mode requires a valid server-issued token (from WebAuthn or the
         // password fallback) — a raw client-supplied boolean is not real auth.
         const isOwner = verifyOwnerToken(ownerToken, process.env.OWNER_TOKEN_SECRET);
@@ -103,6 +103,9 @@ exports.handler = async (event, context) => {
         } else if (isGptOss && isUltra) {
             payload.reasoning_effort = "high";
             payload.include_reasoning = true;
+        } else if (isGptOss && (effort === "low" || effort === "high")) {
+            // the prompt bar's effort slider (medium is Groq's default, so it's omitted)
+            payload.reasoning_effort = effort;
         }
 
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
