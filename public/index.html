@@ -438,6 +438,150 @@
             animation: dotPulse 1.4s ease-in-out infinite;
         }
 
+        /* ─── BORDER GLOW (React Bits <BorderGlow />, ported to vanilla JS) ──── */
+
+        .border-glow-card {
+            --edge-proximity: 0;
+            --cursor-angle: 45deg;
+            --edge-sensitivity: 30;
+            --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+            --border-radius: 28px;
+            --glow-padding: 40px;
+            --cone-spread: 25;
+
+            position: relative;
+            border-radius: var(--border-radius);
+            isolation: isolate;
+            transform: translate3d(0, 0, 0.01px);
+            display: grid;
+            border: 1px solid rgb(255 255 255 / 15%);
+            background: var(--card-bg, #120F17);
+            overflow: visible;
+        }
+
+        .border-glow-card::before,
+        .border-glow-card::after,
+        .border-glow-card > .edge-light {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            transition: opacity 0.25s ease-out;
+            z-index: -1;
+        }
+
+        .border-glow-card:not(:hover):not(.sweep-active)::before,
+        .border-glow-card:not(:hover):not(.sweep-active)::after,
+        .border-glow-card:not(:hover):not(.sweep-active) > .edge-light {
+            opacity: 0;
+            transition: opacity 0.75s ease-in-out;
+        }
+
+        /* colored mesh-gradient border */
+        .border-glow-card::before {
+            border: 1px solid transparent;
+            background:
+                linear-gradient(var(--card-bg, #120F17) 0 100%) padding-box,
+                linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
+                var(--gradient-one, radial-gradient(at 80% 55%, hsla(268, 100%, 76%, 1) 0px, transparent 50%)) border-box,
+                var(--gradient-two, radial-gradient(at 69% 34%, hsla(349, 100%, 74%, 1) 0px, transparent 50%)) border-box,
+                var(--gradient-three, radial-gradient(at 8% 6%, hsla(136, 100%, 78%, 1) 0px, transparent 50%)) border-box,
+                var(--gradient-four, radial-gradient(at 41% 38%, hsla(192, 100%, 64%, 1) 0px, transparent 50%)) border-box,
+                var(--gradient-five, radial-gradient(at 86% 85%, hsla(186, 100%, 74%, 1) 0px, transparent 50%)) border-box,
+                var(--gradient-six, radial-gradient(at 82% 18%, hsla(52, 100%, 65%, 1) 0px, transparent 50%)) border-box,
+                var(--gradient-seven, radial-gradient(at 51% 4%, hsla(12, 100%, 72%, 1) 0px, transparent 50%)) border-box,
+                var(--gradient-base, linear-gradient(#c299ff 0 100%)) border-box;
+
+            opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+
+            mask-image:
+                conic-gradient(
+                    from var(--cursor-angle) at center,
+                    black calc(var(--cone-spread) * 1%),
+                    transparent calc((var(--cone-spread) + 15) * 1%),
+                    transparent calc((100 - var(--cone-spread) - 15) * 1%),
+                    black calc((100 - var(--cone-spread)) * 1%)
+                );
+        }
+
+        /* colored mesh-gradient background fill near edges */
+        .border-glow-card::after {
+            border: 1px solid transparent;
+            background:
+                var(--gradient-one, radial-gradient(at 80% 55%, hsla(268, 100%, 76%, 1) 0px, transparent 50%)) padding-box,
+                var(--gradient-two, radial-gradient(at 69% 34%, hsla(349, 100%, 74%, 1) 0px, transparent 50%)) padding-box,
+                var(--gradient-three, radial-gradient(at 8% 6%, hsla(136, 100%, 78%, 1) 0px, transparent 50%)) padding-box,
+                var(--gradient-four, radial-gradient(at 41% 38%, hsla(192, 100%, 64%, 1) 0px, transparent 50%)) padding-box,
+                var(--gradient-five, radial-gradient(at 86% 85%, hsla(186, 100%, 74%, 1) 0px, transparent 50%)) padding-box,
+                var(--gradient-six, radial-gradient(at 82% 18%, hsla(52, 100%, 65%, 1) 0px, transparent 50%)) padding-box,
+                var(--gradient-seven, radial-gradient(at 51% 4%, hsla(12, 100%, 72%, 1) 0px, transparent 50%)) padding-box,
+                var(--gradient-base, linear-gradient(#c299ff 0 100%)) padding-box;
+
+            mask-image:
+                linear-gradient(to bottom, black, black),
+                radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+                radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+                radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+                radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+                radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+                conic-gradient(from var(--cursor-angle) at center, transparent 5%, black 15%, black 85%, transparent 95%);
+
+            mask-composite: subtract, add, add, add, add, add;
+            opacity: calc(var(--fill-opacity, 0.5) * (var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+            mix-blend-mode: soft-light;
+        }
+
+        /* outer glow layer */
+        .border-glow-card > .edge-light {
+            inset: calc(var(--glow-padding) * -1);
+            pointer-events: none;
+            z-index: 1;
+
+            mask-image:
+                conic-gradient(
+                    from var(--cursor-angle) at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%
+                );
+
+            opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+            mix-blend-mode: plus-lighter;
+        }
+
+        .border-glow-card > .edge-light::before {
+            content: "";
+            position: absolute;
+            inset: var(--glow-padding);
+            border-radius: inherit;
+            box-shadow:
+                inset 0 0 0 1px var(--glow-color, hsl(40deg 80% 80% / 100%)),
+                inset 0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
+                inset 0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
+                inset 0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
+                inset 0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),
+                inset 0 0 25px 2px var(--glow-color-20, hsl(40deg 80% 80% / 20%)),
+                inset 0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%)),
+                0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
+                0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
+                0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
+                0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),
+                0 0 25px 2px var(--glow-color-20, hsl(40deg 80% 80% / 20%)),
+                0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%));
+        }
+
+        .border-glow-inner {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: auto;
+            z-index: 1;
+        }
+
+        /* prompt box: the glow card replaces the input's own border */
+        .prompt-glow { flex: 1; min-width: 0; border: 2.5px solid var(--ink); box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+        .prompt-glow .border-glow-inner { flex-direction: row; overflow: visible; }
+        .prompt-glow:focus-within { border-color: var(--cyan); box-shadow: inset 2px 2px 0 rgba(0,0,0,0.4), 0 0 0 3px rgba(34,229,255,0.2); }
+        .prompt-glow input#userInput { border: none; background: transparent; box-shadow: none; border-radius: inherit; min-width: 0; }
+        .prompt-glow input#userInput:focus { border: none; box-shadow: none; }
+
         .input-area {
             padding: 18px 22px; display: flex; gap: 12px; background: rgba(4,8,18,0.65); border-top: 3px solid var(--ink);
             padding-bottom: max(18px, env(safe-area-inset-bottom)); /* clear the home-indicator area on notched phones */
@@ -1048,7 +1192,12 @@
             </button>
             <div id="chat-box"></div>
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
+                <div id="promptGlow" class="border-glow-card prompt-glow">
+                    <span class="edge-light"></span>
+                    <div class="border-glow-inner">
+                        <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
+                    </div>
+                </div>
                 <button id="sendBtn" onclick="handleSendClick()">Send <svg class="icon"><use href="#icon-arrow-right"/></svg></button>
             </div>
             <div class="tips-bar">
@@ -3049,6 +3198,59 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }, 300); // let the keyboard finish animating in first
     });
 
+
+    // ─── BORDER GLOW (port of React Bits <BorderGlow />; vanilla, no React) ──
+    // Sets the same CSS variables the component does and tracks the pointer's
+    // distance/angle to the card's edge so the glow follows the cursor.
+
+    function initBorderGlow(card, opts = {}) {
+        if (!card) return;
+        const o = {
+            edgeSensitivity: 30, glowColor: '187 100 58', backgroundColor: '#0a1428', borderRadius: 12,
+            glowRadius: 30, glowIntensity: 1.0, coneSpread: 25, fillOpacity: 0.5,
+            colors: ['#2f6bff', '#22e5ff', '#7aa2ff'], ...opts
+        };
+
+        const m = o.glowColor.match(/([\d.]+)\s*([\d.]+)%?\s*([\d.]+)%?/);
+        const h = m ? parseFloat(m[1]) : 40, sat = m ? parseFloat(m[2]) : 80, lum = m ? parseFloat(m[3]) : 80;
+        const base = `${h}deg ${sat}% ${lum}%`;
+        const opacities = [100, 60, 50, 40, 30, 20, 10];
+        const keys = ['', '-60', '-50', '-40', '-30', '-20', '-10'];
+        opacities.forEach((op, i) => {
+            card.style.setProperty(`--glow-color${keys[i]}`, `hsl(${base} / ${Math.min(op * o.glowIntensity, 100)}%)`);
+        });
+
+        const positions = ['80% 55%', '69% 34%', '8% 6%', '41% 38%', '86% 85%', '82% 18%', '51% 4%'];
+        const gradKeys = ['--gradient-one', '--gradient-two', '--gradient-three', '--gradient-four', '--gradient-five', '--gradient-six', '--gradient-seven'];
+        const colorMap = [0, 1, 2, 0, 1, 2, 1];
+        gradKeys.forEach((key, i) => {
+            const c = o.colors[Math.min(colorMap[i], o.colors.length - 1)];
+            card.style.setProperty(key, `radial-gradient(at ${positions[i]}, ${c} 0px, transparent 50%)`);
+        });
+        card.style.setProperty('--gradient-base', `linear-gradient(${o.colors[0]} 0 100%)`);
+
+        card.style.setProperty('--card-bg', o.backgroundColor);
+        card.style.setProperty('--edge-sensitivity', o.edgeSensitivity);
+        card.style.setProperty('--border-radius', `${o.borderRadius}px`);
+        card.style.setProperty('--glow-padding', `${o.glowRadius}px`);
+        card.style.setProperty('--cone-spread', o.coneSpread);
+        card.style.setProperty('--fill-opacity', o.fillOpacity);
+
+        card.addEventListener('pointermove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const cx = rect.width / 2, cy = rect.height / 2;
+            const dx = e.clientX - rect.left - cx, dy = e.clientY - rect.top - cy;
+            const kx = dx !== 0 ? cx / Math.abs(dx) : Infinity;
+            const ky = dy !== 0 ? cy / Math.abs(dy) : Infinity;
+            const edge = Math.min(Math.max(1 / Math.min(kx, ky), 0), 1);
+            let angle = (dx === 0 && dy === 0) ? 0 : Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+            if (angle < 0) angle += 360;
+            card.style.setProperty('--edge-proximity', (edge * 100).toFixed(3));
+            card.style.setProperty('--cursor-angle', `${angle.toFixed(3)}deg`);
+        });
+    }
+
+    initBorderGlow(document.getElementById('promptGlow'));
 
     // ─── COOKIE NOTICE ──────────────────────────────────────────────────────
     // Informational only: Knowura sets no advertising/analytics cookies, just
