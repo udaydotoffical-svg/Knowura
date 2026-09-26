@@ -942,16 +942,19 @@
         @keyframes boltPulse { 0%, 100% { opacity: 0.55; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.08); } }
 
         /* the expandable thinking bar */
-        .msg details.reasoning {
+        .msg .reasoning {
             margin-bottom: 10px; border: 1px solid rgba(34,229,255,0.22); border-radius: 12px;
             padding: 8px 12px; background: rgba(34,229,255,0.06); font-size: 12.5px; color: var(--text-dim);
         }
-        .msg details.reasoning.ultra { border: 1px dashed rgba(255,48,87,0.4); background: rgba(255,48,87,0.06); }
-        .msg details.reasoning summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
-        .msg details.reasoning summary::-webkit-details-marker { display: none; }
+        .msg .reasoning.ultra { border: 1px dashed rgba(255,48,87,0.4); background: rgba(255,48,87,0.06); }
+        .msg .reasoning summary, .msg .reasoning .reasoning-sum { list-style: none; display: flex; align-items: center; gap: 10px; }
+        .msg .reasoning summary { cursor: pointer; }
+        .msg .reasoning summary::-webkit-details-marker { display: none; }
         .msg details.reasoning[open] summary { margin-bottom: 8px; }
-        .reasoning-chev { width: 0.9em; height: 0.9em; opacity: 0.7; transition: transform 0.2s ease; }
+        .reasoning-chev { width: 0.9em; height: 0.9em; margin-left: auto; opacity: 0.7; transition: transform 0.2s ease; }
+        .msg .reasoning.live .reasoning-chev { opacity: 0.3; } /* nothing to open until the answer arrives */
         .msg details.reasoning[open] .reasoning-chev { transform: rotate(180deg); }
+        .reasoning-empty { font-style: italic; opacity: 0.8; }
 
         /* ─── LIVE VOICE MODE ─────────────────────────────────────────── */
 
@@ -2138,9 +2141,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         return ds < 600 ? `${(ds / 10).toFixed(1)}s` : `${Math.floor(ds / 600)}m ${((ds % 600) / 10).toFixed(1)}s`;
     }
 
+    const REASONING_CHEV = '<svg class="icon reasoning-chev"><use href="#icon-chevron-down"/></svg>';
+
+    // Every thinking state is the same row: [icon] label timer  ∨ — only Ultra Think
+    // swaps the icon for a red bolt (and drops the label/timer).
     function thinkRowHTML({ label = 'Thinking', state = 'composing', elapsedDs = 0 } = {}) {
-        return `<span class="think-row" role="status"><canvas class="think-orb" data-orb="${state}" aria-hidden="true"></canvas>`
-            + `<span class="think-label">${escapeHtml(label)}</span><span class="think-timer">${fmtThink(elapsedDs)}</span></span>`;
+        return `<div class="reasoning live"><div class="reasoning-sum" role="status"><span class="think-row"><canvas class="think-orb" data-orb="${state}" aria-hidden="true"></canvas>`
+            + `<span class="think-label">${escapeHtml(label)}</span><span class="think-timer">${fmtThink(elapsedDs)}</span></span>${REASONING_CHEV}</div></div>`;
     }
 
     // Finished row saved into the chat history (plain markup — no live canvas).
@@ -2184,6 +2191,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // Ultra Think shows only a lightning bolt — no orb, label or timer.
     function ultraBoltHTML(isStatic) {
         return `<span class="ultra-bolt${isStatic ? ' static' : ''}" role="status" aria-label="${isStatic ? 'Ultra thought process' : 'Ultra thinking'}"><svg class="icon"><use href="#icon-bolt"/></svg></span>`;
+    }
+
+    function ultraLiveHTML() {
+        return `<div class="reasoning ultra live"><div class="reasoning-sum">${ultraBoltHTML(false)}${REASONING_CHEV}</div></div>`;
     }
 
     // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
@@ -2272,9 +2283,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const willSearch = looksSearchWorthy(text);
         const ultraAtSend = ultraThinkMode;
         const thinkStart = performance.now();
-        const thinkState = willSearch ? 'searching' : 'composing';
         const thinking = addBubble(
-            ultraAtSend ? ultraBoltHTML(false) : thinkRowHTML({ label: willSearch ? 'Searching the web' : 'Thinking', state: thinkState }),
+            ultraAtSend ? ultraLiveHTML() : thinkRowHTML({ label: willSearch ? 'Searching the web' : 'Thinking' }),
             'ai', false
         );
         let searchStageTimer = null;
@@ -2282,7 +2292,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!ultraAtSend) {
             const timerEl = thinking.querySelector('.think-timer');
             const orbEl = thinking.querySelector('.think-orb');
-            mountThinkOrb(orbEl, thinkState);
+            mountThinkOrb(orbEl, 'composing');
             thinkTimer = setInterval(() => {
                 if (timerEl) timerEl.textContent = fmtThink(Math.floor((performance.now() - thinkStart) / 100));
             }, 100);
@@ -2290,7 +2300,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 searchStageTimer = setTimeout(() => {
                     const labelEl = thinking.querySelector('.think-label');
                     if (labelEl) labelEl.textContent = 'Thinking';
-                    mountThinkOrb(orbEl, 'composing');
                 }, 1200);
             }
         }
@@ -2334,13 +2343,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 const reply = inlineThink ? rawReply.slice(inlineThink[0].length) : rawReply;
                 const reasoning = data.choices[0].message?.reasoning || (inlineThink ? inlineThink[1].trim() : '');
                 let html = '';
-                if (reasoning) {
-                    const elapsedDs = Math.floor((performance.now() - thinkStart) / 100);
-                    const summary = ultraAtSend
-                        ? ultraBoltHTML(true)
-                        : thinkDoneHTML('Thought for', elapsedDs) + '<svg class="icon reasoning-chev"><use href="#icon-chevron-down"/></svg>';
-                    html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${marked.parse(reasoning)}</details>`;
-                }
+                const elapsedDs = Math.floor((performance.now() - thinkStart) / 100);
+                const summary = (ultraAtSend ? ultraBoltHTML(true) : thinkDoneHTML('Thought for', elapsedDs)) + REASONING_CHEV;
+                const body = reasoning ? marked.parse(reasoning) : '<p class="reasoning-empty">No thought process was returned for this reply.</p>';
+                html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${body}</details>`;
                 html += marked.parse(reply);
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai');
