@@ -2143,7 +2143,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     const REASONING_CHEV = '<svg class="icon reasoning-chev"><use href="#icon-chevron-down"/></svg>';
 
-    // Every thinking state is the same row: [icon] label timer  ∨ — only Ultra Think
+    // Every thinking state is the same row: [icon] label timer  ∨ — the icon is the composing orb (the searching orb while a web search runs); only Ultra Think
     // swaps the icon for a red bolt (and drops the label/timer).
     function thinkRowHTML({ label = 'Thinking', state = 'composing', elapsedDs = 0 } = {}) {
         return `<div class="reasoning live"><div class="reasoning-sum" role="status"><span class="think-row"><canvas class="think-orb" data-orb="${state}" aria-hidden="true"></canvas>`
@@ -2284,7 +2284,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const ultraAtSend = ultraThinkMode;
         const thinkStart = performance.now();
         const thinking = addBubble(
-            ultraAtSend ? ultraLiveHTML() : thinkRowHTML({ label: willSearch ? 'Searching the web' : 'Thinking' }),
+            ultraAtSend ? ultraLiveHTML() : thinkRowHTML({ label: willSearch ? 'Searching the web' : 'Thinking', state: willSearch ? 'searching' : 'composing' }),
             'ai', false
         );
         let searchStageTimer = null;
@@ -2292,7 +2292,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!ultraAtSend) {
             const timerEl = thinking.querySelector('.think-timer');
             const orbEl = thinking.querySelector('.think-orb');
-            mountThinkOrb(orbEl, 'composing');
+            mountThinkOrb(orbEl, willSearch ? 'searching' : 'composing');
             thinkTimer = setInterval(() => {
                 if (timerEl) timerEl.textContent = fmtThink(Math.floor((performance.now() - thinkStart) / 100));
             }, 100);
@@ -2300,7 +2300,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 searchStageTimer = setTimeout(() => {
                     const labelEl = thinking.querySelector('.think-label');
                     if (labelEl) labelEl.textContent = 'Thinking';
-                }, 1200);
+                    mountThinkOrb(orbEl, 'composing');
+                }, 2500);
             }
         }
         if (opts.fromVoice) {
