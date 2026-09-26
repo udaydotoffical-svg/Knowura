@@ -225,18 +225,17 @@
         .sidebar-footer .mini-player { margin-bottom: 8px; width: 100%; box-sizing: border-box; }
         .sidebar-footer .mini-track-title { max-width: none; flex: 1; }
 
-        /* The music panel normally drops down from a header button; anchored in the
-           sidebar footer instead, it needs to open upward so it doesn't run off-screen. */
-        /* The music panel normally drops down from a header button; anchored in the
-           sidebar footer instead, it needs to open upward and right-align to the
-           icon so it doesn't run off the sidebar or the viewport. Scoped to
-           .sidebar-footer (specificity 0,2,0) so it wins over the plain
-           .music-panel rule below regardless of source order, mobile media query
-           included — no !important needed. */
-        .sidebar-footer .music-panel {
-            top: auto; bottom: calc(100% + 10px);
-            left: auto; right: 0;
-            width: 280px; max-width: calc(100vw - 24px);
+        /* The music panel lives at body level (not inside the sidebar): the sidebar's
+           overflow:hidden clips it and its backdrop-filter traps position:fixed
+           children, same containing-block gotcha as the Settings modal. Fixed to
+           the bottom-left, above the sidebar footer's music button. The id selector
+           beats the plain .music-panel rule and its mobile media query. */
+        #musicPanel {
+            position: fixed; top: auto; right: auto; left: 24px; bottom: 76px; z-index: 160;
+            width: min(300px, calc(100vw - 24px));
+        }
+        @media (max-width: 680px) {
+            #musicPanel { left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(340px, calc(100vw - 24px)); }
         }
 
         .chat-sidebar-toggle {
@@ -1012,30 +1011,6 @@
                     <div class="sidebar-footer-icons">
                         <div class="music-widget">
                             <button id="musicBtn" class="btn-ui icon-only" onclick="toggleMusicPanel()" title="Music"><svg class="icon"><use href="#icon-music"/></svg></button>
-                            <div id="musicPanel" class="music-panel">
-                                <div class="now-playing">
-                                    <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
-                                    <div class="track-meta">
-                                        <div id="trackTitle" class="track-title">No track loaded</div>
-                                        <div class="track-artist">Knowura Lofi Radio</div>
-                                    </div>
-                                </div>
-                                <div class="progress-row">
-                                    <span id="curTime" class="time">0:00</span>
-                                    <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
-                                    <span id="durTime" class="time">0:00</span>
-                                </div>
-                                <div class="transport">
-                                    <button class="transport-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
-                                    <button id="playPauseBtn" class="transport-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-play"/></svg></button>
-                                    <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
-                                    <div class="volume-row" title="Volume">
-                                        <span><svg class="icon"><use href="#icon-volume"/></svg></span>
-                                        <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
-                                    </div>
-                                </div>
-                                <div id="trackList" class="track-list"></div>
-                            </div>
                         </div>
                         <div class="hamburger-widget">
                             <button id="hamburgerBtn" class="btn-ui icon-only" onclick="toggleHamburgerMenu()" title="Menu">
@@ -1101,6 +1076,31 @@
             </div>
         </div>
     </div>
+
+        <div id="musicPanel" class="music-panel">
+            <div class="now-playing">
+                <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
+                <div class="track-meta">
+                    <div id="trackTitle" class="track-title">No track loaded</div>
+                    <div class="track-artist">Knowura Lofi Radio</div>
+                </div>
+            </div>
+            <div class="progress-row">
+                <span id="curTime" class="time">0:00</span>
+                <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
+                <span id="durTime" class="time">0:00</span>
+            </div>
+            <div class="transport">
+                <button class="transport-btn" onclick="prevTrack()" title="Previous track"><svg class="icon"><use href="#icon-skip-back"/></svg></button>
+                <button id="playPauseBtn" class="transport-btn play" onclick="togglePlay()" title="Play / pause"><svg class="icon"><use href="#icon-play"/></svg></button>
+                <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
+                <div class="volume-row" title="Volume">
+                    <span><svg class="icon"><use href="#icon-volume"/></svg></span>
+                    <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
+                </div>
+            </div>
+            <div id="trackList" class="track-list"></div>
+        </div>
 
     <div id="hamburgerPanel" class="hamburger-panel" onclick="if (event.target === this) toggleHamburgerMenu()">
         <div class="hamburger-modal-card">
@@ -2439,8 +2439,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     document.addEventListener('click', (e) => {
         const widget = document.querySelector('.music-widget');
-        if (widget && !widget.contains(e.target)) {
-            document.getElementById('musicPanel').classList.remove('open');
+        const musicPanel = document.getElementById('musicPanel');
+        if (widget && musicPanel && !widget.contains(e.target) && !musicPanel.contains(e.target)) {
+            musicPanel.classList.remove('open');
         }
         const hamburgerWidget = document.querySelector('.hamburger-widget');
         if (hamburgerWidget && !hamburgerWidget.contains(e.target)) {
