@@ -1,5 +1,6 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const { verify: verifyOwnerToken } = require('./_ownerToken');
+const { getChatModels, DEFAULT_MODEL } = require('./_models');
 
 async function webSearch(query) {
     try {
@@ -51,7 +52,6 @@ exports.handler = async (event, context) => {
         // password fallback) — a raw client-supplied boolean is not real auth.
         const isOwner = verifyOwnerToken(ownerToken, process.env.OWNER_TOKEN_SECRET);
         const isUltra = ultraThink === true;
-        const isQwen = model === "qwen";
 
         let memoryBlock = "";
         if (memory?.summary) memoryBlock += `\nConversation summary so far:\n${memory.summary}`;
@@ -73,11 +73,25 @@ exports.handler = async (event, context) => {
 
         const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + memoryBlock + searchBlock + (isUltra ? ultraPrompt : "");
 
-        // Two Groq model families to pick from: OpenAI's open-weight OSS models
-        // (20B normally, 120B under Ultra Think) or Qwen3.6 27B (one model either
-        // way — Ultra Think just switches its native reasoning mode on/off).
+        // The picker sends a real Groq model id (from the live /models list). Only
+        // ids Groq currently offers for chat are accepted; anything else — including
+        // the old "oss"/"qwen" values a stale client may still send — falls back.
+        const available = await getChatModels();
+        let chosen = available.find(m => m.id === model)?.id;
+        if (!chosen && model === "qwen") chosen = available.find(m => /qwen/i.test(m.id))?.id;
+        chosen = chosen || (available.some(m => m.id === DEFAULT_MODEL) ? DEFAULT_MODEL : available[0].id);
+
+        // Ultra Think: gpt-oss-20b steps up to 120b; gpt-oss models get high
+        // reasoning effort; Qwen toggles its native reasoning on/off; every other
+        // model just gets the extra "think harder" system prompt.
+        const isGptOss = /^openai\/gpt-oss-(?!safeguard)/.test(chosen);
+        const isQwen = /qwen/i.test(chosen);
+        if (isUltra && chosen === "openai/gpt-oss-20b" && available.some(m => m.id === "openai/gpt-oss-120b")) {
+            chosen = "openai/gpt-oss-120b";
+        }
+
         const payload = {
-            model: isQwen ? "qwen/qwen3.6-27b" : (isUltra ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b"),
+            model: chosen,
             messages: [
                 { role: "system", content: systemPrompt },
                 ...messages
@@ -86,7 +100,7 @@ exports.handler = async (event, context) => {
         if (isQwen) {
             payload.reasoning_effort = isUltra ? "default" : "none";
             if (isUltra) payload.include_reasoning = true;
-        } else if (isUltra) {
+        } else if (isGptOss && isUltra) {
             payload.reasoning_effort = "high";
             payload.include_reasoning = true;
         }
