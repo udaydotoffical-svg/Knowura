@@ -8,9 +8,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" rel="stylesheet">
+    <script>
+        // Lite mode (no glass blur / glow / animations) is decided before first paint so a
+        // weak device never renders the heavy version. Auto = low memory or few cores, or
+        // a device the runtime lag watchdog already flagged; Lite/Full override it.
+        (function () {
+            try {
+                var mode = (JSON.parse(localStorage.getItem('knowura_settings') || '{}').perfMode) || 'auto';
+                var low = (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+                          (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ||
+                          localStorage.getItem('knowura_autolite') === '1';
+                if (mode === 'lite' || (mode === 'auto' && low)) document.documentElement.classList.add('lite');
+            } catch (e) { /* storage blocked: stay on the full look */ }
+        })();
+    </script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js" defer></script>
     <style>
         :root {
             --dark: #05070f;
@@ -1224,6 +1238,29 @@
             .msg { max-width: 90%; font-size: 14px; }
             .glass-card { padding: 30px 20px; }
         }
+
+        /* ─── LITE MODE (html.lite): the same UI with the expensive effects switched off ───
+           Set automatically on weak devices (or by the lag watchdog), or in Settings ->
+           Performance. No backdrop blur, no glow layers, no animations, smaller wallpaper. */
+        html.lite { --panel: rgba(12, 24, 52, 0.86) !important; --panel-strong: rgba(9, 18, 40, 0.94) !important; }
+        html.lite body {
+            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('assets/images/background-lite.jpg') no-repeat center center;
+            background-size: cover;
+        }
+        html.lite *, html.lite *::before, html.lite *::after {
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+            filter: none !important;
+            animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important;
+            transition-duration: 0.001ms !important; transition-delay: 0s !important;
+            scroll-behavior: auto !important;
+        }
+        html.lite .orb-gif { filter: none !important; }
+        html.lite .border-glow-card::before, html.lite .border-glow-card::after, html.lite .border-glow-card > .edge-light,
+        html.lite .pb-field::before, html.lite .pb-field::after, html.lite .pb-sparks, html.lite .glass-card::before { display: none !important; }
+        html.lite .border-glow-card { transform: none; isolation: auto; }
+        html.lite .prompt-glow { box-shadow: 5px 5px 0 var(--ink) !important; background: var(--panel-strong) !important; }
+        html.lite .pb-menu, html.lite .model-dd-menu, html.lite .music-panel, html.lite .cookie-banner { background: var(--panel-strong) !important; }
+        html.lite #startup, html.lite .sidebar-backdrop, html.lite .hamburger-panel, html.lite .owner-modal { background: rgba(3,6,14,0.92) !important; }
     </style>
 </head>
 <body>
@@ -1263,7 +1300,7 @@
         </defs>
     </svg>
 
-    <audio id="bgMusic" preload="auto"></audio>
+    <audio id="bgMusic" preload="none"></audio>
 
     <div id="startup">
         <div class="glass-card">
@@ -1371,7 +1408,7 @@
                     <div class="ring ring1"></div>
                     <div class="ring ring2"></div>
                     <div id="ultraBadge" class="ultra-badge" style="display:none;"><svg class="icon"><use href="#icon-bolt"/></svg> Ultra</div>
-                    <img id="liveOrb" class="orb-gif" src="assets/images/bloub-cercle-neutre-bleu.gif" alt="Knowura avatar">
+                    <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
                 </div>
                 <div id="liveStatus" class="live-status">Connecting…</div>
                 <div id="liveTranscript" class="live-transcript"></div>
@@ -1436,6 +1473,22 @@
                     <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
                     <span id="glassOpacityValue" class="glass-slider-value">40%</span>
                 </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Performance</div>
+                <button class="choice-pill" data-group="perfMode" data-value="auto" onclick="setPerfMode('auto')">
+                    <span class="choice-row"><span class="choice-dot"></span>Auto</span>
+                    <span class="choice-hint">Default — picks Lite on weak devices or if it senses lag</span>
+                </button>
+                <button class="choice-pill" data-group="perfMode" data-value="lite" onclick="setPerfMode('lite')">
+                    <span class="choice-row"><span class="choice-dot"></span>Lite</span>
+                    <span class="choice-hint">Fastest — no glass blur, glow or animations</span>
+                </button>
+                <button class="choice-pill" data-group="perfMode" data-value="full" onclick="setPerfMode('full')">
+                    <span class="choice-row"><span class="choice-dot"></span>Full</span>
+                    <span class="choice-hint">All effects, for capable devices</span>
+                </button>
             </div>
 
             <div class="settings-section">
@@ -1573,7 +1626,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', resumeChat: 'new', effortLevel: 'medium' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -2169,7 +2222,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             ctx.clearRect(0, 0, size, size);
             eng.paintFrame(ctx, frameFn(size, t, opts), true); // true = light dots on the dark UI
         };
-        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { frame(0.6); return; }
+        if (pbReduceMotion()) { frame(0.6); return; }
 
         let raf = 0, stopped = false;
         const loop = () => {
@@ -2339,7 +2392,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 let html = '';
                 const elapsedDs = Math.floor((performance.now() - thinkStart) / 100);
                 const summary = (ultraAtSend ? ultraBoltHTML(true) : thinkDoneHTML('Thought for', elapsedDs)) + REASONING_CHEV;
-                const body = reasoning ? marked.parse(reasoning) : '<p class="reasoning-empty">No thought process was returned for this reply.</p>';
+                const body = reasoning ? marked.parse(reasoning.length > 6000 ? reasoning.slice(0, 6000) + '\n\n…' : reasoning) : '<p class="reasoning-empty">No thought process was returned for this reply.</p>';
                 html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${body}</details>`;
                 html += marked.parse(reply);
                 thinking.innerHTML = html;
@@ -2395,6 +2448,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function addBubble(t, c, save) {
         const box = document.getElementById('chat-box');
         box.querySelector('.empty-state')?.remove();
+        while (box.childElementCount >= 80) box.firstElementChild.remove(); // keep very long sessions light
         const div = document.createElement('div');
         div.className = `msg ${c}`;
         div.innerHTML = t;
@@ -2468,6 +2522,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function createChat() {
         const chat = { id: makeChatId(), title: 'New Chat', createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
         chatStore.chats.unshift(chat);
+        if (chatStore.chats.length > 40) chatStore.chats.length = 40; // oldest fall off the end
         chatStore.activeChatId = chat.id;
         saveChatStore();
         return chat;
@@ -3107,6 +3162,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     let silenceTimer = null, maxCaptureTimer = null;
 
     async function openLivePanel() {
+        const liveOrb = document.getElementById('liveOrb');
+        if (liveOrb && !liveOrb.getAttribute('src')) liveOrb.src = ORB_GIFS.idle; // decoded lazily: 60-frame gifs are tens of MB in memory
         document.getElementById('livePanel').classList.add('open');
         syncUltraToggles();
         await startCall();
@@ -3116,6 +3173,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function closeLivePanel() {
         endCall();
         document.getElementById('livePanel').classList.remove('open');
+        document.getElementById('liveOrb')?.removeAttribute('src'); // free the decoded gif frames
         applyWakeWordSetting();
     }
 
@@ -3304,8 +3362,12 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             setOrbState('speaking');
             setLiveStatus('Speaking…');
             if (settings.captionsEnabled) playCaptions(text, currentReplyAudio);
-            hookAnalyser(currentReplyAudio);
+            const unhook = hookAnalyser(currentReplyAudio);
+            const finished = currentReplyAudio;
             currentReplyAudio.onended = () => {
+                unhook?.();
+                finished.removeAttribute('src'); // drop the base64 audio data
+                finished.load();
                 currentReplyAudio = null;
                 if (callActive) enterListeningState(); else setOrbState('idle');
             };
@@ -3382,6 +3444,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             analyser.fftSize = 64;
             source.connect(analyser);
             analyser.connect(audioCtx.destination);
+            const unhook = () => { try { source.disconnect(); analyser.disconnect(); } catch (e) { /* already disconnected */ } };
 
             const data = new Uint8Array(analyser.frequencyBinCount);
             const orb = document.getElementById('liveOrb');
@@ -3395,11 +3458,69 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 requestAnimationFrame(tick);
             }
             tick();
+            return unhook;
         } catch (e) {
             // Analyser is a visual nicety only — playback still works without it.
             console.warn('Audio analyser unavailable:', e);
         }
     }
+
+    // ─── PERFORMANCE (Lite mode + lag watchdog) ─────────────────────────────
+    function perfLite() { return document.documentElement.classList.contains('lite'); }
+
+    function isLowEndDevice() {
+        return (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+               (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
+    }
+
+    function applyPerfMode() {
+        let auto = false;
+        try { auto = localStorage.getItem('knowura_autolite') === '1'; } catch (e) { /* storage blocked */ }
+        const lite = settings.perfMode === 'lite' || (settings.perfMode !== 'full' && (isLowEndDevice() || auto));
+        document.documentElement.classList.toggle('lite', lite);
+        if (lite) stopPbSparks();
+        else if (pbEffortIndex() === PB_EFFORTS.length - 1) startPbSparks();
+    }
+
+    function setPerfMode(mode) {
+        settings.perfMode = ['lite', 'full'].includes(mode) ? mode : 'auto';
+        saveSettings();
+        if (settings.perfMode === 'auto') { try { localStorage.removeItem('knowura_autolite'); } catch (e) { /* storage blocked */ } fpsStats.frames = 0; fpsStats.slow = 0; }
+        applyPerfMode();
+        updateSettingsUI();
+    }
+
+    // In Auto, watch real frame times while the user is interacting (typing, moving the
+    // mouse, scrolling). If most frames are slow, flip to Lite and remember it on this
+    // device — an idle page can't reveal lag because it isn't repainting.
+    const fpsStats = { frames: 0, slow: 0, until: 0, running: false, last: 0, done: false };
+
+    function fpsSampler(now) {
+        if (now > fpsStats.until || fpsStats.done) { fpsStats.running = false; fpsStats.last = 0; return; }
+        if (fpsStats.last) {
+            const dt = now - fpsStats.last;
+            if (dt < 500) { fpsStats.frames++; if (dt > 34) fpsStats.slow++; }
+        }
+        fpsStats.last = now;
+        if (fpsStats.frames >= 150) {
+            fpsStats.done = true;
+            if (fpsStats.slow / fpsStats.frames > 0.35) {
+                try { localStorage.setItem('knowura_autolite', '1'); } catch (e) { /* storage blocked */ }
+                console.info('Knowura: sustained lag detected — switching to Lite mode.');
+                applyPerfMode();
+            }
+            fpsStats.running = false;
+            return;
+        }
+        requestAnimationFrame(fpsSampler);
+    }
+
+    function bumpFpsSampler() {
+        if (fpsStats.done || settings.perfMode !== 'auto' || perfLite()) return;
+        fpsStats.until = performance.now() + 1500;
+        if (!fpsStats.running) { fpsStats.running = true; fpsStats.last = 0; requestAnimationFrame(fpsSampler); }
+    }
+    ['keydown', 'pointermove', 'wheel', 'touchmove'].forEach(evt => window.addEventListener(evt, bumpFpsSampler, { passive: true }));
 
     // ─── PROMPT BAR (port of React Bits <PromptBar />; vanilla, no React) ─────
     // Auto-growing prompt, model picker, effort slider (top step = Ultra Think, with
@@ -3413,7 +3534,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         { key: 'low', label: 'Low' }, { key: 'medium', label: 'Medium' },
         { key: 'high', label: 'High' }, { key: 'ultra', label: 'Ultra' }
     ];
-    const pbReduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    function pbReduceMotion() { return perfLite() || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches; }
 
     function playMorph(el) {
         el.classList.remove('morph');
@@ -3787,6 +3908,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (raf) return;
             raf = requestAnimationFrame(() => {
                 raf = 0;
+                if (perfLite()) return;
                 const r = rect || (rect = card.getBoundingClientRect());
                 const cx = r.width / 2, cy = r.height / 2;
                 const dx = lastEvent.clientX - r.left - cx, dy = lastEvent.clientY - r.top - cy;
@@ -3820,6 +3942,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (banner && !acknowledged) banner.hidden = false;
     })();
 
+    applyPerfMode();
     loadModels();
 
     // Resume an existing "stay signed in" / owner-unlock session. Must run LAST —

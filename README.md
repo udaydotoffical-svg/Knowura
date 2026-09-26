@@ -149,6 +149,18 @@ Knowura runs on either platform from this same repo, unmodified:
   registered separately on each platform if you want the security-key path
   on both.
 
+## Performance
+
+- **Lite mode** (`html.lite`) turns off the expensive effects — backdrop blur, the prompt-box glow,
+  sparks and animations — and swaps in a smaller wallpaper. Settings → Performance: **Auto**
+  (default: Lite on devices reporting ≤4 GB RAM or ≤2 cores, or after a runtime lag watchdog sees
+  sustained slow frames while you interact), **Lite**, or **Full**. It's decided in a tiny inline
+  script in `<head>` so weak devices never paint the heavy version first.
+- The wallpaper is 1920px (`background.jpg`, ~9 MB decoded) with a 1280px `background-lite.jpg`;
+  don't drop a multi-thousand-pixel original back in — a 6000×4000 JPEG decodes to ~96 MB of RAM.
+- The Live Voice avatar gif is only loaded while a call is open, music doesn't preload, and very
+  long sessions/guest chat lists are capped.
+
 ## Setup
 
 ### 1. Install dependencies

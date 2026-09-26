@@ -6,7 +6,8 @@ const vm = require('vm');
 const fs = require('fs');
 
 const html = fs.readFileSync('public/index.html', 'utf8');
-const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+// the head also has a tiny inline <script> (Lite-mode detection) — the app script is the longest one
+const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).sort((a, b) => b.length - a.length)[0];
 
 function makeEl() {
     const el = {
@@ -47,6 +48,7 @@ const sandbox = {
         return Promise.resolve({ ok: true, json: () => Promise.resolve(body), text: () => Promise.resolve('') });
     },
     AbortController, performance,
+    addEventListener() {}, removeEventListener() {},
     setTimeout, clearTimeout,
     setInterval() { return 0; }, // stubbed: don't actually keep the process alive for a one-shot check
     clearInterval() {},
@@ -72,6 +74,10 @@ vm.createContext(sandbox);
 try {
     vm.runInContext(script, sandbox, { filename: 'inline-script.js' });
     console.log('SCRIPT INIT RAN WITHOUT ERROR');
+
+    // Performance modes: switching must not throw
+    vm.runInContext("setPerfMode('lite'); setPerfMode('full'); setPerfMode('auto'); bumpFpsSampler();", sandbox);
+    console.log('PERF MODE SWITCH PASSED');
 
     // Smoke-test ask(): it swallows its own errors into a "Connection lost"
     // bubble, so a ReferenceError inside it only shows up as a console.error.
