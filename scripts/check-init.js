@@ -16,7 +16,7 @@ function makeEl() {
         appendChild() { return el; }, removeChild() {},
         querySelectorAll() { return []; },
         querySelector() { return makeEl(); },
-        setAttribute() {}, getAttribute() { return null; },
+        setAttribute() {}, getAttribute() { return null; }, remove() {}, toggleAttribute() {}, removeAttribute() {}, closest() { return null; },
         focus() {}, click() {},
         value: '', innerHTML: '', innerText: '', textContent: '', title: '', type: 'text',
         dataset: {}, children: [], parentNode: null, disabled: false,
@@ -37,11 +37,16 @@ const fakeDocument = {
     documentElement: makeEl(),
 };
 
+const errorLog = [];
 const sandbox = {
-    console,
+    console: { ...console, error: (...a) => { errorLog.push(a.map(String).join(' ')); } },
     navigator: { userAgent: 'node-sim', mediaDevices: {}, maxTouchPoints: 0 },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
-    fetch() { return Promise.resolve({ ok: true, json: () => Promise.resolve({}), text: () => Promise.resolve('') }); },
+    fetch(url) {
+        const body = String(url).includes('ask-ai') ? { choices: [{ message: { content: 'hi there' } }] } : {};
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body), text: () => Promise.resolve('') });
+    },
+    AbortController, performance,
     setTimeout, clearTimeout,
     setInterval() { return 0; }, // stubbed: don't actually keep the process alive for a one-shot check
     clearInterval() {},
@@ -67,6 +72,17 @@ vm.createContext(sandbox);
 try {
     vm.runInContext(script, sandbox, { filename: 'inline-script.js' });
     console.log('SCRIPT INIT RAN WITHOUT ERROR');
+
+    // Smoke-test ask(): it swallows its own errors into a "Connection lost"
+    // bubble, so a ReferenceError inside it only shows up as a console.error.
+    vm.runInContext("ask('hello')", sandbox).then(() => {
+        if (errorLog.length) {
+            console.log('ask() SMOKE TEST FAILED:', errorLog[0]);
+            process.exitCode = 1;
+        } else {
+            console.log('ask() SMOKE TEST PASSED');
+        }
+    });
 } catch (e) {
     console.log('RUNTIME ERROR DURING INIT:', e.message);
     console.log(e.stack.split('\n').slice(0, 6).join('\n'));

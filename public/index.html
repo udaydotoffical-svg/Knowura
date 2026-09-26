@@ -2047,10 +2047,6 @@
     async function extractFacts(userMsg, aiReply) {
         const existing = isCloudUser() ? cloudMemory.facts : JSON.parse(localStorage.getItem('knowura_facts') || '[]');
 
-        const controller = new AbortController();
-        currentAskController = controller;
-        setPromptBusy(true);
-
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
@@ -2325,6 +2321,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             setOrbState('thinking');
             setLiveStatus(ultraThinkMode ? 'Ultra thinking…' : 'Thinking…');
         }
+
+        const controller = new AbortController();
+        currentAskController = controller;
+        setPromptBusy(true);
 
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
