@@ -101,6 +101,33 @@
         .checkbox-wrap input:checked ~ .checkbox-box .icon { opacity: 1; transform: scale(1); }
         .checkbox-wrap input:focus-visible ~ .checkbox-box { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
+        .legal-line { margin-top: 14px; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+        .legal-line a { color: var(--cyan); }
+
+        /* ─── COOKIE NOTICE ─────────────────────────────────────────────── */
+        .cookie-banner {
+            position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 400;
+            width: min(640px, calc(100vw - 24px));
+            display: flex; align-items: center; gap: 14px;
+            background: var(--panel-strong); backdrop-filter: blur(22px) saturate(150%);
+            border: 3px solid var(--ink); border-radius: 16px; box-shadow: var(--shadow-md);
+            padding: 12px 14px 12px 18px; font-size: 12.5px; color: var(--text); line-height: 1.5;
+            animation: cardIn 0.4s cubic-bezier(.16,1,.3,1);
+        }
+        .cookie-banner[hidden] { display: none; }
+        .cookie-banner a { color: var(--cyan); white-space: nowrap; }
+        .cookie-btn {
+            flex-shrink: 0; background: var(--blue); color: #fff; border: 2.5px solid var(--ink); border-radius: 10px;
+            padding: 8px 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer;
+            box-shadow: var(--shadow-sm); transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        }
+        .cookie-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: var(--cyan); color: #001018; }
+        .cookie-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        @media (max-width: 680px) {
+            .cookie-banner { flex-direction: column; align-items: stretch; text-align: left; bottom: 10px; }
+            .cookie-btn { width: 100%; }
+        }
+
         #app { display: none; width: 100%; height: 100vh; height: 100dvh; flex-direction: row; gap: 14px; padding: 14px; opacity: 0; transition: opacity 0.5s ease; }
 
         .chat-container {
@@ -943,7 +970,17 @@
                 </span>
                 Stay signed in on this device
             </label>
+            <div class="legal-line">By continuing you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</div>
         </div>
+    </div>
+
+    <div id="cookieBanner" class="cookie-banner" role="dialog" aria-live="polite" aria-label="Cookie notice" hidden>
+        <div class="cookie-text">
+            <strong>Cookies &amp; local storage.</strong>
+            Knowura only uses essential storage (your settings, guest chats, and sign-in) &mdash; no ads or tracking.
+            <a href="/privacy" target="_blank" rel="noopener">Learn more</a>
+        </div>
+        <button class="cookie-btn" onclick="dismissCookieBanner()">Got it</button>
     </div>
 
     <div id="app">
@@ -2935,6 +2972,23 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }, 300); // let the keyboard finish animating in first
     });
 
+
+    // ─── COOKIE NOTICE ──────────────────────────────────────────────────────
+    // Informational only: Knowura sets no advertising/analytics cookies, just
+    // essential local storage, so there's a single "Got it" (remembered locally).
+
+    function dismissCookieBanner() {
+        try { localStorage.setItem('knowura_cookie_ack', '1'); } catch (e) { /* storage blocked — banner just returns next visit */ }
+        const banner = document.getElementById('cookieBanner');
+        if (banner) banner.hidden = true;
+    }
+
+    (function initCookieBanner() {
+        let acknowledged = false;
+        try { acknowledged = localStorage.getItem('knowura_cookie_ack') === '1'; } catch (e) { /* treat as not acknowledged */ }
+        const banner = document.getElementById('cookieBanner');
+        if (banner && !acknowledged) banner.hidden = false;
+    })();
 
     // Resume an existing "stay signed in" / owner-unlock session. Must run LAST —
     // it transitively touches `settings`, `callActive`, `currentOrbState`, etc., which

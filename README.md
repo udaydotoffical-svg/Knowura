@@ -77,6 +77,10 @@ owner — unlock an uncensored "owner mode" with a hardware security key.
 knowura/
 ├── public/                  # Netlify publish directory
 │   ├── index.html
+│   ├── terms.html            # /terms  (Terms & Conditions)
+│   ├── privacy.html          # /privacy (Privacy Policy)
+│   ├── 404.html              # custom not-found page (Vercel + Netlify pick it up automatically)
+│   ├── legal.css             # shared styles for those three pages
 │   └── assets/
 │       ├── images/          # logo, background, and the orb avatar gifs
 │       └── audio/           # mp3 tracks + auto-generated manifest.json
