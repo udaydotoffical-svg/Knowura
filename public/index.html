@@ -17,8 +17,25 @@
                 var mode = (JSON.parse(localStorage.getItem('knowura_settings') || '{}').perfMode) || 'auto';
                 var mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8;
                 var auto = localStorage.getItem('knowura_autoperf') || (localStorage.getItem('knowura_autolite') === '1' ? 'lite' : '');
+                // RAM isn't what makes glass/blur slow — the GPU is. Software rendering (no WebGL, or
+                // SwiftShader/basic driver, often hardware acceleration switched off) -> lite;
+                // an integrated Intel GPU -> balanced.
+                var gpu = 'other';
+                try {
+                    var cv = document.createElement('canvas');
+                    var gl = cv.getContext('webgl') || cv.getContext('experimental-webgl');
+                    if (!gl) gpu = 'software';
+                    else {
+                        var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                        var rend = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+                        if (/swiftshader|llvmpipe|software|basic render|microsoft/i.test(rend)) gpu = 'software';
+                        else if (/intel|uhd|iris/i.test(rend)) gpu = 'igpu';
+                        var lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+                    }
+                } catch (e) { /* unknown GPU: don't guess */ }
+                window.__knGpu = gpu;
                 var tier = mode;
-                if (mode === 'auto') tier = (mem <= 4 || cores <= 2 || auto === 'lite') ? 'lite' : ((mem <= 8 && cores <= 4) || auto === 'balanced') ? 'balanced' : 'full';
+                if (mode === 'auto') tier = (mem <= 4 || cores <= 2 || auto === 'lite' || gpu === 'software') ? 'lite' : ((mem <= 8 && cores <= 4) || auto === 'balanced' || gpu === 'igpu') ? 'balanced' : 'full';
                 if (tier === 'lite' || tier === 'balanced') document.documentElement.classList.add(tier);
             } catch (e) { /* storage blocked: stay on the full look */ }
         })();
@@ -1249,6 +1266,7 @@
             background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('assets/images/background-lite.jpg') no-repeat center center;
             background-size: cover;
         }
+        .prompt-glow::after { display: none; } /* the 7-mask soft fill was the costliest layer to repaint on hover and barely visible */
         html.balanced #startup, html.balanced .sidebar, html.balanced .chat-container, html.balanced .glass-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
         html.balanced .sidebar, html.balanced .chat-container {
             background:
@@ -3509,8 +3527,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function computePerfTier() {
         if (settings.perfMode !== 'auto') return settings.perfMode;
         const mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8, auto = storedAutoPerf();
-        if (mem <= 4 || cores <= 2 || auto === 'lite') return 'lite';
-        if ((mem <= 8 && cores <= 4) || auto === 'balanced') return 'balanced';
+        const gpu = window.__knGpu || 'other';
+        if (mem <= 4 || cores <= 2 || auto === 'lite' || gpu === 'software') return 'lite';
+        if ((mem <= 8 && cores <= 4) || auto === 'balanced' || gpu === 'igpu') return 'balanced';
         return 'full';
     }
 
@@ -3527,7 +3546,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         saveSettings();
         if (settings.perfMode === 'auto') {
             try { localStorage.removeItem('knowura_autoperf'); localStorage.removeItem('knowura_autolite'); } catch (e) { /* storage blocked */ }
-            fpsStats.frames = 0; fpsStats.slow = 0; fpsStats.done = false;
+            fpsStats.frames = 0; fpsStats.slow = 0; fpsStats.jank = 0; fpsStats.done = false;
         }
         applyPerfMode();
         updateSettingsUI();
@@ -3536,18 +3555,18 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // In Auto, watch real frame times while the user is interacting (typing, moving the
     // mouse, scrolling). If most frames are slow, flip to Lite and remember it on this
     // device — an idle page can't reveal lag because it isn't repainting.
-    const fpsStats = { frames: 0, slow: 0, until: 0, running: false, last: 0, done: false };
+    const fpsStats = { frames: 0, slow: 0, jank: 0, until: 0, running: false, last: 0, done: false };
 
     function fpsSampler(now) {
         if (now > fpsStats.until || fpsStats.done) { fpsStats.running = false; fpsStats.last = 0; return; }
         if (fpsStats.last) {
             const dt = now - fpsStats.last;
-            if (dt < 500) { fpsStats.frames++; if (dt > 34) fpsStats.slow++; }
+            if (dt < 500) { fpsStats.frames++; if (dt > 34) fpsStats.slow++; if (dt > 80) fpsStats.jank++; }
         }
         fpsStats.last = now;
-        if (fpsStats.frames >= 150) {
-            const laggy = fpsStats.slow / fpsStats.frames > 0.35;
-            fpsStats.frames = 0; fpsStats.slow = 0;
+        if (fpsStats.frames >= 60) {
+            const laggy = fpsStats.slow / fpsStats.frames > 0.25 || fpsStats.jank >= 4;
+            fpsStats.frames = 0; fpsStats.slow = 0; fpsStats.jank = 0;
             if (!laggy) { fpsStats.done = true; fpsStats.running = false; return; }
             const next = perfTier() === 'full' ? 'balanced' : 'lite';
             try { localStorage.setItem('knowura_autoperf', next); } catch (e) { /* storage blocked */ }
