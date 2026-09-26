@@ -4,17 +4,13 @@
 // matter what `doc` claims. Light shape/size validation only — this is a
 // personal-scale app, not a multi-tenant service, so no locking/versioning.
 
-const { getStore } = require('@netlify/blobs');
+const { getPlatformStore } = require('./_store');
 const { verify } = require('./_userToken');
 
 const MAX_DOC_BYTES = 4 * 1024 * 1024; // 4MB
 
 function store() {
-    return getStore({
-        name: "knowura-chats",
-        siteID: process.env.NETLIFY_SITE_ID,
-        token: process.env.NETLIFY_BLOBS_TOKEN
-    });
+    return getPlatformStore("knowura-chats");
 }
 
 exports.handler = async (event) => {

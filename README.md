@@ -94,7 +94,8 @@ knowura/
 │   ├── _userToken.js         # shared HMAC user-session token sign/verify (not a route)
 │   ├── chat-load.js          # loads a signed-in user's cloud chat document
 │   ├── chat-save.js          # overwrites a signed-in user's cloud chat document
-│   └── _vercelAdapter.js     # wraps a Netlify handler into Vercel's (req, res) shape
+│   ├── _vercelAdapter.js     # wraps a Netlify handler into Vercel's (req, res) shape
+│   └── _store.js             # picks Netlify Blobs vs. a private Vercel Blob store at runtime
 ├── api/                      # Vercel Functions — one-line wrappers around functions/*.js
 │   └── *.js                  # via _vercelAdapter.js, so both platforms run identical logic
 ├── scripts/
@@ -120,17 +121,29 @@ Knowura runs on either platform from this same repo, unmodified:
 - **`public/index.html` needs zero changes either way** — it always calls
   `/.netlify/functions/*`, and `vercel.json` rewrites those same paths to
   `/api/*` on Vercel, so both deployments respond to identical URLs.
-- **Storage is shared, not duplicated.** `@netlify/blobs` here already runs
-  in "manual mode" (`getStore({ name, siteID, token })`), which just makes
-  authenticated HTTPS calls to Netlify's Blobs API — it works the same from
-  a Vercel function as a Netlify one. Point both deployments at the same
-  `NETLIFY_SITE_ID`/`NETLIFY_BLOBS_TOKEN` and WebAuthn credentials + cloud
-  chats stay in sync across both.
-- Copy the same env vars (see the table above) into Vercel's dashboard too.
-  One caveat: WebAuthn (`RP_ID`/`ORIGIN`) is origin-bound by design, so the
-  security-key Owner Mode unlock only works from whichever single origin
-  those two vars are set to — pick one deployment's domain for that, the
-  password fallback works from either.
+- **Storage is fully independent per platform, by design** — the two
+  deployments do not share WebAuthn credentials or cloud chat data.
+  `functions/_store.js` picks the backend automatically at runtime via
+  `process.env.VERCEL` (set only on Vercel): Netlify uses `@netlify/blobs`
+  as before, Vercel uses a **private** Vercel Blob store (`access: 'private'`
+  — reads require the store's own token, not just a guessable URL, same
+  "only this server can read it" guarantee as Netlify's manual-mode token).
+  Every function that touches storage (`webauthn-*.js`, `chat-load.js`,
+  `chat-save.js`) goes through this one shared abstraction.
+- On Vercel, create a Blob store and attach it to the project (Vercel's
+  dashboard → Storage, or `vercel blob create-store --access private`) —
+  this auto-injects `BLOB_READ_WRITE_TOKEN` into the project's env vars, no
+  manual copying needed. `NETLIFY_SITE_ID`/`NETLIFY_BLOBS_TOKEN` are **not**
+  needed on Vercel at all.
+- Copy the rest of the env vars (see the table above) into Vercel's
+  dashboard too. One caveat: WebAuthn (`RP_ID`/`ORIGIN`) is origin-bound by
+  design, so the security-key Owner Mode unlock only works from whichever
+  single origin those two vars are set to on a given deployment — each
+  platform can have its own values, but a single deployment can't unlock
+  via security key from two different domains. The password fallback works
+  from either, and since credentials aren't shared, Owner Mode has to be
+  registered separately on each platform if you want the security-key path
+  on both.
 
 ## Setup
 

@@ -10,6 +10,7 @@
     "node-fetch": "^2.6.7",
     "@simplewebauthn/server": "^11.0.0",
     "@simplewebauthn/browser": "^11.0.0",
-    "@netlify/blobs": "^8.0.0"
+    "@netlify/blobs": "^8.0.0",
+    "@vercel/blob": "^2.8.0"
   }
 }

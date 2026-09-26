@@ -3,15 +3,11 @@
 // google-signin-verify.js — nothing is ever looked up from a client-supplied
 // id directly, only from what the signature already proved.
 
-const { getStore } = require('@netlify/blobs');
+const { getPlatformStore } = require('./_store');
 const { verify } = require('./_userToken');
 
 function store() {
-    return getStore({
-        name: "knowura-chats",
-        siteID: process.env.NETLIFY_SITE_ID,
-        token: process.env.NETLIFY_BLOBS_TOKEN
-    });
+    return getPlatformStore("knowura-chats");
 }
 
 exports.handler = async (event) => {

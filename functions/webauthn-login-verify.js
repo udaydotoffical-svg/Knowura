@@ -1,13 +1,9 @@
 const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
-const { getStore } = require('@netlify/blobs');
+const { getPlatformStore } = require('./_store');
 const { sign } = require('./_ownerToken');
 
 function store() {
-    return getStore({
-        name: "webauthn",
-        siteID: process.env.NETLIFY_SITE_ID,
-        token: process.env.NETLIFY_BLOBS_TOKEN
-    });
+    return getPlatformStore("webauthn");
 }
 
 exports.handler = async (event) => {
