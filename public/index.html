@@ -9,16 +9,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" rel="stylesheet">
     <script>
-        // Lite mode (no glass blur / glow / animations) is decided before first paint so a
-        // weak device never renders the heavy version. Auto = low memory or few cores, or
-        // a device the runtime lag watchdog already flagged; Lite/Full override it.
+        // Performance tier (full / balanced / lite) is decided before first paint so a weak
+        // device never renders the heavy version. Auto = by memory/cores, stepped down by the
+        // runtime lag watchdog; the Settings choice overrides it.
         (function () {
             try {
                 var mode = (JSON.parse(localStorage.getItem('knowura_settings') || '{}').perfMode) || 'auto';
-                var low = (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
-                          (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ||
-                          localStorage.getItem('knowura_autolite') === '1';
-                if (mode === 'lite' || (mode === 'auto' && low)) document.documentElement.classList.add('lite');
+                var mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8;
+                var auto = localStorage.getItem('knowura_autoperf') || (localStorage.getItem('knowura_autolite') === '1' ? 'lite' : '');
+                var tier = mode;
+                if (mode === 'auto') tier = (mem <= 4 || cores <= 2 || auto === 'lite') ? 'lite' : ((mem <= 8 && cores <= 4) || auto === 'balanced') ? 'balanced' : 'full';
+                if (tier === 'lite' || tier === 'balanced') document.documentElement.classList.add(tier);
             } catch (e) { /* storage blocked: stay on the full look */ }
         })();
     </script>
@@ -317,12 +318,12 @@
 
         .msg {
             position: relative; padding: 14px 20px; border-radius: 14px; max-width: 80%;
-            font-size: 15px; line-height: 1.65; animation: fadeInUp 0.3s cubic-bezier(.16,1,.3,1);
+            font-size: 15px; line-height: 1.65; animation: fadeInUp 0.16s ease-out;
             word-wrap: break-word;
             border: 2.5px solid var(--ink);
             box-shadow: var(--shadow-sm);
         }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
         .ai {
             background: rgba(14, 26, 54, 0.75); align-self: flex-start;
@@ -1239,6 +1240,29 @@
             .glass-card { padding: 30px 20px; }
         }
 
+        /* ─── BALANCED MODE (html.balanced): liquid glass without the costly parts ───
+           Big panels drop backdrop blur (the expensive bit) and fake the glass with a
+           specular edge + soft gradient instead; blur stays only on the small prompt box
+           and popups. The glow keeps its cursor-following ring but not the halo layers. */
+        html.balanced body {
+            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('assets/images/background-lite.jpg') no-repeat center center;
+            background-size: cover;
+        }
+        html.balanced #startup, html.balanced .sidebar, html.balanced .chat-container, html.balanced .glass-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+        html.balanced .sidebar, html.balanced .chat-container {
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(120,190,255,0.04) 40%, rgba(255,255,255,0.02) 100%),
+                var(--panel-strong);
+            box-shadow: var(--shadow-lg), inset 1.5px 1.5px 0 rgba(255,255,255,0.30), inset -1px -1px 0 rgba(255,255,255,0.07);
+        }
+        html.balanced .prompt-glow { backdrop-filter: blur(8px) saturate(150%); -webkit-backdrop-filter: blur(8px) saturate(150%); }
+        html.balanced .border-glow-card::after, html.balanced .border-glow-card > .edge-light, html.balanced .pb-field::after { display: none !important; }
+        html.balanced .border-glow-card { transform: none; }
+        html.balanced .pb-menu, html.balanced .model-dd-menu, html.balanced .music-panel, html.balanced .cookie-banner { backdrop-filter: blur(8px) saturate(150%) !important; -webkit-backdrop-filter: blur(8px) saturate(150%) !important; }
+        html.balanced .hamburger-panel, html.balanced .owner-modal, html.balanced .sidebar-backdrop { backdrop-filter: blur(6px) !important; -webkit-backdrop-filter: blur(6px) !important; }
+        html.balanced #startup { background: rgba(3,6,14,0.72); }
+        html.balanced .msg { animation-duration: 0.12s; }
+
         /* ─── LITE MODE (html.lite): the same UI with the expensive effects switched off ───
            Set automatically on weak devices (or by the lag watchdog), or in Settings ->
            Performance. No backdrop blur, no glow layers, no animations, smaller wallpaper. */
@@ -1479,7 +1503,11 @@
                 <div class="settings-label">Performance</div>
                 <button class="choice-pill" data-group="perfMode" data-value="auto" onclick="setPerfMode('auto')">
                     <span class="choice-row"><span class="choice-dot"></span>Auto</span>
-                    <span class="choice-hint">Default — picks Lite on weak devices or if it senses lag</span>
+                    <span class="choice-hint">Default — matches your device and steps down if it senses lag</span>
+                </button>
+                <button class="choice-pill" data-group="perfMode" data-value="balanced" onclick="setPerfMode('balanced')">
+                    <span class="choice-row"><span class="choice-dot"></span>Balanced</span>
+                    <span class="choice-hint">Lighter glass and glow — still looks liquid, much cheaper</span>
                 </button>
                 <button class="choice-pill" data-group="perfMode" data-value="lite" onclick="setPerfMode('lite')">
                     <span class="choice-row"><span class="choice-dot"></span>Lite</span>
@@ -3465,27 +3493,42 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     }
 
-    // ─── PERFORMANCE (Lite mode + lag watchdog) ─────────────────────────────
+    // ─── PERFORMANCE (Full / Balanced / Lite + lag watchdog) ─────────────────────────────
     function perfLite() { return document.documentElement.classList.contains('lite'); }
+    function perfTier() {
+        const c = document.documentElement.classList;
+        return c.contains('lite') ? 'lite' : c.contains('balanced') ? 'balanced' : 'full';
+    }
 
-    function isLowEndDevice() {
-        return (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
-               (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
+    function storedAutoPerf() {
+        try { return localStorage.getItem('knowura_autoperf') || (localStorage.getItem('knowura_autolite') === '1' ? 'lite' : ''); }
+        catch (e) { return ''; }
+    }
+
+    // Keep in sync with the tier decision in <head>.
+    function computePerfTier() {
+        if (settings.perfMode !== 'auto') return settings.perfMode;
+        const mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8, auto = storedAutoPerf();
+        if (mem <= 4 || cores <= 2 || auto === 'lite') return 'lite';
+        if ((mem <= 8 && cores <= 4) || auto === 'balanced') return 'balanced';
+        return 'full';
     }
 
     function applyPerfMode() {
-        let auto = false;
-        try { auto = localStorage.getItem('knowura_autolite') === '1'; } catch (e) { /* storage blocked */ }
-        const lite = settings.perfMode === 'lite' || (settings.perfMode !== 'full' && (isLowEndDevice() || auto));
-        document.documentElement.classList.toggle('lite', lite);
-        if (lite) stopPbSparks();
+        const tier = computePerfTier();
+        document.documentElement.classList.toggle('lite', tier === 'lite');
+        document.documentElement.classList.toggle('balanced', tier === 'balanced');
+        if (tier === 'lite') stopPbSparks();
         else if (pbEffortIndex() === PB_EFFORTS.length - 1) startPbSparks();
     }
 
     function setPerfMode(mode) {
-        settings.perfMode = ['lite', 'full'].includes(mode) ? mode : 'auto';
+        settings.perfMode = ['full', 'balanced', 'lite'].includes(mode) ? mode : 'auto';
         saveSettings();
-        if (settings.perfMode === 'auto') { try { localStorage.removeItem('knowura_autolite'); } catch (e) { /* storage blocked */ } fpsStats.frames = 0; fpsStats.slow = 0; }
+        if (settings.perfMode === 'auto') {
+            try { localStorage.removeItem('knowura_autoperf'); localStorage.removeItem('knowura_autolite'); } catch (e) { /* storage blocked */ }
+            fpsStats.frames = 0; fpsStats.slow = 0; fpsStats.done = false;
+        }
         applyPerfMode();
         updateSettingsUI();
     }
@@ -3503,14 +3546,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
         fpsStats.last = now;
         if (fpsStats.frames >= 150) {
-            fpsStats.done = true;
-            if (fpsStats.slow / fpsStats.frames > 0.35) {
-                try { localStorage.setItem('knowura_autolite', '1'); } catch (e) { /* storage blocked */ }
-                console.info('Knowura: sustained lag detected — switching to Lite mode.');
-                applyPerfMode();
-            }
-            fpsStats.running = false;
-            return;
+            const laggy = fpsStats.slow / fpsStats.frames > 0.35;
+            fpsStats.frames = 0; fpsStats.slow = 0;
+            if (!laggy) { fpsStats.done = true; fpsStats.running = false; return; }
+            const next = perfTier() === 'full' ? 'balanced' : 'lite';
+            try { localStorage.setItem('knowura_autoperf', next); } catch (e) { /* storage blocked */ }
+            console.info(`Knowura: sustained lag detected — switching to ${next} mode.`);
+            applyPerfMode();
+            if (next === 'lite') { fpsStats.done = true; fpsStats.running = false; return; }
         }
         requestAnimationFrame(fpsSampler);
     }

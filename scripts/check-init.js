@@ -76,7 +76,7 @@ try {
     console.log('SCRIPT INIT RAN WITHOUT ERROR');
 
     // Performance modes: switching must not throw
-    vm.runInContext("setPerfMode('lite'); setPerfMode('full'); setPerfMode('auto'); bumpFpsSampler();", sandbox);
+    vm.runInContext("setPerfMode('lite'); setPerfMode('balanced'); setPerfMode('full'); setPerfMode('auto'); bumpFpsSampler();", sandbox);
     console.log('PERF MODE SWITCH PASSED');
 
     // Smoke-test ask(): it swallows its own errors into a "Connection lost"
