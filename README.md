@@ -93,7 +93,10 @@ knowura/
 │   ├── google-signin-verify.js   # server-side Google ID-token verification
 │   ├── _userToken.js         # shared HMAC user-session token sign/verify (not a route)
 │   ├── chat-load.js          # loads a signed-in user's cloud chat document
-│   └── chat-save.js          # overwrites a signed-in user's cloud chat document
+│   ├── chat-save.js          # overwrites a signed-in user's cloud chat document
+│   └── _vercelAdapter.js     # wraps a Netlify handler into Vercel's (req, res) shape
+├── api/                      # Vercel Functions — one-line wrappers around functions/*.js
+│   └── *.js                  # via _vercelAdapter.js, so both platforms run identical logic
 ├── scripts/
 │   ├── generate-audio-manifest.js  # scans assets/audio/, writes manifest.json
 │   └── check-init.js         # runs public/index.html's inline script against a stub
@@ -101,8 +104,33 @@ knowura/
 │                              # (e.g. TDZ) that plain syntax/reference checks miss —
 │                              # `npm run check:init` after editing that script
 ├── netlify.toml
+├── vercel.json
 └── package.json
 ```
+
+### Deploying to both Netlify and Vercel
+
+Knowura runs on either platform from this same repo, unmodified:
+
+- **`functions/`** holds the actual logic (Netlify's native format,
+  `exports.handler = async (event, context) => ({statusCode, headers, body})`).
+- **`api/`** is Vercel's function convention — each file there is a one-line
+  wrapper (`_vercelAdapter.js`) that adapts a `functions/*.js` handler into
+  Vercel's `(req, res)` shape. No logic is duplicated between the two.
+- **`public/index.html` needs zero changes either way** — it always calls
+  `/.netlify/functions/*`, and `vercel.json` rewrites those same paths to
+  `/api/*` on Vercel, so both deployments respond to identical URLs.
+- **Storage is shared, not duplicated.** `@netlify/blobs` here already runs
+  in "manual mode" (`getStore({ name, siteID, token })`), which just makes
+  authenticated HTTPS calls to Netlify's Blobs API — it works the same from
+  a Vercel function as a Netlify one. Point both deployments at the same
+  `NETLIFY_SITE_ID`/`NETLIFY_BLOBS_TOKEN` and WebAuthn credentials + cloud
+  chats stay in sync across both.
+- Copy the same env vars (see the table above) into Vercel's dashboard too.
+  One caveat: WebAuthn (`RP_ID`/`ORIGIN`) is origin-bound by design, so the
+  security-key Owner Mode unlock only works from whichever single origin
+  those two vars are set to — pick one deployment's domain for that, the
+  password fallback works from either.
 
 ## Setup
 
