@@ -3,6 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <style id="kw-boot-css">
+        /* Instant loader — first thing in <head>, tiny and self-contained so it paints while the rest of this large page (and its images/scripts) is still downloading on a slow connection. */
+        #kw-boot { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: radial-gradient(120% 90% at 50% 0%, #0f2a80 0%, #05070f 60%); color: #eaf6ff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; transition: opacity .45s ease; }
+        #kw-boot.done { opacity: 0; pointer-events: none; }
+        #kw-boot .kwb-k { height: 96px; width: auto; filter: drop-shadow(0 0 18px rgba(34,229,255,.55)); animation: kwbPulse 1.6s ease-in-out infinite; }
+        #kw-boot .kwb-bar { width: min(220px, 60vw); height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); overflow: hidden; }
+        #kw-boot .kwb-bar i { display: block; height: 100%; width: 40%; border-radius: 6px; background: linear-gradient(90deg, #2f6bff, #22e5ff); animation: kwbSlide 1.3s ease-in-out infinite; }
+        #kw-boot .kwb-msg { font-size: 13px; font-weight: 600; letter-spacing: .4px; color: #8fa6cc; min-height: 18px; text-align: center; padding: 0 24px; }
+        #kw-boot .kwb-retry { display: none; margin-top: -6px; padding: 10px 18px; border-radius: 10px; border: 2px solid #22e5ff; background: transparent; color: #22e5ff; font-weight: 700; font-size: 13px; cursor: pointer; }
+        #kw-boot.stuck .kwb-retry { display: inline-block; }
+        @keyframes kwbPulse { 0%, 100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.06); opacity: 1; } }
+        @keyframes kwbSlide { from { transform: translateX(-110%); } to { transform: translateX(260%); } }
+        /* stays animated even in Lite performance mode (which otherwise freezes every animation) */
+        html.lite #kw-boot .kwb-k, html.balanced #kw-boot .kwb-k { animation: kwbPulse 1.6s ease-in-out infinite !important; filter: none !important; }
+        html.lite #kw-boot .kwb-bar i, html.balanced #kw-boot .kwb-bar i { animation: kwbSlide 1.3s ease-in-out infinite !important; }
+        @media (prefers-reduced-motion: reduce) { #kw-boot .kwb-k, #kw-boot .kwb-bar i { animation: none !important; } }
+    </style>
     <title>Knowura AI | By Uday Singh</title>
     <link rel="icon" href="/favicon.ico?v=2" sizes="48x48">
     <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
@@ -78,7 +95,41 @@
     <script src="assets/vendor/marked/marked.umd.js" defer></script>
     <script src="assets/vendor/dompurify/purify.min.js" defer></script>
     <script src="assets/vendor/simplewebauthn/index.umd.min.js" defer></script>
-    <style>
+
+</head>
+<body>
+<div id="kw-boot" role="status" aria-live="polite">
+    <svg class="kwb-k" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><g transform="translate(-168.19 -156.38) scale(2.5939)"><g><g transform="translate(19 19)" fill="#000" stroke="#000" stroke-width="10" stroke-linejoin="miter"><path d="M160 134 L252 68 L252 134 Q206 181.0 160 202 Z"/><path d="M160 210 L252 276 L252 342 Q206 323.0 160 278 Z"/><path d="M90 130L125 70L160 130V342H90Z"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 250 L252 316 L252 342 Q206 323.0 160 278 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 259.2 Q206 296.2 252 324.6" fill="none"/><path d="M160 268.5 Q206 309.4 252 333.2" fill="none"/></g><polygon points="160,243 252,309 252,316 160,250" fill="#0f2a80"/><polygon points="160,210 252,276 252,309 160,243" fill="#22e5ff"/><rect x="160" y="210" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 174 L252 108 L252 134 Q206 181.0 160 202 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 183.2 Q206 154.2 252 116.6" fill="none"/><path d="M160 192.5 Q206 167.4 252 125.2" fill="none"/></g><polygon points="160,167 252,101 252,108 160,174" fill="#0f2a80"/><polygon points="160,134 252,68 252,101 160,167" fill="#22e5ff"/><rect x="160" y="134" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-width="10" stroke-linejoin="miter"><polygon points="90,130 125,70 160,130" fill="#eaf6ff"/><rect x="90" y="130" width="70" height="170" fill="#2f6bff"/><rect x="90" y="300" width="70" height="16" fill="#8fa6cc"/><rect x="90" y="316" width="70" height="26" rx="8" fill="#22e5ff"/></g><rect x="92" y="132" width="14" height="166" fill="#5b8dff"/><rect x="144" y="132" width="14" height="166" fill="#0f2a80"/><g stroke="#000" stroke-width="5"><line x1="106" y1="130" x2="106" y2="300"/><line x1="144" y1="130" x2="144" y2="300"/></g><polygon points="111,94 125,70 139,94" fill="#000"/></g></g></svg>
+    <div class="kwb-bar"><i></i></div>
+    <div class="kwb-msg" id="kwb-msg">Loading Knowura…</div>
+    <button type="button" class="kwb-retry" onclick="location.reload()">Reload</button>
+</div>
+<script>
+(function () {
+    var el = document.getElementById('kw-boot'), msg = document.getElementById('kwb-msg'), gone = false, timers = [];
+    function say(t) { if (msg && !gone) msg.textContent = t; }
+    function offline() { return navigator.onLine === false; }
+    timers.push(setTimeout(function () { say(offline() ? "You're offline — waiting for a connection…" : 'Slow connection — hang tight…'); }, 5000));
+    timers.push(setTimeout(function () { say(offline() ? "You're offline. Check your wifi or data, then reload." : 'Still loading. Your connection looks slow.'); if (el) el.classList.add('stuck'); }, 18000));
+    window.addEventListener('offline', function () { say("You're offline — waiting for a connection…"); });
+    window.addEventListener('online', function () { say('Back online — loading…'); });
+    // Called at the end of the app script (everything is wired up); 'load' is only a fallback.
+    window.kwBootDone = function () {
+        if (gone) return; gone = true;
+        timers.forEach(clearTimeout);
+        requestAnimationFrame(function () {
+            if (!el) return;
+            el.classList.add('done');
+            setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 600);
+        });
+    };
+    window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400); });
+})();
+</script>
+<noscript><style>#kw-boot { display: none; }</style><p style="color:#eaf6ff;text-align:center;padding:40px;font-family:sans-serif">Knowura needs JavaScript turned on to work.</p></noscript>
+<a class="skip-link" href="#userInput">Skip to message box</a>
+<!-- Main stylesheet lives in the body, after the instant loader, so the loader can paint before this big block finishes downloading. -->
+<style>
         :root {
             --dark: #05070f;
             --blue: #2f6bff;
@@ -479,6 +530,31 @@
             display: inline;
             color: var(--cyan);
             font-size: 0.9em;
+        }
+
+        /* ─── SKELETON LOADERS (reply placeholder + cloud chat load) ─── */
+        .skel-lines { display: flex; flex-direction: column; gap: 9px; padding: 12px 2px 4px; min-width: min(280px, 70vw); }
+        .skel-lines i, .skel-bar {
+            display: block; height: 12px; border-radius: 7px; width: 100%;
+            background: linear-gradient(100deg, rgba(47,107,255,0.14) 20%, rgba(34,229,255,0.38) 45%, rgba(234,246,255,0.5) 50%, rgba(34,229,255,0.38) 55%, rgba(47,107,255,0.14) 80%);
+            background-size: 260% 100%;
+            animation: skelSweep 1.5s ease-in-out infinite;
+        }
+        .skel-lines i:nth-child(1) { width: 92%; }
+        .skel-lines i:nth-child(2) { width: 100%; animation-delay: 0.12s; }
+        .skel-lines i:nth-child(3) { width: 64%; animation-delay: 0.24s; }
+        @keyframes skelSweep { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+        .skel-chat-list { display: flex; flex-direction: column; gap: 10px; padding: 6px 4px; }
+        .skel-chat-list .skel-bar { height: 34px; border-radius: 10px; }
+        .skel-chat-list .skel-bar:nth-child(2) { animation-delay: 0.1s; width: 88%; }
+        .skel-chat-list .skel-bar:nth-child(3) { animation-delay: 0.2s; width: 94%; }
+        .skel-chat-list .skel-bar:nth-child(4) { animation-delay: 0.3s; width: 76%; }
+        .skel-chat-main { display: flex; flex-direction: column; gap: 18px; padding: 24px 6px; max-width: 760px; margin: 0 auto; width: 100%; }
+        .skel-chat-main .skel-msg { border: 2.5px solid var(--ink); border-radius: 16px; padding: 14px; background: var(--panel); }
+        .skel-chat-main .skel-msg.me { align-self: flex-end; width: 46%; }
+        .skel-chat-main .skel-msg.ai { width: 78%; }
+        @media (prefers-reduced-motion: reduce) {
+            .skel-lines i, .skel-bar { animation: none; background: rgba(47,107,255,0.22); }
         }
 
         .typing { display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
@@ -1040,6 +1116,56 @@
         .menu-status-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
         .menu-status-row:empty { display: none; }
 
+        /* ─── SETTINGS MENU: main list → sub-menus ─── */
+        .menu-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-right: 44px; }
+        .menu-head .brand-title { margin: 0; }
+        .menu-back {
+            flex: none; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.05); color: var(--text); border: 2px solid var(--ink); border-radius: 10px;
+            box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .menu-back[hidden] { display: none; }
+        .menu-back .icon { transform: rotate(180deg); }
+        .menu-back:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .menu-view { display: none; flex-direction: column; gap: 4px; }
+        .menu-view.active { display: flex; animation: menuInFwd 0.22s cubic-bezier(.16,1,.3,1); }
+        .menu-view.active.back { animation-name: menuInBack; }
+        @keyframes menuInFwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+        @keyframes menuInBack { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+        .menu-nav {
+            display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin-bottom: 8px;
+            background: rgba(255,255,255,0.04); color: var(--text); border: 2.5px solid var(--ink); border-radius: 12px;
+            padding: 11px 12px; cursor: pointer; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        }
+        .menu-nav:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: rgba(47,107,255,0.15); }
+        .menu-nav:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        .menu-nav .nav-ico { flex: none; width: 20px; height: 20px; color: var(--cyan); }
+        .menu-nav .nav-chev { flex: none; width: 16px; height: 16px; color: var(--text-dim); }
+        .menu-nav-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .menu-nav-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+        .menu-nav-sub { font-size: 11.5px; color: var(--text-dim); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .credits-card { text-align: center; padding: 18px 10px 14px; border: 2.5px solid var(--ink); border-radius: 14px; background: rgba(255,255,255,0.04); box-shadow: var(--shadow-sm); margin-bottom: 14px; }
+        .credits-logo { height: 34px; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(34,229,255,0.45)); }
+        .credits-made { font-size: 16px; font-weight: 700; }
+        .credits-heart { display: inline-block; animation: heartBeat 1.4s ease-in-out infinite; }
+        @keyframes heartBeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.18); } }
+        .credits-sub { margin-top: 6px; font-size: 12px; color: var(--text-dim); }
+        .credits-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .credits-list span { font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 2px solid var(--ink); background: rgba(47,107,255,0.14); }
+        @media (prefers-reduced-motion: reduce) { .credits-heart { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .menu-view.active { animation: none; } }
+
+        a.menu-link { text-decoration: none; }
+        .skip-link {
+            position: fixed; left: 12px; top: -64px; z-index: 2147483001; padding: 10px 16px; border-radius: 10px;
+            background: var(--cyan); color: #001018; font-weight: 700; font-size: 13px; text-decoration: none;
+            border: 2.5px solid var(--ink); transition: top 0.15s ease;
+        }
+        .skip-link:focus { top: 12px; }
+        /* Visible keyboard focus everywhere (mouse/touch users don't see it) */
+        :focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+        .pb-input:focus-visible, textarea:focus-visible, input:focus-visible { outline-offset: 0; }
         .menu-item {
             display: flex; align-items: center; gap: 10px; width: 100%;
             background: rgba(255,255,255,0.03); border: 2px solid var(--ink); border-radius: 10px;
@@ -1235,8 +1361,6 @@
         }
         #kw-intro .btn-ui { min-height: 44px; }
     </style>
-</head>
-<body>
 
     <svg style="display:none" aria-hidden="true">
     <defs>
@@ -1277,7 +1401,7 @@
 
     <div id="startup">
     <div class="glass-card">
-            <img src="assets/brand/logo.png" class="main-logo">
+            <img src="assets/brand/logo.png" class="main-logo" alt="Knowura">
             <div class="brand-title">Knowura AI</div>
             <div class="brand-sub" style="margin-bottom: 22px;">Engineered by Uday Singh</div>
             <div id="g_id_onload" data-client_id="21362482851-mj9pla405ejg3aqcvu8uve693u2ibjp8.apps.googleusercontent.com" data-callback="onSignIn"></div>
@@ -1347,7 +1471,7 @@
             <button id="sidebarToggleBtn" class="btn-ui icon-only chat-sidebar-toggle" onclick="toggleSidebar()" title="Toggle chat list">
                 <svg class="icon"><use href="#icon-sidebar"/></svg>
             </button>
-            <div id="chat-box"></div>
+            <div id="chat-box" role="log" aria-live="polite" aria-label="Conversation"></div>
             <div class="input-area">
                 <div class="prompt-bar" id="promptBar">
                     <div class="pb-menu" id="pbMenu" role="listbox" hidden></div>
@@ -1415,7 +1539,7 @@
             </div>
             <div class="progress-row">
                 <span id="curTime" class="time">0:00</span>
-                <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
+                <input type="range" id="seekBar" aria-label="Seek track" class="seek-bar" min="0" max="1000" value="0">
                 <span id="durTime" class="time">0:00</span>
             </div>
             <div class="transport">
@@ -1424,26 +1548,70 @@
                 <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
                 <div class="volume-row" title="Volume">
                     <span><svg class="icon"><use href="#icon-volume"/></svg></span>
-                    <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
+                    <input type="range" id="volumeBar" aria-label="Volume" class="seek-bar volume" min="0" max="100" value="70">
                 </div>
             </div>
             <div id="trackList" class="track-list"></div>
     </div>
 
     <div id="hamburgerPanel" class="hamburger-panel" onclick="if (event.target === this) toggleHamburgerMenu()">
-    <div class="hamburger-modal-card">
-            <button class="live-close" onclick="toggleHamburgerMenu()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
-            <div class="brand-title" style="font-size:16px; margin-bottom:16px;">Menu</div>
+    <div class="hamburger-modal-card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+            <button class="live-close" onclick="toggleHamburgerMenu()" title="Close" aria-label="Close menu"><svg class="icon"><use href="#icon-x"/></svg></button>
+            <div class="menu-head">
+                <button type="button" id="menuBack" class="menu-back" onclick="showMenuView('main')" aria-label="Back to menu" hidden><svg class="icon"><use href="#icon-arrow-right"/></svg></button>
+                <div id="menuTitle" class="brand-title" style="font-size:16px;">Menu</div>
+            </div>
 
             <div id="menuStatusRow" class="menu-status-row">
                 <span id="memory-badge" class="memory-badge" style="display:none;"><svg class="icon"><use href="#icon-tag"/></svg> Memory ON</span>
                 <span id="owner-badge" class="memory-badge" style="display:none; border-color:var(--ink); color:var(--owner);"><svg class="icon"><use href="#icon-unlock"/></svg> Owner Mode</span>
             </div>
 
+            <div class="menu-view active" data-view="main">
+                <button type="button" class="menu-nav" onclick="showMenuView('appearance')">
+                    <svg class="icon nav-ico"><use href="#icon-eye"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Appearance</span><span class="menu-nav-sub" data-summary="appearance">Glass and performance</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('chat')">
+                    <svg class="icon nav-ico"><use href="#icon-chat"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Chat</span><span class="menu-nav-sub" data-summary="chat">Startup and typing haptics</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('memory')">
+                    <svg class="icon nav-ico"><use href="#icon-tag"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Memory &amp; Data</span><span class="menu-nav-sub" data-summary="memory">What Knowura remembers</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('voice')">
+                    <svg class="icon nav-ico"><use href="#icon-mic"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Voice</span><span class="menu-nav-sub" data-summary="voice">Call mode and wake word</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('about')">
+                    <svg class="icon nav-ico"><use href="#icon-info"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">About &amp; Legal</span><span class="menu-nav-sub" data-summary="about">Terms, privacy, EULA</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('credits')">
+                    <svg class="icon nav-ico"><use href="#icon-bolt"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Credits</span><span class="menu-nav-sub">Made by Uday with ♥️</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+
+            <div class="settings-section">
+                <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
+            </div>
+            <div class="settings-section">
+                <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
+            </div>
+            </div>
+
+            <div class="menu-view" data-view="appearance">
             <div class="settings-section">
                 <div class="settings-label">Glass Opacity</div>
                 <div class="glass-slider-row">
-                    <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
+                    <input type="range" id="glassOpacitySlider" aria-label="Glass opacity" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
                     <span id="glassOpacityValue" class="glass-slider-value">40%</span>
                 </div>
             </div>
@@ -1468,6 +1636,9 @@
                 </button>
             </div>
 
+            </div>
+
+            <div class="menu-view" data-view="chat">
             <div class="settings-section">
                 <div class="settings-label">On Refresh / Sign-In</div>
                 <button class="choice-pill" data-group="resumeChat" data-value="new" onclick="setResumeChat('new')">
@@ -1482,6 +1653,20 @@
             </div>
 
             <div class="settings-section">
+                <div class="settings-label">Typing Haptics</div>
+                <button class="choice-pill" data-group="haptics" data-value="on" onclick="setHaptics('on')">
+                    <span class="choice-row"><span class="choice-dot"></span>On</span>
+                    <span class="choice-hint">Phone buzzes softly as replies type out (Android phones)</span>
+                </button>
+                <button class="choice-pill" data-group="haptics" data-value="off" onclick="setHaptics('off')">
+                    <span class="choice-row"><span class="choice-dot"></span>Off</span>
+                </button>
+            </div>
+
+            </div>
+
+            <div class="menu-view" data-view="memory">
+            <div class="settings-section">
                 <div class="settings-label">Memory</div>
                 <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
                     <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
@@ -1490,6 +1675,9 @@
                 <button class="menu-item" onclick="resetMemory()" title="Forget stored facts and summary" style="margin-top:6px;"><svg class="icon"><use href="#icon-tag"/></svg> Forget Remembered Facts</button>
             </div>
 
+            </div>
+
+            <div class="menu-view" data-view="voice">
             <div class="settings-section">
                 <div class="settings-label">Voice Mode</div>
                 <button class="choice-pill" data-group="voiceMode" data-value="seamless" onclick="setVoiceMode('seamless')">
@@ -1516,15 +1704,34 @@
                 </button>
             </div>
 
+            </div>
+
+            <div class="menu-view" data-view="credits">
+                <div class="credits-card">
+                    <img src="assets/brand/logo.png" class="credits-logo" alt="Knowura">
+                    <div class="credits-made">Made by Uday with <span class="credits-heart" aria-label="love">♥️</span></div>
+                    <div class="credits-sub">Knowura AI · an education-first assistant</div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-label">Powered by</div>
+                    <div class="credits-list">
+                        <span>Groq</span><span>Tavily</span><span>Google Sign-In</span><span>Vercel</span><span>marked</span><span>DOMPurify</span><span>SimpleWebAuthn</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-view" data-view="about">
+            <div class="settings-section">
+                <div class="settings-label">Legal</div>
+                <a class="menu-item menu-link" href="/terms" target="_blank" rel="noopener"><svg class="icon"><use href="#icon-info"/></svg> Terms &amp; Conditions</a>
+                <a class="menu-item menu-link" href="/privacy" target="_blank" rel="noopener" style="margin-top:6px;"><svg class="icon"><use href="#icon-lock"/></svg> Privacy Policy</a>
+                <a class="menu-item menu-link" href="/eula" target="_blank" rel="noopener" style="margin-top:6px;"><svg class="icon"><use href="#icon-edit"/></svg> EULA</a>
+            </div>
+
             <div class="settings-section">
                 <button class="menu-item" onclick="window.knowuraIntro?.replay(); toggleHamburgerMenu();" title="Watch the welcome video again"><svg class="icon"><use href="#icon-play"/></svg> Replay Intro</button>
             </div>
 
-            <div class="settings-section">
-                <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
-            </div>
-            <div class="settings-section">
-                <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
             </div>
     </div>
     </div>
@@ -1607,7 +1814,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', haptics: 'on', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1620,6 +1827,50 @@
         localStorage.setItem('knowura_settings', JSON.stringify(settings));
     }
 
+    // ─── SETTINGS MENU NAVIGATION (main list → sub-menus) ─────────────────────
+    const MENU_TITLES = { main: 'Menu', appearance: 'Appearance', chat: 'Chat', memory: 'Memory & Data', voice: 'Voice', about: 'About & Legal', credits: 'Credits' };
+    let menuView = 'main';
+
+    function showMenuView(name, { focus = true } = {}) {
+        if (!MENU_TITLES[name]) name = 'main';
+        const goingBack = name === 'main' && menuView !== 'main';
+        menuView = name;
+        document.querySelectorAll('#hamburgerPanel .menu-view').forEach(v => {
+            const on = v.dataset.view === name;
+            v.classList.toggle('active', on);
+            v.classList.toggle('back', on && goingBack);
+        });
+        document.getElementById('menuTitle').textContent = MENU_TITLES[name];
+        document.getElementById('menuBack').hidden = name === 'main';
+        document.getElementById('menuStatusRow').style.display = name === 'main' ? '' : 'none';
+        const card = document.querySelector('#hamburgerPanel .hamburger-modal-card');
+        if (card) card.scrollTop = 0;
+        if (focus) {
+            const target = name === 'main'
+                ? document.querySelector('#hamburgerPanel .menu-view[data-view="main"] button')
+                : document.getElementById('menuBack');
+            target?.focus({ preventScroll: true });
+        }
+    }
+
+    // Esc / back: one level up first, close only from the top level. Returns true if it handled the key.
+    function menuEscape() {
+        const panel = document.getElementById('hamburgerPanel');
+        if (!panel?.classList.contains('open')) return false;
+        if (menuView !== 'main') showMenuView('main'); else panel.classList.remove('open');
+        return true;
+    }
+
+    // One-line "current value" under each menu row, kept in sync with the real settings.
+    function updateMenuSummaries() {
+        const set = (view, text) => { const el = document.querySelector(`[data-summary="${view}"]`); if (el) el.textContent = text; };
+        const perf = { auto: 'Auto', balanced: 'Balanced', lite: 'Lite', full: 'Full' }[settings.perfMode] || 'Auto';
+        set('appearance', `${perf} performance · Glass ${settings.glassOpacity}%`);
+        set('chat', `${settings.resumeChat === 'last' ? 'Resume last chat' : 'Start new chat'} · Haptics ${settings.haptics === 'off' ? 'off' : 'on'}`);
+        set('memory', settings.memoryEnabled ? 'Remembering conversations' : 'Memory is off');
+        set('voice', `${settings.voiceMode === 'ptt' ? 'Push to talk' : 'Seamless'} · Wake word ${{ voice: 'in calls', both: 'everywhere', off: 'off' }[settings.wakeWord] || 'in calls'}`);
+    }
+
     function updateSettingsUI() {
         document.querySelectorAll('.choice-pill').forEach(btn => {
             btn.classList.toggle('selected', settings[btn.dataset.group] === btn.dataset.value);
@@ -1630,6 +1881,7 @@
         if (slider) slider.value = settings.glassOpacity;
         applyGlassOpacity(settings.glassOpacity);
         syncModelSelectors();
+        updateMenuSummaries();
     }
 
     // ─── MODEL SELECTOR (Groq OSS 20B/120B vs Qwen3.6 27B — fused with Ultra Think) ──
@@ -1724,6 +1976,13 @@
     }
 
     // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory) ──
+
+    function setHaptics(value) {
+        settings.haptics = value;
+        saveSettings();
+        updateSettingsUI();
+        if (value === 'on') navigator.vibrate?.(15); // a little sample buzz so you can feel it
+    }
 
     function toggleMemoryEnabled() {
         settings.memoryEnabled = !settings.memoryEnabled;
@@ -2179,7 +2438,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function thinkRowHTML({ label = 'Thinking', state = 'composing', elapsedDs = 0, ultra = false } = {}) {
         return `<div class="reasoning live"><div class="reasoning-sum" role="status"><span class="think-row">${ultra ? ultraBoltHTML() : ''}<canvas class="think-orb" data-orb="${state}" aria-hidden="true"></canvas>`
-            + `<span class="think-label">${escapeHtml(label)}</span><span class="think-timer">${fmtThink(elapsedDs)}</span></span>${REASONING_CHEV}</div></div>`;
+            + `<span class="think-label">${escapeHtml(label)}</span><span class="think-timer">${fmtThink(elapsedDs)}</span></span>${REASONING_CHEV}</div></div>`
+            + `<div class="skel-lines" aria-hidden="true"><i></i><i></i><i></i></div>`;
     }
 
     // Finished row saved into the chat history (plain markup — no live canvas).
@@ -2305,6 +2565,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             setUltraThinkMode(cmd);
         }
 
+        finishTyping();
         addBubble(text, 'user', true);
         if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
         // Captured now (not later) so a background chat-title generation always
@@ -2362,7 +2623,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 signal: controller.signal
             });
 
-            if (!res.ok) throw new Error("Network issue");
+            if (!res.ok) {
+                // surface the server's own reason (rate limit, upstream model error, …)
+                const errBody = await res.json().catch(() => null);
+                const err = new Error(errBody?.error || `Server error (${res.status})`);
+                err.userFacing = true;
+                throw err;
+            }
 
             const data = await res.json();
 
@@ -2385,6 +2652,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 html += renderMarkdown(reply);
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai');
+                typeReveal(thinking); // typewriter reveal (+ soft haptic ticks on phones); the saved copy is already complete
 
                 // First exchange of a chat — quietly generate a real title in the
                 // background instead of leaving the instant truncated-message one.
@@ -2413,7 +2681,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (searchStageTimer) clearTimeout(searchStageTimer);
             if (e.name === 'AbortError') { thinking.remove(); return; }
             console.error(e);
-            thinking.innerHTML = `<span class="typing" style="color:var(--owner);"><svg class="icon"><use href="#icon-alert"/></svg> Connection lost. Ensure your Netlify Secret Key is set.</span>`;
+            const reason = e.userFacing ? escapeHtml(e.message) : 'Couldn\'t reach Knowura. Check your connection and try again.';
+            thinking.innerHTML = `<span class="typing" style="color:var(--owner);"><svg class="icon"><use href="#icon-alert"/></svg> ${reason}</span>`;
             if (opts.fromVoice) {
                 if (typeof callActive !== 'undefined' && callActive) {
                     setLiveStatus('Something went wrong');
@@ -2430,6 +2699,64 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             }
         }
     }
+
+    // ─── TYPEWRITER REPLY + HAPTICS ─────────────────────────────────────
+    // The reply is fully rendered and saved first; this just hides its text and types it
+    // back in, so cancelling at any point (new message, chat switch) leaves the full text.
+    let activeTyper = null;
+    function finishTyping() { activeTyper?.finish(); }
+
+    function typeReveal(root) {
+        finishTyping();
+        // Only the OS "reduce motion" setting skips it — Lite-mode phones still get the light text-only effect + haptics.
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        const targets = [...root.children].filter(el => !el.matches('details.reasoning'));
+        const nodes = [];
+        for (const el of targets) {
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.trim()) nodes.push(n);
+        }
+        const full = nodes.map(n => n.nodeValue);
+        const total = full.reduce((a, t) => a + t.length, 0);
+        if (!total) return;
+        nodes.forEach(n => { n.nodeValue = ''; });
+
+        const box = document.getElementById('chat-box');
+        const rate = total / Math.min(total * 16, 6000); // chars per ms — ~60 chars/s, never longer than 6s
+        const start = performance.now();
+        let shown = 0, idx = 0, offset = 0, raf = 0, lastBuzz = 0, done = false;
+
+        function finish() {
+            if (done) return; done = true;
+            cancelAnimationFrame(raf);
+            nodes.forEach((n, i) => { n.nodeValue = full[i]; });
+            if (activeTyper === api) activeTyper = null;
+            navigator.vibrate?.(0);
+        }
+        function tick(now) {
+            if (done) return;
+            if (!root.isConnected) { finish(); return; }
+            const want = Math.min(total, Math.floor((now - start) * rate));
+            let add = want - shown;
+            while (add > 0 && idx < nodes.length) {
+                const take = Math.min(add, full[idx].length - offset);
+                offset += take; shown += take; add -= take;
+                nodes[idx].nodeValue = full[idx].slice(0, offset);
+                if (offset >= full[idx].length) { idx++; offset = 0; }
+            }
+            if (want > shown - 1 && settings.haptics !== 'off' && now - lastBuzz > 28) {
+                lastBuzz = now;
+                navigator.vibrate?.(6); // one tiny tick per burst of letters, like ChatGPT's mobile app
+            }
+            if (box && box.scrollHeight - box.scrollTop - box.clientHeight < 140) box.scrollTop = box.scrollHeight;
+            if (shown >= total) { finish(); return; }
+            raf = requestAnimationFrame(tick);
+        }
+        const api = { finish };
+        activeTyper = api;
+        raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) finishTyping(); });
 
     // ─── UI HELPERS ───────────────────────────────────────────────────────
 
@@ -2540,6 +2867,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function renderActiveChat() {
+        finishTyping();
         const box = document.getElementById('chat-box');
         box.innerHTML = '';
         conversationMessages = [];
@@ -2756,7 +3084,16 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     });
 
+    // Placeholder shimmer while a signed-in user's saved chats come down from the cloud.
+    function showChatSkeleton() {
+        const list = document.getElementById('chatList');
+        if (list) list.innerHTML = '<div class="skel-chat-list" aria-hidden="true"><i class="skel-bar"></i><i class="skel-bar"></i><i class="skel-bar"></i><i class="skel-bar"></i></div>';
+        const box = document.getElementById('chat-box');
+        if (box) box.innerHTML = '<div class="skel-chat-main" aria-hidden="true"><div class="skel-msg me"><div class="skel-lines"><i></i></div></div><div class="skel-msg ai"><div class="skel-lines"><i></i><i></i><i></i></div></div></div>';
+    }
+
     async function loadCloudChats() {
+        showChatSkeleton();
         try {
             const res = await fetch("/.netlify/functions/chat-load", {
                 method: "POST",
@@ -3016,7 +3353,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             musicPanel.classList.remove('open');
         }
         const hamburgerWidget = document.querySelector('.hamburger-widget');
-        if (hamburgerWidget && !hamburgerWidget.contains(e.target)) {
+        if (hamburgerWidget && !hamburgerWidget.contains(e.target) && !document.getElementById('hamburgerPanel')?.contains(e.target)) {
             document.getElementById('hamburgerPanel')?.classList.remove('open');
         }
     });
@@ -3933,6 +4270,89 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // silently kills every listener/init call still below it in the file.
     tryResumeSession();
     tryResumeOwnerSession();
+    // ─── ACCESSIBILITY: keyboard + screen-reader helpers ────────────────────
+    // Made once, centrally, so dynamically-rendered UI (chat list, track list, …) is covered too.
+    (function a11y() {
+        const CLICKABLE = '[onclick]:not(button):not(a):not(input):not(select):not(textarea):not(summary):not(.owner-modal):not(.hamburger-panel):not(.sidebar-backdrop)';
+        function enhance(root) {
+            root.querySelectorAll?.(CLICKABLE).forEach(el => {
+                if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+                if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+                if (!el.hasAttribute('aria-label')) {
+                    const name = (el.querySelector('.chat-title, .name')?.textContent || el.textContent || '').trim().replace(/\s+/g, ' ');
+                    if (name) el.setAttribute('aria-label', name.slice(0, 80));
+                }
+            });
+            root.querySelectorAll?.('button:not([aria-label])').forEach(b => {
+                if (!b.textContent.trim() && b.title) b.setAttribute('aria-label', b.title);
+            });
+            root.querySelectorAll?.('img:not([alt])').forEach(i => i.setAttribute('alt', ''));
+            root.querySelectorAll?.('input:not([aria-label]):not([type=checkbox]):not([type=range])').forEach(i => {
+                if (i.placeholder && !i.labels?.length) i.setAttribute('aria-label', i.placeholder);
+            });
+        }
+        enhance(document);
+        new MutationObserver(muts => {
+            for (const m of muts) m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (n.matches?.(CLICKABLE)) enhance({ querySelectorAll: () => [n] }); enhance(n); } });
+        }).observe(document.body, { childList: true, subtree: true });
+
+        // Enter / Space activates our div-buttons like a real <button>
+        document.addEventListener('keydown', (e) => {
+            const el = e.target;
+            if (el?.getAttribute?.('role') === 'button' && !/^(BUTTON|A|INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                el.click();
+            }
+        });
+
+        // Keep Tab inside whichever dialog/menu is open, and return focus when it closes
+        const overlays = ['appDialog', 'ownerModal', 'hamburgerPanel'];
+        const lastFocus = {};
+        overlays.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            new MutationObserver(() => {
+                const open = el.classList.contains('open');
+                if (open && !lastFocus[id]) {
+                    lastFocus[id] = document.activeElement;
+                    setTimeout(() => el.querySelector('input:not([type=hidden]), button, a[href]')?.focus({ preventScroll: true }), 30);
+                } else if (!open && id === 'hamburgerPanel' && menuView !== 'main') {
+                    showMenuView('main', { focus: false }); // always reopen on the main list
+                }
+                if (!open && lastFocus[id]) {
+                    try { lastFocus[id].focus({ preventScroll: true }); } catch (e) { /* element gone */ }
+                    lastFocus[id] = null;
+                }
+            }).observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') menuEscape();
+            if (e.key !== 'Tab') return;
+            const open = overlays.map(id => document.getElementById(id)).find(el => el?.classList.contains('open'));
+            if (!open) return;
+            const f = [...open.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), [tabindex="0"]')].filter(x => x.offsetParent !== null);
+            if (!f.length) return;
+            const first = f[0], last = f[f.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        });
+
+        // A hidden/collapsed sidebar must not be reachable with Tab
+        const sb = document.getElementById('sidebar');
+        function syncSidebarInert() {
+            if (!sb) return;
+            const mobile = !!window.matchMedia?.('(max-width: 680px)').matches;
+            const hidden = mobile ? !sb.classList.contains('open') : sb.classList.contains('collapsed');
+            sb.inert = hidden;
+        }
+        if (sb) {
+            new MutationObserver(syncSidebarInert).observe(sb, { attributes: true, attributeFilter: ['class'] });
+            window.addEventListener('resize', syncSidebarInert);
+            syncSidebarInert();
+        }
+    })();
+
+    window.kwBootDone?.(); // app is wired up — drop the instant loader
 
     // ─── FIRST-VISIT INTRO (plays once per browser, muted, skippable) ─────────
     // Self-contained IIFE — doesn't touch any state above, safe at any point in
