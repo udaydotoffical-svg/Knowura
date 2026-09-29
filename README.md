@@ -223,7 +223,7 @@ If you fork this project, also swap the Google OAuth client ID hardcoded in
 
 ### 3. Set up owner unlock (one-time, admin only)
 
-The "Unlock Owner" option (in the ☰ menu) opens a modal offering two ways
+The Unlock Owner modal (not shown in any menu — it's opened by a hidden gesture in the app) offers two ways
 in — pick one or set up both:
 
 - **Security key**: the modal's "Use Security Key" button only *logs in*
