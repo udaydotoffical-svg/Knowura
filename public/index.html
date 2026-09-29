@@ -2362,7 +2362,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 signal: controller.signal
             });
 
-            if (!res.ok) throw new Error("Network issue");
+            if (!res.ok) {
+                // surface the server's own reason (rate limit, upstream model error, …)
+                const errBody = await res.json().catch(() => null);
+                const err = new Error(errBody?.error || `Server error (${res.status})`);
+                err.userFacing = true;
+                throw err;
+            }
 
             const data = await res.json();
 
@@ -2413,7 +2419,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (searchStageTimer) clearTimeout(searchStageTimer);
             if (e.name === 'AbortError') { thinking.remove(); return; }
             console.error(e);
-            thinking.innerHTML = `<span class="typing" style="color:var(--owner);"><svg class="icon"><use href="#icon-alert"/></svg> Connection lost. Ensure your Netlify Secret Key is set.</span>`;
+            const reason = e.userFacing ? escapeHtml(e.message) : 'Couldn\'t reach Knowura. Check your connection and try again.';
+            thinking.innerHTML = `<span class="typing" style="color:var(--owner);"><svg class="icon"><use href="#icon-alert"/></svg> ${reason}</span>`;
             if (opts.fromVoice) {
                 if (typeof callActive !== 'undefined' && callActive) {
                     setLiveStatus('Something went wrong');

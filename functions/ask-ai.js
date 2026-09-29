@@ -40,6 +40,7 @@ function sanitizeMemory(memory) {
 async function webSearch(query) {
     try {
         const res = await fetch("https://api.tavily.com/search", {
+            signal: AbortSignal.timeout(5000), // never let a slow search eat the function's time budget
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -166,14 +167,23 @@ exports.handler = async (event, context) => {
             payload.reasoning_effort = effort;
         }
 
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        // One quick retry on a rate limit / upstream 5xx / dropped connection — these are
+        // usually momentary and otherwise surface to the user as a failed message.
+        const callGroq = () => fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(25000)
         });
+        let response;
+        try { response = await callGroq(); } catch (e) { response = null; }
+        if (!response || response.status === 429 || response.status >= 500) {
+            await new Promise(r => setTimeout(r, 1200));
+            response = await callGroq();
+        }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             // Don't dress an upstream failure up as a success — the client checks res.ok.
