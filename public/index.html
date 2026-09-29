@@ -2841,6 +2841,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 landOnChat();
                 if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
             }
+            window.knowuraIntro?.maybeStart(); // first-ever login only; no-op once seen
         }, 800);
     }
 
@@ -3893,8 +3894,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             posterTall: '/assets/video/poster-tall.jpg',
             key: 'knowura_intro_seen_v1'
         };
-        let box, vid, sound, seen = false;
-        try { seen = localStorage.getItem(CFG.key) === '1'; } catch (e) { /* storage blocked: treat as unseen */ }
+        let box, vid, sound;
         const force = /[?&]intro=1\b/.test(location.search);
         const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -3954,12 +3954,20 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
 
         function start() { if (!box) build(); }
+        // Called right after a fresh login (enterApp) — never on plain page load, so the
+        // video doesn't cover the startup/login screen. Returning visitors who resume a
+        // saved session skip it too, since they never go through enterApp().
+        function maybeStart() {
+            if (seen_now() || reduce) { if (reduce && !seen_now()) mark(); return; }
+            start();
+        }
+        function seen_now() { try { return localStorage.getItem(CFG.key) === '1'; } catch (e) { return false; } }
         window.knowuraIntro = {
             replay: start,
+            maybeStart,
             reset() { try { localStorage.removeItem(CFG.key); } catch (e) { /* storage blocked */ } }
         };
-        if ((force || !seen) && !reduce) start();
-        else if (reduce && !seen) mark(); // reduced motion: never autoplay, but don't show it again either
+        if (force && !reduce) start(); // ?intro=1 still previews it on load for testing
     })();
 </script>
 </body>
