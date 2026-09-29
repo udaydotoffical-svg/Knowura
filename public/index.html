@@ -1116,6 +1116,46 @@
         .menu-status-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
         .menu-status-row:empty { display: none; }
 
+        /* ─── SETTINGS MENU: main list → sub-menus ─── */
+        .menu-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-right: 44px; }
+        .menu-head .brand-title { margin: 0; }
+        .menu-back {
+            flex: none; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.05); color: var(--text); border: 2px solid var(--ink); border-radius: 10px;
+            box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .menu-back[hidden] { display: none; }
+        .menu-back .icon { transform: rotate(180deg); }
+        .menu-back:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .menu-view { display: none; flex-direction: column; gap: 4px; }
+        .menu-view.active { display: flex; animation: menuInFwd 0.22s cubic-bezier(.16,1,.3,1); }
+        .menu-view.active.back { animation-name: menuInBack; }
+        @keyframes menuInFwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+        @keyframes menuInBack { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+        .menu-nav {
+            display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin-bottom: 8px;
+            background: rgba(255,255,255,0.04); color: var(--text); border: 2.5px solid var(--ink); border-radius: 12px;
+            padding: 11px 12px; cursor: pointer; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        }
+        .menu-nav:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: rgba(47,107,255,0.15); }
+        .menu-nav:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        .menu-nav .nav-ico { flex: none; width: 20px; height: 20px; color: var(--cyan); }
+        .menu-nav .nav-chev { flex: none; width: 16px; height: 16px; color: var(--text-dim); }
+        .menu-nav-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .menu-nav-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+        .menu-nav-sub { font-size: 11.5px; color: var(--text-dim); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .credits-card { text-align: center; padding: 18px 10px 14px; border: 2.5px solid var(--ink); border-radius: 14px; background: rgba(255,255,255,0.04); box-shadow: var(--shadow-sm); margin-bottom: 14px; }
+        .credits-logo { height: 34px; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(34,229,255,0.45)); }
+        .credits-made { font-size: 16px; font-weight: 700; }
+        .credits-heart { display: inline-block; animation: heartBeat 1.4s ease-in-out infinite; }
+        @keyframes heartBeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.18); } }
+        .credits-sub { margin-top: 6px; font-size: 12px; color: var(--text-dim); }
+        .credits-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .credits-list span { font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 2px solid var(--ink); background: rgba(47,107,255,0.14); }
+        @media (prefers-reduced-motion: reduce) { .credits-heart { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .menu-view.active { animation: none; } }
+
         a.menu-link { text-decoration: none; }
         .skip-link {
             position: fixed; left: 12px; top: -64px; z-index: 2147483001; padding: 10px 16px; border-radius: 10px;
@@ -1515,15 +1555,59 @@
     </div>
 
     <div id="hamburgerPanel" class="hamburger-panel" onclick="if (event.target === this) toggleHamburgerMenu()">
-    <div class="hamburger-modal-card">
-            <button class="live-close" onclick="toggleHamburgerMenu()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
-            <div class="brand-title" style="font-size:16px; margin-bottom:16px;">Menu</div>
+    <div class="hamburger-modal-card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+            <button class="live-close" onclick="toggleHamburgerMenu()" title="Close" aria-label="Close menu"><svg class="icon"><use href="#icon-x"/></svg></button>
+            <div class="menu-head">
+                <button type="button" id="menuBack" class="menu-back" onclick="showMenuView('main')" aria-label="Back to menu" hidden><svg class="icon"><use href="#icon-arrow-right"/></svg></button>
+                <div id="menuTitle" class="brand-title" style="font-size:16px;">Menu</div>
+            </div>
 
             <div id="menuStatusRow" class="menu-status-row">
                 <span id="memory-badge" class="memory-badge" style="display:none;"><svg class="icon"><use href="#icon-tag"/></svg> Memory ON</span>
                 <span id="owner-badge" class="memory-badge" style="display:none; border-color:var(--ink); color:var(--owner);"><svg class="icon"><use href="#icon-unlock"/></svg> Owner Mode</span>
             </div>
 
+            <div class="menu-view active" data-view="main">
+                <button type="button" class="menu-nav" onclick="showMenuView('appearance')">
+                    <svg class="icon nav-ico"><use href="#icon-eye"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Appearance</span><span class="menu-nav-sub" data-summary="appearance">Glass and performance</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('chat')">
+                    <svg class="icon nav-ico"><use href="#icon-chat"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Chat</span><span class="menu-nav-sub" data-summary="chat">Startup and typing haptics</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('memory')">
+                    <svg class="icon nav-ico"><use href="#icon-tag"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Memory &amp; Data</span><span class="menu-nav-sub" data-summary="memory">What Knowura remembers</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('voice')">
+                    <svg class="icon nav-ico"><use href="#icon-mic"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Voice</span><span class="menu-nav-sub" data-summary="voice">Call mode and wake word</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('about')">
+                    <svg class="icon nav-ico"><use href="#icon-info"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">About &amp; Legal</span><span class="menu-nav-sub" data-summary="about">Terms, privacy, EULA</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('credits')">
+                    <svg class="icon nav-ico"><use href="#icon-bolt"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Credits</span><span class="menu-nav-sub">Made by Uday with ♥️</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
+
+            <div class="settings-section">
+                <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
+            </div>
+            <div class="settings-section">
+                <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
+            </div>
+            </div>
+
+            <div class="menu-view" data-view="appearance">
             <div class="settings-section">
                 <div class="settings-label">Glass Opacity</div>
                 <div class="glass-slider-row">
@@ -1552,6 +1636,9 @@
                 </button>
             </div>
 
+            </div>
+
+            <div class="menu-view" data-view="chat">
             <div class="settings-section">
                 <div class="settings-label">On Refresh / Sign-In</div>
                 <button class="choice-pill" data-group="resumeChat" data-value="new" onclick="setResumeChat('new')">
@@ -1566,15 +1653,6 @@
             </div>
 
             <div class="settings-section">
-                <div class="settings-label">Memory</div>
-                <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
-                    <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
-                </button>
-                <button class="menu-item" onclick="deleteAllChats()" title="Delete all chats" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Delete All Chats</button>
-                <button class="menu-item" onclick="resetMemory()" title="Forget stored facts and summary" style="margin-top:6px;"><svg class="icon"><use href="#icon-tag"/></svg> Forget Remembered Facts</button>
-            </div>
-
-            <div class="settings-section">
                 <div class="settings-label">Typing Haptics</div>
                 <button class="choice-pill" data-group="haptics" data-value="on" onclick="setHaptics('on')">
                     <span class="choice-row"><span class="choice-dot"></span>On</span>
@@ -1585,6 +1663,21 @@
                 </button>
             </div>
 
+            </div>
+
+            <div class="menu-view" data-view="memory">
+            <div class="settings-section">
+                <div class="settings-label">Memory</div>
+                <button id="memoryToggle" class="ultra-toggle menu-toggle" onclick="toggleMemoryEnabled()">
+                    <span class="dot"></span><svg class="icon"><use href="#icon-tag"/></svg> Remember Conversations
+                </button>
+                <button class="menu-item" onclick="deleteAllChats()" title="Delete all chats" style="margin-top:6px;"><svg class="icon"><use href="#icon-trash"/></svg> Delete All Chats</button>
+                <button class="menu-item" onclick="resetMemory()" title="Forget stored facts and summary" style="margin-top:6px;"><svg class="icon"><use href="#icon-tag"/></svg> Forget Remembered Facts</button>
+            </div>
+
+            </div>
+
+            <div class="menu-view" data-view="voice">
             <div class="settings-section">
                 <div class="settings-label">Voice Mode</div>
                 <button class="choice-pill" data-group="voiceMode" data-value="seamless" onclick="setVoiceMode('seamless')">
@@ -1611,6 +1704,23 @@
                 </button>
             </div>
 
+            </div>
+
+            <div class="menu-view" data-view="credits">
+                <div class="credits-card">
+                    <img src="assets/brand/logo.png" class="credits-logo" alt="Knowura">
+                    <div class="credits-made">Made by Uday with <span class="credits-heart" aria-label="love">♥️</span></div>
+                    <div class="credits-sub">Knowura AI · an education-first assistant</div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-label">Powered by</div>
+                    <div class="credits-list">
+                        <span>Groq</span><span>Tavily</span><span>Google Sign-In</span><span>Vercel</span><span>marked</span><span>DOMPurify</span><span>SimpleWebAuthn</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-view" data-view="about">
             <div class="settings-section">
                 <div class="settings-label">Legal</div>
                 <a class="menu-item menu-link" href="/terms" target="_blank" rel="noopener"><svg class="icon"><use href="#icon-info"/></svg> Terms &amp; Conditions</a>
@@ -1622,11 +1732,6 @@
                 <button class="menu-item" onclick="window.knowuraIntro?.replay(); toggleHamburgerMenu();" title="Watch the welcome video again"><svg class="icon"><use href="#icon-play"/></svg> Replay Intro</button>
             </div>
 
-            <div class="settings-section">
-                <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
-            </div>
-            <div class="settings-section">
-                <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
             </div>
     </div>
     </div>
@@ -1722,6 +1827,50 @@
         localStorage.setItem('knowura_settings', JSON.stringify(settings));
     }
 
+    // ─── SETTINGS MENU NAVIGATION (main list → sub-menus) ─────────────────────
+    const MENU_TITLES = { main: 'Menu', appearance: 'Appearance', chat: 'Chat', memory: 'Memory & Data', voice: 'Voice', about: 'About & Legal', credits: 'Credits' };
+    let menuView = 'main';
+
+    function showMenuView(name, { focus = true } = {}) {
+        if (!MENU_TITLES[name]) name = 'main';
+        const goingBack = name === 'main' && menuView !== 'main';
+        menuView = name;
+        document.querySelectorAll('#hamburgerPanel .menu-view').forEach(v => {
+            const on = v.dataset.view === name;
+            v.classList.toggle('active', on);
+            v.classList.toggle('back', on && goingBack);
+        });
+        document.getElementById('menuTitle').textContent = MENU_TITLES[name];
+        document.getElementById('menuBack').hidden = name === 'main';
+        document.getElementById('menuStatusRow').style.display = name === 'main' ? '' : 'none';
+        const card = document.querySelector('#hamburgerPanel .hamburger-modal-card');
+        if (card) card.scrollTop = 0;
+        if (focus) {
+            const target = name === 'main'
+                ? document.querySelector('#hamburgerPanel .menu-view[data-view="main"] button')
+                : document.getElementById('menuBack');
+            target?.focus({ preventScroll: true });
+        }
+    }
+
+    // Esc / back: one level up first, close only from the top level. Returns true if it handled the key.
+    function menuEscape() {
+        const panel = document.getElementById('hamburgerPanel');
+        if (!panel?.classList.contains('open')) return false;
+        if (menuView !== 'main') showMenuView('main'); else panel.classList.remove('open');
+        return true;
+    }
+
+    // One-line "current value" under each menu row, kept in sync with the real settings.
+    function updateMenuSummaries() {
+        const set = (view, text) => { const el = document.querySelector(`[data-summary="${view}"]`); if (el) el.textContent = text; };
+        const perf = { auto: 'Auto', balanced: 'Balanced', lite: 'Lite', full: 'Full' }[settings.perfMode] || 'Auto';
+        set('appearance', `${perf} performance · Glass ${settings.glassOpacity}%`);
+        set('chat', `${settings.resumeChat === 'last' ? 'Resume last chat' : 'Start new chat'} · Haptics ${settings.haptics === 'off' ? 'off' : 'on'}`);
+        set('memory', settings.memoryEnabled ? 'Remembering conversations' : 'Memory is off');
+        set('voice', `${settings.voiceMode === 'ptt' ? 'Push to talk' : 'Seamless'} · Wake word ${{ voice: 'in calls', both: 'everywhere', off: 'off' }[settings.wakeWord] || 'in calls'}`);
+    }
+
     function updateSettingsUI() {
         document.querySelectorAll('.choice-pill').forEach(btn => {
             btn.classList.toggle('selected', settings[btn.dataset.group] === btn.dataset.value);
@@ -1732,6 +1881,7 @@
         if (slider) slider.value = settings.glassOpacity;
         applyGlassOpacity(settings.glassOpacity);
         syncModelSelectors();
+        updateMenuSummaries();
     }
 
     // ─── MODEL SELECTOR (Groq OSS 20B/120B vs Qwen3.6 27B — fused with Ultra Think) ──
@@ -3203,7 +3353,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             musicPanel.classList.remove('open');
         }
         const hamburgerWidget = document.querySelector('.hamburger-widget');
-        if (hamburgerWidget && !hamburgerWidget.contains(e.target)) {
+        if (hamburgerWidget && !hamburgerWidget.contains(e.target) && !document.getElementById('hamburgerPanel')?.contains(e.target)) {
             document.getElementById('hamburgerPanel')?.classList.remove('open');
         }
     });
@@ -4166,14 +4316,17 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 if (open && !lastFocus[id]) {
                     lastFocus[id] = document.activeElement;
                     setTimeout(() => el.querySelector('input:not([type=hidden]), button, a[href]')?.focus({ preventScroll: true }), 30);
-                } else if (!open && lastFocus[id]) {
+                } else if (!open && id === 'hamburgerPanel' && menuView !== 'main') {
+                    showMenuView('main', { focus: false }); // always reopen on the main list
+                }
+                if (!open && lastFocus[id]) {
                     try { lastFocus[id].focus({ preventScroll: true }); } catch (e) { /* element gone */ }
                     lastFocus[id] = null;
                 }
             }).observe(el, { attributes: true, attributeFilter: ['class'] });
         });
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') document.getElementById('hamburgerPanel')?.classList.remove('open');
+            if (e.key === 'Escape') menuEscape();
             if (e.key !== 'Tab') return;
             const open = overlays.map(id => document.getElementById(id)).find(el => el?.classList.contains('open'));
             if (!open) return;
