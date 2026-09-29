@@ -80,6 +80,7 @@ knowura/
 │   ├── index.html
 │   ├── terms.html            # /terms  (Terms & Conditions)
 │   ├── privacy.html          # /privacy (Privacy Policy)
+│   ├── eula.html             # /eula    (End User License Agreement)
 │   ├── 404.html              # custom not-found page (Vercel + Netlify pick it up automatically)
 │   ├── legal.css             # shared styles for those three pages
 │   └── assets/
