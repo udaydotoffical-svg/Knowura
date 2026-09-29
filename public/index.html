@@ -4,7 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Knowura AI | By Uday Singh</title>
-    <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <link rel="icon" href="/favicon.ico?v=2" sizes="48x48">
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+    <link rel="manifest" href="/site.webmanifest?v=2">
+    <meta name="theme-color" content="#05070f">
+    <meta name="msapplication-TileColor" content="#0f2a80">
+    <meta name="msapplication-TileImage" content="/mstile-150x150.png?v=2">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Knowura AI">
+    <meta property="og:title" content="Knowura AI: learn anything, your way">
+    <meta property="og:description" content="An education AI by Uday Singh. Ask anything and get it explained until it clicks.">
+    <meta property="og:url" content="https://knowura.vercel.app/">
+    <meta property="og:image" content="https://knowura.vercel.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Knowura logo: a pencil-and-book K followed by NOWURA">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Knowura AI: learn anything, your way">
+    <meta name="twitter:description" content="An education AI by Uday Singh.">
+    <meta name="twitter:image" content="https://knowura.vercel.app/og-image.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" rel="stylesheet">
@@ -1178,12 +1200,30 @@
         html.lite .prompt-glow { box-shadow: 5px 5px 0 var(--ink) !important; background: var(--panel-strong) !important; }
         html.lite .pb-menu, html.lite .model-dd-menu, html.lite .music-panel, html.lite .cookie-banner { background: var(--panel-strong) !important; }
         html.lite #startup, html.lite .sidebar-backdrop, html.lite .hamburger-panel, html.lite .owner-modal { background: rgba(3,6,14,0.92) !important; }
+
+        /* ─── FIRST-VISIT INTRO (autoplaying welcome video, once per browser) ──── */
+        #kw-intro {
+            position: fixed; inset: 0; z-index: 9999;
+            background: var(--dark); display: none; align-items: center; justify-content: center;
+            opacity: 1; transition: opacity 0.45s ease;
+        }
+        #kw-intro.show { display: flex; }
+        #kw-intro.out { opacity: 0; pointer-events: none; }
+        #kw-intro video { width: 100%; height: 100%; object-fit: contain; background: var(--dark); }
+        #kw-intro .kw-prog { position: absolute; left: 0; right: 0; top: 0; height: 4px; background: rgba(255,255,255,0.08); }
+        #kw-intro .kw-prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+        #kw-intro .kw-bar {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            display: flex; gap: 12px; justify-content: center; align-items: center;
+            padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+        }
+        #kw-intro .btn-ui { min-height: 44px; }
     </style>
 </head>
 <body>
 
     <svg style="display:none" aria-hidden="true">
-        <defs>
+    <defs>
             <symbol id="icon-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="currentColor"/></symbol>
             <symbol id="icon-tag" viewBox="0 0 24 24"><path d="M3 11 12 2h7a2 2 0 0 1 2 2v7l-9 9a2 2 0 0 1-2.8 0l-6.2-6.2a2 2 0 0 1 0-2.8z" fill="currentColor"/></symbol>
             <symbol id="icon-unlock" viewBox="0 0 24 24"><path d="M6 10V7a6 6 0 0 1 11.2-3" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round"/><rect x="4" y="10" width="16" height="11" rx="2" fill="currentColor"/></symbol>
@@ -1214,13 +1254,13 @@
             <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
             <symbol id="icon-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
             <symbol id="icon-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="10" y="10" width="4" height="4" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="9" y1="2" x2="9" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="2" x2="15" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="18" x2="9" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="18" x2="15" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="9" x2="6" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="15" x2="6" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18" y1="9" x2="22" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18" y1="15" x2="22" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
-        </defs>
+    </defs>
     </svg>
 
     <audio id="bgMusic" preload="none"></audio>
 
     <div id="startup">
-        <div class="glass-card">
+    <div class="glass-card">
             <img src="assets/images/logo.png" class="main-logo">
             <div class="brand-title">Knowura AI</div>
             <div class="brand-sub" style="margin-bottom: 22px;">Engineered by Uday Singh</div>
@@ -1235,21 +1275,21 @@
                 Stay signed in on this device
             </label>
             <div class="legal-line">By continuing you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</div>
-        </div>
+    </div>
     </div>
 
     <div id="cookieBanner" class="cookie-banner" role="dialog" aria-live="polite" aria-label="Cookie notice" hidden>
-        <div class="cookie-text">
+    <div class="cookie-text">
             <strong>Cookies &amp; local storage.</strong>
             Knowura only uses essential storage (your settings, guest chats, and sign-in) &mdash; no ads or tracking.
             <a href="/privacy" target="_blank" rel="noopener">Learn more</a>
-        </div>
-        <button class="cookie-btn" onclick="dismissCookieBanner()">Got it</button>
+    </div>
+    <button class="cookie-btn" onclick="dismissCookieBanner()">Got it</button>
     </div>
 
     <div id="app">
-        <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeSidebarMobile()"></div>
-        <aside id="sidebar" class="sidebar">
+    <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeSidebarMobile()"></div>
+    <aside id="sidebar" class="sidebar">
             <div class="sidebar-top">
                 <div class="sidebar-brand">
                     <img src="assets/images/logo.png" class="sidebar-logo">
@@ -1285,8 +1325,8 @@
                     </div>
                 </div>
             </div>
-        </aside>
-        <div class="chat-container">
+    </aside>
+    <div class="chat-container">
             <button id="sidebarToggleBtn" class="btn-ui icon-only chat-sidebar-toggle" onclick="toggleSidebar()" title="Toggle chat list">
                 <svg class="icon"><use href="#icon-sidebar"/></svg>
             </button>
@@ -1345,10 +1385,10 @@
                     <button id="ultraToggleVoice" class="ultra-toggle" onclick="toggleUltraMode()"><span class="dot"></span><svg class="icon"><use href="#icon-bolt"/></svg> Ultra Think</button>
                 </div>
             </div>
-        </div>
+    </div>
     </div>
 
-        <div id="musicPanel" class="music-panel">
+    <div id="musicPanel" class="music-panel">
             <div class="now-playing">
                 <div id="trackArt" class="track-art"><svg class="icon"><use href="#icon-music"/></svg></div>
                 <div class="track-meta">
@@ -1371,10 +1411,10 @@
                 </div>
             </div>
             <div id="trackList" class="track-list"></div>
-        </div>
+    </div>
 
     <div id="hamburgerPanel" class="hamburger-panel" onclick="if (event.target === this) toggleHamburgerMenu()">
-        <div class="hamburger-modal-card">
+    <div class="hamburger-modal-card">
             <button class="live-close" onclick="toggleHamburgerMenu()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
             <div class="brand-title" style="font-size:16px; margin-bottom:16px;">Menu</div>
 
@@ -1460,16 +1500,20 @@
             </div>
 
             <div class="settings-section">
+                <button class="menu-item" onclick="window.knowuraIntro?.replay(); toggleHamburgerMenu();" title="Watch the welcome video again"><svg class="icon"><use href="#icon-play"/></svg> Replay Intro</button>
+            </div>
+
+            <div class="settings-section">
                 <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
             </div>
             <div class="settings-section">
                 <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
             </div>
-        </div>
+    </div>
     </div>
 
     <div id="ownerModal" class="owner-modal" onclick="if (event.target === this) closeOwnerModal()">
-        <div class="owner-modal-card">
+    <div class="owner-modal-card">
             <button class="live-close" onclick="closeOwnerModal()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
             <div class="brand-title" style="font-size:16px;">Unlock Owner Mode</div>
             <div class="brand-sub" style="margin-bottom:20px;">Verify it's really you</div>
@@ -1502,11 +1546,11 @@
             </label>
 
             <div id="ownerModalStatus" class="owner-modal-status"></div>
-        </div>
+    </div>
     </div>
 
     <div id="appDialog" class="owner-modal" onclick="if (event.target === this) dialogCancel()">
-        <div class="owner-modal-card app-dialog-card">
+    <div class="owner-modal-card app-dialog-card">
             <div class="app-dialog-icon"><svg class="icon"><use href="#icon-x"/></svg></div>
             <div id="appDialogTitle" class="brand-title" style="font-size:16px;"></div>
             <div id="appDialogMessage" class="app-dialog-message"></div>
@@ -1514,7 +1558,7 @@
                 <button id="appDialogCancelBtn" class="btn-ui secondary" style="display:none;" onclick="dialogCancel()">Cancel</button>
                 <button id="appDialogConfirmBtn" class="btn-ui" onclick="dialogConfirm()">OK</button>
             </div>
-        </div>
+    </div>
     </div>
 
 <script>
@@ -3823,6 +3867,87 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // silently kills every listener/init call still below it in the file.
     tryResumeSession();
     tryResumeOwnerSession();
+
+    // ─── FIRST-VISIT INTRO (plays once per browser, muted, skippable) ─────────
+    // Self-contained IIFE — doesn't touch any state above, safe at any point in
+    // the script. Builds its own DOM only when it's actually going to show, so
+    // returning visitors never pay for the video markup or a network request.
+    (function () {
+        const CFG = {
+            wide: '/assets/video/knowura-intro-web-wide.mp4',
+            tall: '/assets/video/knowura-intro-web-tall.mp4',
+            posterWide: '/assets/video/poster-wide.jpg',
+            posterTall: '/assets/video/poster-tall.jpg',
+            key: 'knowura_intro_seen_v1'
+        };
+        let box, vid, sound, seen = false;
+        try { seen = localStorage.getItem(CFG.key) === '1'; } catch (e) { /* storage blocked: treat as unseen */ }
+        const force = /[?&]intro=1\b/.test(location.search);
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+        function mark() { try { localStorage.setItem(CFG.key, '1'); } catch (e) { /* storage blocked */ } }
+        let prevOverflow = '';
+        function unlock() { document.documentElement.style.overflow = prevOverflow; }
+        function close() {
+            if (!box) return;
+            unlock();
+            box.classList.add('out');
+            setTimeout(() => { box?.remove(); box = null; }, 500);
+            document.removeEventListener('keydown', onKey);
+            try { vid?.pause(); } catch (e) { /* already stopped */ }
+        }
+        function onKey(e) { if (e.key === 'Escape') close(); }
+
+        function build() {
+            box = document.createElement('div');
+            box.id = 'kw-intro';
+            box.setAttribute('role', 'dialog');
+            box.setAttribute('aria-label', 'Welcome to Knowura');
+            box.innerHTML = '<div class="kw-prog"><i></i></div><video playsinline muted autoplay preload="auto"></video>'
+                + '<div class="kw-bar"><button type="button" class="btn-ui" data-a="sound">Turn on sound</button><button type="button" class="btn-ui" data-a="skip">Skip</button></div>';
+            prevOverflow = document.documentElement.style.overflow;
+            document.documentElement.style.overflow = 'hidden';
+            document.body.appendChild(box);
+
+            vid = box.querySelector('video');
+            sound = box.querySelector('[data-a=sound]');
+            const portrait = window.innerHeight > window.innerWidth;
+            vid.poster = portrait ? CFG.posterTall : CFG.posterWide;
+            vid.src = portrait ? CFG.tall : CFG.wide;
+            vid.muted = true;
+
+            const bar = box.querySelector('.kw-prog i');
+            vid.addEventListener('timeupdate', () => { if (vid.duration) bar.style.width = (vid.currentTime / vid.duration * 100) + '%'; });
+            vid.addEventListener('ended', close);
+            vid.addEventListener('error', close); // never trap the visitor if the file fails
+            vid.addEventListener('playing', mark); // counts as seen once it actually starts
+
+            sound.addEventListener('click', () => {
+                vid.muted = !vid.muted;
+                if (!vid.muted) { vid.volume = 1; vid.play()?.catch(() => {}); }
+                sound.textContent = vid.muted ? 'Turn on sound' : 'Sound on';
+            });
+            box.querySelector('[data-a=skip]').addEventListener('click', () => { mark(); close(); });
+            document.addEventListener('keydown', onKey);
+
+            box.classList.add('show');
+            vid.play()?.catch(() => { // autoplay blocked: let them tap to start
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'btn-ui'; b.textContent = 'Tap to play';
+                b.addEventListener('click', () => { b.remove(); vid.play(); });
+                box.querySelector('.kw-bar').prepend(b);
+            });
+            box.querySelector('[data-a=skip]')?.focus({ preventScroll: true });
+        }
+
+        function start() { if (!box) build(); }
+        window.knowuraIntro = {
+            replay: start,
+            reset() { try { localStorage.removeItem(CFG.key); } catch (e) { /* storage blocked */ } }
+        };
+        if ((force || !seen) && !reduce) start();
+        else if (reduce && !seen) mark(); // reduced motion: never autoplay, but don't show it again either
+    })();
 </script>
 </body>
 </html>

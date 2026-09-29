@@ -5,7 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy | Knowura AI</title>
     <meta name="description" content="How Knowura AI handles your data.">
-    <link rel="icon" type="image/png" href="/assets/images/logo.png">
+    <link rel="icon" href="/favicon.ico?v=2" sizes="48x48">
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+    <link rel="manifest" href="/site.webmanifest?v=2">
+    <meta name="theme-color" content="#05070f">
+    <meta name="msapplication-TileColor" content="#0f2a80">
+    <meta name="msapplication-TileImage" content="/mstile-150x150.png?v=2">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Knowura AI">
+    <meta property="og:title" content="Privacy Policy | Knowura AI">
+    <meta property="og:description" content="How Knowura AI handles your data.">
+    <meta property="og:url" content="https://knowura.vercel.app/privacy">
+    <meta property="og:image" content="https://knowura.vercel.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Knowura logo: a pencil-and-book K followed by NOWURA">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Privacy Policy | Knowura AI">
+    <meta name="twitter:description" content="How Knowura AI handles your data.">
+    <meta name="twitter:image" content="https://knowura.vercel.app/og-image.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" rel="stylesheet">
@@ -14,79 +36,79 @@
 <body>
 <div class="legal-wrap">
     <nav class="legal-nav">
-        <a class="legal-brand" href="/"><img src="/assets/images/logo.png" alt=""><span>Knowura AI</span></a>
-        <div class="legal-links">
+    <a class="legal-brand" href="/"><img src="/assets/images/logo.png" alt=""><span>Knowura AI</span></a>
+    <div class="legal-links">
             <a href="/">Home</a>
             <a href="/terms">Terms</a>
             <a href="/privacy" class="current">Privacy</a>
-        </div>
+    </div>
     </nav>
 
     <main class="legal-card">
-        <h1>Privacy Policy</h1>
-        <div class="updated">Last updated: September 2026</div>
+    <h1>Privacy Policy</h1>
+    <div class="updated">Last updated: September 2026</div>
 
-        <p>Knowura AI is built and operated by Uday Singh. This page explains what data Knowura handles, why, and what control you have. Short version: <strong>no ads, no analytics or tracking cookies, and we don't sell your data.</strong></p>
+    <p>Knowura AI is built and operated by Uday Singh. This page explains what data Knowura handles, why, and what control you have. Short version: <strong>no ads, no analytics or tracking cookies, and we don't sell your data.</strong></p>
 
-        <h2>1. What we handle</h2>
-        <ul>
+    <h2>1. What we handle</h2>
+    <ul>
             <li><strong>Your messages.</strong> What you type or say is sent to an AI provider to generate replies. In guest mode chats are saved only on your device; if you're signed in they're also saved to your account (see below).</li>
             <li><strong>Voice audio.</strong> In Live Voice mode, short audio clips are sent to Groq to be transcribed, and reply text is sent to Groq to be turned into speech. We don't keep the audio ourselves.</li>
             <li><strong>Web search queries.</strong> When a question looks like it needs fresh information ("latest", "news", "who is"&hellip;), the question is sent to Tavily to fetch search results.</li>
             <li><strong>Google account info (only if you sign in).</strong> Your Google account ID, name, email address, and profile picture. We verify your Google sign-in on our server and use it to identify your saved data.</li>
             <li><strong>Memory.</strong> If "Remember Conversations" is on, Knowura extracts short facts about you (e.g. subjects you study) and a rolling summary from your chats and includes them in future requests so replies feel personal. Turn it off, or use "Forget Remembered Facts", any time.</li>
             <li><strong>Technical data.</strong> Our hosting providers (Vercel and Netlify) may log basic request data such as IP address, browser type and timestamps for security and operations.</li>
-        </ul>
+    </ul>
 
-        <h2>2. Where it's stored</h2>
-        <ul>
+    <h2>2. Where it's stored</h2>
+    <ul>
             <li><strong>Guests:</strong> chats and memory live in your browser's local storage on your device only.</li>
             <li><strong>Signed-in users:</strong> your chats, memory and basic profile are saved in a private cloud storage bucket (Vercel Blob or Netlify Blobs, depending on which site you're using), keyed to your Google account ID. Each deployment has its own separate storage &mdash; data isn't shared between knowura.vercel.app and knowura.netlify.app.</li>
             <li><strong>On your device:</strong> settings (voice mode, wake word, model choice, layout, etc.), your "stay signed in" session, and volume are kept in local storage.</li>
-        </ul>
+    </ul>
 
-        <h2>3. Who we share it with</h2>
-        <p>Only the services needed to run Knowura, each under their own privacy policies:</p>
-        <ul>
+    <h2>3. Who we share it with</h2>
+    <p>Only the services needed to run Knowura, each under their own privacy policies:</p>
+    <ul>
             <li><strong>Groq</strong> &mdash; AI chat models, speech-to-text, and text-to-speech.</li>
             <li><strong>Tavily</strong> &mdash; web search.</li>
             <li><strong>Google</strong> &mdash; Sign-In (Google Identity Services); in Chrome, the optional wake word uses the browser's speech recognition, which Google processes; Google Fonts is used for typography, which means your browser contacts Google to load it.</li>
             <li><strong>Vercel and Netlify</strong> &mdash; hosting and storage.</li>
             <li><strong>jsDelivr and unpkg</strong> &mdash; content delivery for open-source libraries the page loads.</li>
-        </ul>
-        <p>We don't sell your data or use it for advertising, and we don't run analytics or tracking scripts.</p>
+    </ul>
+    <p>We don't sell your data or use it for advertising, and we don't run analytics or tracking scripts.</p>
 
-        <h2>4. Cookies and local storage</h2>
-        <p>Knowura doesn't set advertising or analytics cookies. It uses your browser's local storage for the essentials above (settings, guest chats, sign-in session, and remembering that you dismissed the cookie notice). Google's sign-in button may set its own cookies to make signing in work; those are governed by Google's policies. You can clear all of this in your browser settings at any time &mdash; doing so will sign you out and remove guest chats from that device.</p>
+    <h2>4. Cookies and local storage</h2>
+    <p>Knowura doesn't set advertising or analytics cookies. It uses your browser's local storage for the essentials above (settings, guest chats, sign-in session, and remembering that you dismissed the cookie notice). Google's sign-in button may set its own cookies to make signing in work; those are governed by Google's policies. You can clear all of this in your browser settings at any time &mdash; doing so will sign you out and remove guest chats from that device.</p>
 
-        <h2>5. How long we keep it</h2>
-        <ul>
+    <h2>5. How long we keep it</h2>
+    <ul>
             <li>Chats and memory stay until you delete them (per-chat delete, "Delete All Chats", "Forget Remembered Facts"). For signed-in users, deletions are saved to your cloud copy too.</li>
             <li>Logging out clears the local session and the chats loaded in your browser; your saved cloud data remains for next time you sign in.</li>
             <li>Third-party providers keep data according to their own policies.</li>
-        </ul>
+    </ul>
 
-        <h2>6. Security</h2>
-        <p>Traffic is encrypted over HTTPS. Sign-in is verified on our server, signed session tokens are used to access cloud data, and cloud storage is private. No system is perfectly secure, and AI text you send is processed by third parties &mdash; so please <strong>don't share passwords, ID numbers, or other sensitive details in chats</strong>.</p>
+    <h2>6. Security</h2>
+    <p>Traffic is encrypted over HTTPS. Sign-in is verified on our server, signed session tokens are used to access cloud data, and cloud storage is private. No system is perfectly secure, and AI text you send is processed by third parties &mdash; so please <strong>don't share passwords, ID numbers, or other sensitive details in chats</strong>.</p>
 
-        <h2>7. Your choices</h2>
-        <ul>
+    <h2>7. Your choices</h2>
+    <ul>
             <li>Use guest mode to keep everything on your device.</li>
             <li>Delete chats, forget remembered facts, or turn memory off in the menu.</li>
             <li>Deny microphone access or mute/end voice calls; turn the wake word off in Settings.</li>
             <li>To ask for a copy of your saved data or to have your account's cloud data fully deleted, contact us (below).</li>
-        </ul>
+    </ul>
 
-        <h2>8. Children</h2>
-        <p>Knowura isn't directed at children under 13, and we don't knowingly collect their personal information. If you think a child has signed in, contact us and we'll remove the data.</p>
+    <h2>8. Children</h2>
+    <p>Knowura isn't directed at children under 13, and we don't knowingly collect their personal information. If you think a child has signed in, contact us and we'll remove the data.</p>
 
-        <h2>9. Changes</h2>
-        <p>If this policy changes we'll update the date above. Continuing to use Knowura after an update means you accept it.</p>
+    <h2>9. Changes</h2>
+    <p>If this policy changes we'll update the date above. Continuing to use Knowura after an update means you accept it.</p>
 
-        <h2>10. Contact</h2>
-        <p>Questions or data requests? Reach Uday Singh through the project's GitHub repository: <a href="https://github.com/udaydotoffical-svg/Knowura" rel="noopener">github.com/udaydotoffical-svg/Knowura</a>.</p>
+    <h2>10. Contact</h2>
+    <p>Questions or data requests? Reach Uday Singh through the project's GitHub repository: <a href="https://github.com/udaydotoffical-svg/Knowura" rel="noopener">github.com/udaydotoffical-svg/Knowura</a>.</p>
 
-        <div class="legal-note">This page describes how Knowura works today in plain language. It isn't legal advice.</div>
+    <div class="legal-note">This page describes how Knowura works today in plain language. It isn't legal advice.</div>
     </main>
 
     <div class="legal-footer"><a href="/">&larr; Back to Knowura</a> &middot; <a href="/terms">Terms &amp; Conditions</a></div>

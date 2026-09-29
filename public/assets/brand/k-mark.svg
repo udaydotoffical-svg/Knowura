@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><g transform="translate(-168.19 -156.38) scale(2.5939)"><g>
+<g transform="translate(19 19)" fill="#000" stroke="#000" stroke-width="10" stroke-linejoin="miter"><path d="M160 134 L252 68 L252 134 Q206 181.0 160 202 Z"/><path d="M160 210 L252 276 L252 342 Q206 323.0 160 278 Z"/><path d="M90 130L125 70L160 130V342H90Z"/></g>
+<g stroke="#000" stroke-linejoin="miter" stroke-width="10">
+<path d="M160 250 L252 316 L252 342 Q206 323.0 160 278 Z" fill="#eaf6ff"/>
+<g stroke-width="5"><path d="M160 259.2 Q206 296.2 252 324.6" fill="none"/><path d="M160 268.5 Q206 309.4 252 333.2" fill="none"/></g>
+<polygon points="160,243 252,309 252,316 160,250" fill="#0f2a80"/>
+<polygon points="160,210 252,276 252,309 160,243" fill="#22e5ff"/>
+<rect x="160" y="210" width="14" height="68" fill="#0f2a80"/>
+</g><g stroke="#000" stroke-linejoin="miter" stroke-width="10">
+<path d="M160 174 L252 108 L252 134 Q206 181.0 160 202 Z" fill="#eaf6ff"/>
+<g stroke-width="5"><path d="M160 183.2 Q206 154.2 252 116.6" fill="none"/><path d="M160 192.5 Q206 167.4 252 125.2" fill="none"/></g>
+<polygon points="160,167 252,101 252,108 160,174" fill="#0f2a80"/>
+<polygon points="160,134 252,68 252,101 160,167" fill="#22e5ff"/>
+<rect x="160" y="134" width="14" height="68" fill="#0f2a80"/>
+</g>
+<g stroke="#000" stroke-width="10" stroke-linejoin="miter"><polygon points="90,130 125,70 160,130" fill="#eaf6ff"/><rect x="90" y="130" width="70" height="170" fill="#2f6bff"/><rect x="90" y="300" width="70" height="16" fill="#8fa6cc"/><rect x="90" y="316" width="70" height="26" rx="8" fill="#22e5ff"/></g>
+<rect x="92" y="132" width="14" height="166" fill="#5b8dff"/><rect x="144" y="132" width="14" height="166" fill="#0f2a80"/>
+<g stroke="#000" stroke-width="5"><line x1="106" y1="130" x2="106" y2="300"/><line x1="144" y1="130" x2="144" y2="300"/></g>
+<polygon points="111,94 125,70 139,94" fill="#000"/>
+</g></g></svg>

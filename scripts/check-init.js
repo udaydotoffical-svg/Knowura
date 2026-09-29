@@ -36,12 +36,14 @@ const fakeDocument = {
     addEventListener() {},
     createElement() { return makeEl(); },
     documentElement: makeEl(),
+    body: makeEl(),
 };
 
 const errorLog = [];
 const sandbox = {
     console: { ...console, error: (...a) => { errorLog.push(a.map(String).join(' ')); } },
     navigator: { userAgent: 'node-sim', mediaDevices: {}, maxTouchPoints: 0 },
+    location: { search: '', href: 'http://localhost/' },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     fetch(url) {
         const body = String(url).includes('ask-ai') ? { choices: [{ message: { content: 'hi there' } }] } : {};
@@ -78,6 +80,16 @@ try {
     // Performance modes: switching must not throw
     vm.runInContext("setPerfMode('lite'); setPerfMode('balanced'); setPerfMode('full'); setPerfMode('auto'); bumpFpsSampler();", sandbox);
     console.log('PERF MODE SWITCH PASSED');
+
+    // First-visit intro: the API must exist and replay()/reset() must not throw
+    // (init already ran the IIFE once above, against a fake unseen visitor).
+    const introOk = vm.runInContext(
+        "typeof window.knowuraIntro === 'object' && typeof window.knowuraIntro.replay === 'function' && typeof window.knowuraIntro.reset === 'function'",
+        sandbox
+    );
+    vm.runInContext("window.knowuraIntro.replay(); window.knowuraIntro.reset();", sandbox);
+    console.log(introOk ? 'INTRO API PASSED' : 'INTRO API FAILED: knowuraIntro missing replay/reset');
+    if (!introOk) process.exitCode = 1;
 
     // Smoke-test ask(): it swallows its own errors into a "Connection lost"
     // bubble, so a ReferenceError inside it only shows up as a console.error.
