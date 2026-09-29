@@ -1788,6 +1788,7 @@
                 <button class="choice-pill" data-group="haptics" data-value="off" onclick="setHaptics('off')">
                     <span class="choice-row"><span class="choice-dot"></span>Off</span>
                 </button>
+                <button type="button" class="menu-item" style="margin-top:8px;" onclick="testHaptics()"><svg class="icon"><use href="#icon-bolt"/></svg> Test vibration</button>
             </div>
 
             </div>
@@ -2128,19 +2129,47 @@
         heavy: [46], success: [14, 40, 18, 40, 28], error: [52, 60, 52, 60, 90]
     };
     let lastHaptic = 0, lastSendHaptic = 0;
+    // Chrome only allows vibration after the page has had a real "activation" — and for touch that
+    // happens when the finger LIFTS, not on press. In a freshly opened installed app the first
+    // taps therefore had their press-buzz silently dropped. So until the page is activated we hold
+    // the buzz and play it on pointerup instead (pendingHaptic), and we never count a blocked
+    // buzz against the throttle.
+    let pendingHaptic = null;
+    function hapticAllowed() {
+        return !navigator.userActivation || navigator.userActivation.hasBeenActive;
+    }
     function haptic(kind = 'tap') {
-        if (!navigator.vibrate || settings.haptics === 'off') return;
+        if (!navigator.vibrate || settings.haptics === 'off') return false;
+        if (!hapticAllowed()) { if (kind !== 'tick' && kind !== 'key') pendingHaptic = kind; return false; }
         const now = performance.now();
-        if (now - lastHaptic < 28) return; // never stack buzzes into one mush
-        lastHaptic = now;
-        if (kind === 'send') lastSendHaptic = now;
+        if (now - lastHaptic < 28) return false; // never stack buzzes into one mush
         let pattern = HAPTIC_PATTERNS[kind] || HAPTIC_PATTERNS.tap;
         if (settings.haptics === 'max') {
             pattern = pattern.map((ms, i) => (i % 2 === 0 ? Math.round(ms * 2.4) : ms));
             if (kind === 'success') pattern = [...pattern, 30, 45];
             if (kind === 'error') pattern = [...pattern, 40, 90];
         }
-        try { navigator.vibrate(pattern); } catch (e) { /* vibration blocked */ }
+        let ok = false;
+        try { ok = navigator.vibrate(pattern) !== false; } catch (e) { /* vibration blocked */ }
+        if (ok) { lastHaptic = now; if (kind === 'send') lastSendHaptic = now; }
+        return ok;
+    }
+    // the first tap in a fresh session: play the held buzz as soon as the finger lifts (that's what activates the page)
+    window.addEventListener('pointerup', () => {
+        if (!pendingHaptic) return;
+        const k = pendingHaptic; pendingHaptic = null;
+        setTimeout(() => haptic(k), 0);
+    }, { passive: true, capture: true });
+
+    function testHaptics() {
+        if (!('vibrate' in navigator)) {
+            showAlert("This browser doesn't support web vibration. (iPhones don't — Chrome on Android does.)", 'Haptics test');
+            return;
+        }
+        const ok = navigator.vibrate([90, 70, 90, 70, 200]);
+        showAlert(ok
+            ? "A test buzz was sent. If you felt nothing: check your phone's Sound & vibration settings (touch/haptic feedback on, not in battery saver or silent-vibrate-off), and that Chrome isn't restricted."
+            : 'Your browser blocked the vibration. Tap the screen once, then try the test again.', 'Haptics test');
     }
 
     // Buzz on every kind of touch: taps on anything clickable, sliders, toggles, and keys typed in the prompt.
