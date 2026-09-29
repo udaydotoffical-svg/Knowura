@@ -1,54 +1,54 @@
 const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
 const { getPlatformStore } = require('./_store');
 const { sign } = require('./_ownerToken');
+const { json, preflight, rateLimit, tooMany, parseBody } = require('./_util');
+
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 function store() {
     return getPlatformStore("webauthn");
 }
 
 exports.handler = async (event) => {
-    const body = JSON.parse(event.body);
+    if (event.httpMethod === "OPTIONS") return preflight();
+    try {
+        const wait = rateLimit(event, "webauthn-login", 20, 60 * 1000);
+        if (wait) return tooMany(wait);
 
-    const stored = await store().get("current-challenge", { type: "json" });
-    const cred = await store().get("owner-credential", { type: "json" });
+        const body = parseBody(event);
+        if (!body) return json(400, { verified: false, error: "Malformed JSON" });
 
-    if (!stored || !cred) {
-        return { statusCode: 400, body: JSON.stringify({ error: "Missing challenge or credential" }) };
-    }
-
-    const verification = await verifyAuthenticationResponse({
-        response: body,
-        expectedChallenge: stored.challenge,
-        expectedOrigin: process.env.ORIGIN,
-        expectedRPID: process.env.RP_ID,
-        credential: {
-            id: cred.id,
-            publicKey: Buffer.from(cred.publicKey, 'base64'),
-            counter: cred.counter
+        const stored = await store().get("login-challenge", { type: "json" });
+        const cred = await store().get("owner-credential", { type: "json" });
+        if (!stored?.challenge || !cred || Date.now() - (stored.at || 0) > CHALLENGE_TTL_MS) {
+            return json(400, { verified: false, error: "Missing challenge or credential" });
         }
-    });
+        await store().setJSON("login-challenge", { challenge: null, at: 0 }); // one-shot: no replays
 
-    if (verification.verified) {
-        await store().setJSON("owner-credential", {
-            ...cred,
-            counter: verification.authenticationInfo.newCounter
+        const verification = await verifyAuthenticationResponse({
+            response: body,
+            expectedChallenge: stored.challenge,
+            expectedOrigin: process.env.ORIGIN,
+            expectedRPID: process.env.RP_ID,
+            credential: {
+                id: cred.id,
+                publicKey: Buffer.from(cred.publicKey, 'base64'),
+                counter: cred.counter
+            }
         });
-    }
 
-    if (verification.verified && !process.env.OWNER_TOKEN_SECRET) {
-        return {
-            statusCode: 500,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ verified: false, error: "Server is missing OWNER_TOKEN_SECRET — key verified but can't issue a session token." })
-        };
-    }
+        if (verification.verified) {
+            if (!process.env.OWNER_TOKEN_SECRET) {
+                return json(500, { verified: false, error: "Server is missing OWNER_TOKEN_SECRET — key verified but can't issue a session token." });
+            }
+            await store().setJSON("owner-credential", { ...cred, counter: verification.authenticationInfo.newCounter });
+        }
 
-    return {
-        statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        return json(200, {
             verified: verification.verified,
             token: verification.verified ? sign(process.env.OWNER_TOKEN_SECRET) : undefined
-        })
-    };
+        });
+    } catch (error) {
+        return json(401, { verified: false, error: error.message });
+    }
 };

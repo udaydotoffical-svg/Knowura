@@ -2,18 +2,20 @@
 // endpoint and returns the generated audio as base64 so the browser can play
 // it directly from a data: URI. Uses Node's built-in fetch (no dependency).
 
+const { BASE_HEADERS: headers, preflight, rateLimit, tooMany } = require('./_util');
+
+// Groq's Orpheus voices — anything else is ignored so callers can't inject arbitrary values.
+const VOICES = new Set(["autumn", "diana", "hannah", "austin", "daniel", "troy"]);
+
 exports.handler = async (event) => {
-    const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Content-Type": "application/json"
-    };
-    if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
+    if (event.httpMethod === "OPTIONS") return preflight();
 
     try {
-        const { text, voice } = JSON.parse(event.body);
-        if (!text) throw new Error("No text provided");
+        const wait = rateLimit(event, "speak", 30, 60 * 1000);
+        if (wait) return tooMany(wait);
+
+        const { text, voice } = JSON.parse(event.body || "{}");
+        if (!text || typeof text !== "string") throw new Error("No text provided");
 
         // Keep voice replies short (Netlify functions time out around 10s, and a
         // long TTS render risks blowing past that) and cut at a sentence boundary
@@ -38,7 +40,7 @@ exports.handler = async (event) => {
                 body: JSON.stringify({
                     model: "canopylabs/orpheus-v1-english",
                     input: clean,
-                    voice: voice || "autumn",
+                    voice: VOICES.has(voice) ? voice : "autumn",
                     response_format: "wav" // Orpheus only accepts wav, unlike the old playai-tts endpoint
                 }),
                 signal: controller.signal

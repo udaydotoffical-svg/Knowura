@@ -1,6 +1,41 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const { verify: verifyOwnerToken } = require('./_ownerToken');
 const { getChatModels, DEFAULT_MODEL } = require('./_models');
+const { json, preflight, rateLimit, tooMany, parseBody } = require('./_util');
+
+const MAX_MESSAGES = 60;
+const MAX_MESSAGE_CHARS = 16000;
+const MAX_TOTAL_CHARS = 120000;
+const MAX_MEMORY_FACTS = 100;
+const MAX_MEMORY_CHARS = 4000;
+
+// Only plain user/assistant turns are accepted from the client. A client-supplied
+// "system" (or tool) message would sit next to Knowura's own system prompt and could
+// override it, so those roles are dropped, and sizes are capped so one request
+// can't run up the bill.
+function sanitizeMessages(messages) {
+    if (!Array.isArray(messages)) return null;
+    const clean = [];
+    let total = 0;
+    for (const m of messages.slice(-MAX_MESSAGES)) {
+        if (!m || (m.role !== "user" && m.role !== "assistant") || typeof m.content !== "string") continue;
+        const content = m.content.slice(0, MAX_MESSAGE_CHARS);
+        total += content.length;
+        clean.push({ role: m.role, content });
+    }
+    while (total > MAX_TOTAL_CHARS && clean.length > 1) total -= clean.shift().content.length;
+    return clean.length ? clean : null;
+}
+
+function sanitizeMemory(memory) {
+    if (!memory || typeof memory !== "object") return {};
+    return {
+        summary: typeof memory.summary === "string" ? memory.summary.slice(0, MAX_MEMORY_CHARS) : "",
+        facts: Array.isArray(memory.facts)
+            ? memory.facts.filter(f => typeof f === "string").slice(0, MAX_MEMORY_FACTS).map(f => f.slice(0, 300))
+            : []
+    };
+}
 
 async function webSearch(query) {
     try {
@@ -28,26 +63,34 @@ async function webSearch(query) {
     }
 }
 
+// Phrases that clearly ask for fresh/web information. Matched on word boundaries so
+// "discourse" doesn't trip "score", and generic words like "today" or "current"
+// alone no longer send every message to a third-party search API.
+const SEARCH_PATTERNS = [
+    /\bsearch (for|the web|online)\b/, /\blook (it |this |that )?up\b/, /\bgoogle (it|this|that|for)\b/,
+    /\bfind information (on|about)\b/, /\bcan you search\b/,
+    /\blatest\b/, /\bbreaking news\b/, /\b(today'?s|recent|current) (news|headlines|price|weather|score|scores)\b/,
+    /\bnews (about|on|today)\b/, /\bwhat is the price\b/, /\bright now\b/, /\bweather (in|for|today)\b/,
+    /\b(live|final) score\b/, /\bwho (won|is winning)\b/
+];
+
 function needsSearch(text) {
-    const explicitTriggers = ["search for", "search the web", "look up", "google", "find information on", "can you search"];
-    const contextTriggers = [
-        "latest", "current", "today", "recent", "news", "who is", "what is the price",
-        "when did", "how much does", "right now", "this year", "2025", "2026", "score", "weather"
-    ];
-    const lower = text.toLowerCase();
-    return explicitTriggers.some(t => lower.includes(t)) || contextTriggers.some(t => lower.includes(t));
+    const lower = String(text || "").toLowerCase();
+    return SEARCH_PATTERNS.some(re => re.test(lower));
 }
 
 exports.handler = async (event, context) => {
-    const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Content-Type": "application/json"
-    };
-    if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
+    if (event.httpMethod === "OPTIONS") return preflight();
     try {
-        const { messages, memory, ownerToken, ultraThink, model, effort } = JSON.parse(event.body);
+        const wait = rateLimit(event, "ask-ai", 30, 60 * 1000);
+        if (wait) return tooMany(wait);
+
+        const body = parseBody(event);
+        if (!body) return json(400, { error: "Malformed JSON" });
+        const { ownerToken, ultraThink, model, effort } = body;
+        const messages = sanitizeMessages(body.messages);
+        if (!messages) return json(400, { error: "No valid messages provided" });
+        const memory = sanitizeMemory(body.memory);
         // Owner mode requires a valid server-issued token (from WebAuthn or the
         // password fallback) — a raw client-supplied boolean is not real auth.
         const isOwner = verifyOwnerToken(ownerToken, process.env.OWNER_TOKEN_SECRET);
@@ -116,9 +159,15 @@ exports.handler = async (event, context) => {
             },
             body: JSON.stringify(payload)
         });
-        const data = await response.json();
-        return { statusCode: 200, headers, body: JSON.stringify({ ...data, ownerMode: isOwner, ultraThink: isUltra, model: payload.model }) };
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            // Don't dress an upstream failure up as a success — the client checks res.ok.
+            return json(response.status === 429 ? 429 : 502, { error: data?.error?.message || `Model provider returned ${response.status}` });
+        }
+        return json(200, { ...data, ownerMode: isOwner, ultraThink: isUltra, model: payload.model });
     } catch (error) {
-        return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+        return json(500, { error: error.message });
     }
 };
+
+exports._test = { sanitizeMessages, sanitizeMemory, needsSearch };

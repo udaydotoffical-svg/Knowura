@@ -26,8 +26,9 @@ owner — unlock an uncensored "owner mode" with a hardware security key.
   only, via a FIDO2/WebAuthn hardware security key **or** a password (for
   when a key isn't handy). Either path returns a short-lived, server-signed
   token (`OWNER_TOKEN_SECRET`) that `ask-ai.js` actually verifies — the
-  client can't just claim to be the owner. Verification state is in-memory
-  only and resets on refresh
+  client can't just claim to be the owner. The token lasts 4 hours and is
+  kept in `localStorage` so a refresh stays unlocked — tick "This isn't my PC"
+  in the unlock modal to keep it in memory for that tab only
 - **Lofi music player** — a Spotify-inspired panel (now-playing card, seek
   bar, prev/play/next, volume, track queue) that auto-discovers every mp3 in
   `public/assets/audio/`. Drop a new track in that folder and it just shows
@@ -185,6 +186,8 @@ local `.env` for `netlify dev`:
 | `OWNER_PASSWORD`      | Password fallback for unlocking Owner Mode without a security key |
 | `OWNER_TOKEN_SECRET`  | Signs the short-lived token both unlock paths issue — pick a long random string. **Owner mode silently fails closed without this set**, on both the security-key and password paths |
 | `GOOGLE_CLIENT_ID`    | Server-side copy of the OAuth client ID (same value as the `data-client_id` hardcoded in `index.html`) — used by `google-signin-verify.js` to check a credential's `aud` before trusting it |
+| `WEBAUTHN_SETUP_SECRET` | Only needed for first-time security-key registration: the caller must send it as the `X-Setup-Secret` header. Unset = registration is disabled. Once a key exists, replacing it needs a valid owner token (`X-Owner-Token`) instead. Remove it after setup |
+| `KNOWURA_TOKEN_REVOKE_BEFORE` | Optional kill switch: a millisecond timestamp — every user session token issued before it stops working (e.g. `Date.now()` in a console) |
 | `KNOWURA_USER_TOKEN_SECRET` | Signs the session token issued after a verified Google sign-in (`_userToken.js`), used by `chat-load.js`/`chat-save.js` to trust which account's blob to read/write. Separate secret from `OWNER_TOKEN_SECRET` — different trust domain, don't reuse |
 
 Live Voice mode also needs the site to be served over **HTTPS** (or
@@ -224,15 +227,29 @@ in — pick one or set up both:
 
 - **Security key**: the modal's "Use Security Key" button only *logs in*
   with an already-registered key — there's no UI for registration. To
-  register one, call `webauthn-register-options` then
-  `webauthn-register-verify` directly (e.g. via a small script or `curl`
-  sequence using `@simplewebauthn/browser`'s `startRegistration`) once,
-  from a trusted device.
+  register one, set `WEBAUTHN_SETUP_SECRET`, then call
+  `webauthn-register-options` and `webauthn-register-verify` directly with an
+  `X-Setup-Secret: <that value>` header (e.g. via a small script using
+  `@simplewebauthn/browser`'s `startRegistration`) once, from a trusted
+  device, and remove the env var afterwards. Registration endpoints reject
+  everyone else, so nobody can swap in their own key.
 - **Password**: just set the `OWNER_PASSWORD` env var (and
   `OWNER_TOKEN_SECRET`, required either way) — no registration step.
 
 Both paths verify server-side in `ask-ai.js` via a signed token; there's no
 way to unlock owner mode by sending a raw flag from the browser.
+
+### Abuse protection
+
+`ask-ai`, `transcribe`, `speak`, `models`, sign-in, and the owner-password and
+passkey endpoints are rate-limited per client IP (in-memory per function
+instance — it slows one client down but isn't a hard global cap; put a WAF or
+platform rate limit in front if you need one). Chat requests drop any
+client-supplied `system` messages and cap message count/size, and audio uploads
+are size-capped. Chat replies are sanitized with DOMPurify before rendering,
+and the front-end libraries (marked, DOMPurify, SimpleWebAuthn) are
+self-hosted in `public/assets/vendor/` rather than loaded from a CDN.
+Run the tests with `npm test`.
 
 ### 4. Run locally
 

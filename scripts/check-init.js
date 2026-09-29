@@ -41,7 +41,9 @@ const fakeDocument = {
 
 const errorLog = [];
 const sandbox = {
-    console: { ...console, error: (...a) => { errorLog.push(a.map(String).join(' ')); } },
+    // warn/info are expected noise from the stubs (no real orb engine, canned fetch reply) — hidden
+    // so a genuine failure stands out; console.error still fails the check.
+    console: { ...console, warn() {}, info() {}, error: (...a) => { errorLog.push(a.map(String).join(' ')); } },
     navigator: { userAgent: 'node-sim', mediaDevices: {}, maxTouchPoints: 0 },
     location: { search: '', href: 'http://localhost/' },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
@@ -84,11 +86,11 @@ try {
     // First-visit intro: the API must exist and replay()/reset() must not throw
     // (init already ran the IIFE once above, against a fake unseen visitor).
     const introOk = vm.runInContext(
-        "typeof window.knowuraIntro === 'object' && typeof window.knowuraIntro.replay === 'function' && typeof window.knowuraIntro.reset === 'function'",
+        "typeof window.knowuraIntro === 'object' && typeof window.knowuraIntro.replay === 'function' && typeof window.knowuraIntro.maybeStart === 'function' && typeof window.knowuraIntro.reset === 'function'",
         sandbox
     );
     vm.runInContext("window.knowuraIntro.replay(); window.knowuraIntro.reset();", sandbox);
-    console.log(introOk ? 'INTRO API PASSED' : 'INTRO API FAILED: knowuraIntro missing replay/reset');
+    console.log(introOk ? 'INTRO API PASSED' : 'INTRO API FAILED: knowuraIntro missing replay/maybeStart/reset');
     if (!introOk) process.exitCode = 1;
 
     // Smoke-test ask(): it swallows its own errors into a "Connection lost"

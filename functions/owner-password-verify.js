@@ -5,6 +5,7 @@
 
 const crypto = require('crypto');
 const { sign } = require('./_ownerToken');
+const { rateLimit, tooMany } = require('./_util');
 
 exports.handler = async (event) => {
     const headers = {
@@ -16,6 +17,10 @@ exports.handler = async (event) => {
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
 
     try {
+        // Brute-force guard: 5 guesses a minute per client.
+        const wait = rateLimit(event, "owner-password", 5, 60 * 1000);
+        if (wait) return tooMany(wait);
+
         const { password } = JSON.parse(event.body || "{}");
         const expected = process.env.OWNER_PASSWORD;
         const secret = process.env.OWNER_TOKEN_SECRET;

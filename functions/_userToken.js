@@ -32,6 +32,12 @@ function verify(token, secret) {
     if (!crypto.timingSafeEqual(sigBuf, expectedBuf)) return null;
 
     if (Date.now() >= Number(expStr)) return null;
+
+    // Optional kill switch: set KNOWURA_TOKEN_REVOKE_BEFORE to a ms timestamp and
+    // every token issued before it stops working (issued-at = exp - TTL).
+    const revokeBefore = Number(process.env.KNOWURA_TOKEN_REVOKE_BEFORE || 0);
+    if (revokeBefore && Number(expStr) - TOKEN_TTL_MS < revokeBefore) return null;
+
     return { sub: decodeURIComponent(subEnc) };
 }
 
