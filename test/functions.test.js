@@ -40,11 +40,13 @@ test('ask-ai drops client system messages and caps sizes', () => {
     assert.equal(ask.sanitizeMessages('nope'), null);
 });
 
-test('needsSearch uses word boundaries and ignores generic words', () => {
+test('needsSearch catches time-sensitive asks, on word boundaries', () => {
     assert.equal(ask.needsSearch('what is the latest iPhone?'), true);
     assert.equal(ask.needsSearch('search for cheap flights'), true);
+    assert.equal(ask.needsSearch('who is the current prime minister of India'), true);
+    assert.equal(ask.needsSearch('what happened today in tech news'), true);
     assert.equal(ask.needsSearch('explain the discourse on method'), false);
-    assert.equal(ask.needsSearch('help me with my homework today'), false);
+    assert.equal(ask.needsSearch('explain how photosynthesis works'), false);
 });
 
 test('rate limiter blocks after the max and reports a wait', () => {
