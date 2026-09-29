@@ -481,6 +481,31 @@
             font-size: 0.9em;
         }
 
+        /* ─── SKELETON LOADERS (reply placeholder + cloud chat load) ─── */
+        .skel-lines { display: flex; flex-direction: column; gap: 9px; padding: 12px 2px 4px; min-width: min(280px, 70vw); }
+        .skel-lines i, .skel-bar {
+            display: block; height: 12px; border-radius: 7px; width: 100%;
+            background: linear-gradient(100deg, rgba(47,107,255,0.14) 20%, rgba(34,229,255,0.38) 45%, rgba(234,246,255,0.5) 50%, rgba(34,229,255,0.38) 55%, rgba(47,107,255,0.14) 80%);
+            background-size: 260% 100%;
+            animation: skelSweep 1.5s ease-in-out infinite;
+        }
+        .skel-lines i:nth-child(1) { width: 92%; }
+        .skel-lines i:nth-child(2) { width: 100%; animation-delay: 0.12s; }
+        .skel-lines i:nth-child(3) { width: 64%; animation-delay: 0.24s; }
+        @keyframes skelSweep { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+        .skel-chat-list { display: flex; flex-direction: column; gap: 10px; padding: 6px 4px; }
+        .skel-chat-list .skel-bar { height: 34px; border-radius: 10px; }
+        .skel-chat-list .skel-bar:nth-child(2) { animation-delay: 0.1s; width: 88%; }
+        .skel-chat-list .skel-bar:nth-child(3) { animation-delay: 0.2s; width: 94%; }
+        .skel-chat-list .skel-bar:nth-child(4) { animation-delay: 0.3s; width: 76%; }
+        .skel-chat-main { display: flex; flex-direction: column; gap: 18px; padding: 24px 6px; max-width: 760px; margin: 0 auto; width: 100%; }
+        .skel-chat-main .skel-msg { border: 2.5px solid var(--ink); border-radius: 16px; padding: 14px; background: var(--panel); }
+        .skel-chat-main .skel-msg.me { align-self: flex-end; width: 46%; }
+        .skel-chat-main .skel-msg.ai { width: 78%; }
+        @media (prefers-reduced-motion: reduce) {
+            .skel-lines i, .skel-bar { animation: none; background: rgba(47,107,255,0.22); }
+        }
+
         .typing { display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         .typing .dots { display: inline-flex; gap: 3px; }
         .typing .dots i {
@@ -2179,7 +2204,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function thinkRowHTML({ label = 'Thinking', state = 'composing', elapsedDs = 0, ultra = false } = {}) {
         return `<div class="reasoning live"><div class="reasoning-sum" role="status"><span class="think-row">${ultra ? ultraBoltHTML() : ''}<canvas class="think-orb" data-orb="${state}" aria-hidden="true"></canvas>`
-            + `<span class="think-label">${escapeHtml(label)}</span><span class="think-timer">${fmtThink(elapsedDs)}</span></span>${REASONING_CHEV}</div></div>`;
+            + `<span class="think-label">${escapeHtml(label)}</span><span class="think-timer">${fmtThink(elapsedDs)}</span></span>${REASONING_CHEV}</div></div>`
+            + `<div class="skel-lines" aria-hidden="true"><i></i><i></i><i></i></div>`;
     }
 
     // Finished row saved into the chat history (plain markup — no live canvas).
@@ -2763,7 +2789,16 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     });
 
+    // Placeholder shimmer while a signed-in user's saved chats come down from the cloud.
+    function showChatSkeleton() {
+        const list = document.getElementById('chatList');
+        if (list) list.innerHTML = '<div class="skel-chat-list" aria-hidden="true"><i class="skel-bar"></i><i class="skel-bar"></i><i class="skel-bar"></i><i class="skel-bar"></i></div>';
+        const box = document.getElementById('chat-box');
+        if (box) box.innerHTML = '<div class="skel-chat-main" aria-hidden="true"><div class="skel-msg me"><div class="skel-lines"><i></i></div></div><div class="skel-msg ai"><div class="skel-lines"><i></i><i></i><i></i></div></div></div>';
+    }
+
     async function loadCloudChats() {
+        showChatSkeleton();
         try {
             const res = await fetch("/.netlify/functions/chat-load", {
                 method: "POST",
