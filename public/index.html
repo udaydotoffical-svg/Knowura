@@ -29,7 +29,11 @@
     <meta name="twitter:image" content="https://knowura.vercel.app/og-image.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" rel="stylesheet">
+    <!-- Non-render-blocking font load: fetch it as a low-priority background request (media="print"
+         only matches print-preview/actual printing, so no browser applies it on load), then swap it
+         to "all" once it lands. First paint uses the system-font fallback instead of waiting on this. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap"></noscript>
     <script>
         // Performance tier (full / balanced / lite) is decided before first paint so a weak
         // device never renders the heavy version. Auto = by memory/cores, stepped down by the
@@ -56,8 +60,16 @@
                     }
                 } catch (e) { /* unknown GPU: don't guess */ }
                 window.__knGpu = gpu;
+                // Firefox's backdrop-filter compositing is well-known to be much slower than
+                // Chromium's regardless of hardware — and Firefox doesn't expose deviceMemory and
+                // masks the WebGL renderer string, so the checks above can't see the real GPU there
+                // either. Never let Auto pick Full on Firefox.
+                var isFirefox = /firefox/i.test(navigator.userAgent);
+                window.__knFirefox = isFirefox;
                 var tier = mode;
-                if (mode === 'auto') tier = (mem <= 4 || cores <= 2 || auto === 'lite' || gpu === 'software') ? 'lite' : ((mem <= 8 && cores <= 4) || auto === 'balanced' || gpu === 'igpu') ? 'balanced' : 'full';
+                if (mode === 'auto') {
+                    tier = (mem <= 4 || cores <= 2 || auto === 'lite' || gpu === 'software') ? 'lite' : ((mem <= 8 && cores <= 4) || auto === 'balanced' || gpu === 'igpu' || isFirefox) ? 'balanced' : 'full';
+                }
                 if (tier === 'lite' || tier === 'balanced') document.documentElement.classList.add(tier);
             } catch (e) { /* storage blocked: stay on the full look */ }
         })();
@@ -1261,7 +1273,7 @@
 
     <div id="startup">
     <div class="glass-card">
-            <img src="assets/images/logo.png" class="main-logo">
+            <img src="assets/brand/k-mark.svg" class="main-logo">
             <div class="brand-title">Knowura AI</div>
             <div class="brand-sub" style="margin-bottom: 22px;">Engineered by Uday Singh</div>
             <div id="g_id_onload" data-client_id="21362482851-mj9pla405ejg3aqcvu8uve693u2ibjp8.apps.googleusercontent.com" data-callback="onSignIn"></div>
@@ -1292,7 +1304,7 @@
     <aside id="sidebar" class="sidebar">
             <div class="sidebar-top">
                 <div class="sidebar-brand">
-                    <img src="assets/images/logo.png" class="sidebar-logo">
+                    <img src="assets/brand/k-mark.svg" class="sidebar-logo">
                     <span class="brand-name sidebar-brand-name">Knowura</span>
                 </div>
                 <button class="new-chat-btn" onclick="newChat()">
@@ -2536,7 +2548,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const box = document.getElementById('chat-box');
         box.innerHTML = `
             <div class="empty-state">
-                <img src="assets/images/logo.png" class="empty-logo" alt="Knowura">
+                <img src="assets/brand/k-mark.svg" class="empty-logo" alt="Knowura">
                 <h1 class="empty-greeting">Hi, <b>${escapeHtml(currentUser)}</b></h1>
                 <p class="empty-sub">What do you want to know?</p>
                 <div class="empty-suggestions">
@@ -3445,8 +3457,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (settings.perfMode !== 'auto') return settings.perfMode;
         const mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8, auto = storedAutoPerf();
         const gpu = window.__knGpu || 'other';
+        const isFirefox = window.__knFirefox ?? /firefox/i.test(navigator.userAgent);
         if (mem <= 4 || cores <= 2 || auto === 'lite' || gpu === 'software') return 'lite';
-        if ((mem <= 8 && cores <= 4) || auto === 'balanced' || gpu === 'igpu') return 'balanced';
+        if ((mem <= 8 && cores <= 4) || auto === 'balanced' || gpu === 'igpu' || isFirefox) return 'balanced';
         return 'full';
     }
 
