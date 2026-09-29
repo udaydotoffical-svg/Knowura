@@ -75,8 +75,9 @@
         })();
     </script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
-    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js" defer></script>
+    <script src="assets/vendor/marked/marked.umd.js" defer></script>
+    <script src="assets/vendor/dompurify/purify.min.js" defer></script>
+    <script src="assets/vendor/simplewebauthn/index.umd.min.js" defer></script>
     <style>
         :root {
             --dark: #05070f;
@@ -221,10 +222,7 @@
 
         .sidebar-top { display: flex; flex-direction: column; gap: 10px; padding: 16px 14px 10px; flex-shrink: 0; }
         .sidebar-brand { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
-        .sidebar-logo { height: 28px; display: block; }
-        .sidebar-brand .brand-name {
-            max-width: none; opacity: 1; transform: none; font-size: 14px;
-        }
+        .sidebar-logo { height: 34px; width: auto; display: block; }
         .new-chat-btn {
             flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
             background: var(--blue); color: #fff; border: 2.5px solid var(--ink); border-radius: 12px;
@@ -1286,7 +1284,7 @@
                 </span>
                 Stay signed in on this device
             </label>
-            <div class="legal-line">By continuing you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</div>
+            <div class="legal-line">By continuing you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/eula" target="_blank" rel="noopener">EULA</a>.</div>
     </div>
     </div>
 
@@ -1304,8 +1302,7 @@
     <aside id="sidebar" class="sidebar">
             <div class="sidebar-top">
                 <div class="sidebar-brand">
-                    <img src="assets/brand/logo.png" class="sidebar-logo">
-                    <span class="brand-name sidebar-brand-name">Knowura</span>
+                    <img src="assets/brand/k-mark.svg" class="sidebar-logo" alt="Knowura">
                 </div>
                 <button class="new-chat-btn" onclick="newChat()">
                     <svg class="icon"><use href="#icon-plus"/></svg> New Chat
@@ -2215,9 +2212,17 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         loop();
     }
 
-    // marked output with each table wrapped in a horizontal scroll container.
+    // marked output (sanitized — model replies and web-search text are untrusted, and marked
+    // passes raw HTML through) with each table wrapped in a horizontal scroll container.
     function renderMarkdown(md) {
-        return marked.parse(md).replace(/<table>/g, '<div class="table-scroll"><table>').replace(/<\/table>/g, '</table></div>');
+        const html = marked.parse(md);
+        const safe = window.DOMPurify ? DOMPurify.sanitize(html) : escapeHtmlFallback(md);
+        return safe.replace(/<table>/g, '<div class="table-scroll"><table>').replace(/<\/table>/g, '</table></div>');
+    }
+    function escapeHtmlFallback(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return '<p>' + d.innerHTML.replace(/\n/g, '<br>') + '</p>';
     }
 
     // ─── MAIN ASK FUNCTION ────────────────────────────────────────────────────
@@ -2670,15 +2675,31 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // personal-scale app, no per-chat granularity or locking needed.
 
     let cloudSaveTimer = null;
+    // updatedAt of the cloud doc this tab last loaded/saved — sent with every save so
+    // the server can tell if another device wrote in between (409 → merge, retry).
+    let cloudBaseUpdatedAt = 0;
+    // If the initial load failed, chatStore is empty placeholder state — never let a
+    // save overwrite the real cloud copy with it.
+    let cloudLoadFailed = false;
 
     function scheduleCloudSave() {
-        if (!isCloudUser()) return;
+        if (!isCloudUser() || cloudLoadFailed) return;
         clearTimeout(cloudSaveTimer);
         cloudSaveTimer = setTimeout(persistCloudStore, 1500);
     }
 
-    async function persistCloudStore() {
-        if (!isCloudUser()) return;
+    // Union by chat id; when both sides have the chat, the newer updatedAt wins.
+    function mergeChats(local, remote) {
+        const byId = new Map();
+        for (const c of [...(remote || []), ...(local || [])]) {
+            const prev = byId.get(c.id);
+            if (!prev || (c.updatedAt || 0) >= (prev.updatedAt || 0)) byId.set(c.id, c);
+        }
+        return [...byId.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    }
+
+    async function persistCloudStore(retry = true) {
+        if (!isCloudUser() || cloudLoadFailed) return;
         const doc = {
             version: 1,
             profile: userProfile || { sub: userSub },
@@ -2688,11 +2709,23 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             updatedAt: Date.now()
         };
         try {
-            await fetch("/.netlify/functions/chat-save", {
+            const res = await fetch("/.netlify/functions/chat-save", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: userToken, doc })
+                body: JSON.stringify({ token: userToken, doc, baseUpdatedAt: cloudBaseUpdatedAt })
             });
+            if (res.status === 409 && retry) {
+                const { doc: remote } = await res.json();
+                if (remote) {
+                    chatStore.chats = mergeChats(chatStore.chats, remote.chats);
+                    if (!chatStore.chats.some(c => c.id === chatStore.activeChatId)) chatStore.activeChatId = chatStore.chats[0]?.id || null;
+                    if (remote.memory && !cloudMemory.summary && !(cloudMemory.facts || []).length) cloudMemory = remote.memory;
+                    cloudBaseUpdatedAt = remote.updatedAt || 0;
+                    renderChatList();
+                    return persistCloudStore(false);
+                }
+            }
+            if (res.ok) cloudBaseUpdatedAt = (await res.json()).updatedAt || cloudBaseUpdatedAt;
         } catch (e) {
             console.warn('Cloud chat save failed silently:', e);
         }
@@ -2715,7 +2748,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token: userToken })
             });
+            if (!res.ok) throw new Error('chat-load ' + res.status); // e.g. expired session — never treat as "new account"
             const data = await res.json();
+            cloudLoadFailed = false;
+            cloudBaseUpdatedAt = data.doc?.updatedAt || 0;
             if (data.found && data.doc) {
                 chatStore = {
                     chats: Array.isArray(data.doc.chats) ? data.doc.chats : [],
@@ -2742,7 +2778,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 await persistCloudStore();
             }
         } catch (e) {
-            showAlert("Couldn't load your saved chats from the cloud. Starting a local session for now — sign out and back in to retry.", "Cloud sync failed");
+            showAlert("Couldn't load your saved chats from the cloud. Syncing is paused so your saved chats aren't overwritten — sign out and back in to retry.", "Cloud sync failed");
+            cloudLoadFailed = true;
             chatStore = { chats: [], activeChatId: null };
         }
         landOnChat();
@@ -2841,6 +2878,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 landOnChat();
                 if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
             }
+            window.knowuraIntro?.maybeStart(); // first-ever login only; no-op once seen
         }, 800);
     }
 
@@ -3893,8 +3931,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             posterTall: '/assets/video/poster-tall.jpg',
             key: 'knowura_intro_seen_v1'
         };
-        let box, vid, sound, seen = false;
-        try { seen = localStorage.getItem(CFG.key) === '1'; } catch (e) { /* storage blocked: treat as unseen */ }
+        let box, vid, sound;
         const force = /[?&]intro=1\b/.test(location.search);
         const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -3954,12 +3991,20 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
 
         function start() { if (!box) build(); }
+        // Called right after a fresh login (enterApp) — never on plain page load, so the
+        // video doesn't cover the startup/login screen. Returning visitors who resume a
+        // saved session skip it too, since they never go through enterApp().
+        function maybeStart() {
+            if (seen_now() || reduce) { if (reduce && !seen_now()) mark(); return; }
+            start();
+        }
+        function seen_now() { try { return localStorage.getItem(CFG.key) === '1'; } catch (e) { return false; } }
         window.knowuraIntro = {
             replay: start,
+            maybeStart,
             reset() { try { localStorage.removeItem(CFG.key); } catch (e) { /* storage blocked */ } }
         };
-        if ((force || !seen) && !reduce) start();
-        else if (reduce && !seen) mark(); // reduced motion: never autoplay, but don't show it again either
+        if (force && !reduce) start(); // ?intro=1 still previews it on load for testing
     })();
 </script>
 </body>

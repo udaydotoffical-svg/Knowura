@@ -3,11 +3,8 @@
 // in this folder can be reused verbatim on both platforms with zero
 // duplicated logic. Not itself a route (no exports.handler) — see api/*.js.
 //
-// Storage (@netlify/blobs, used by the webauthn-*/chat-* functions) needs no
-// equivalent swap here: those already run in "manual mode" (getStore with an
-// explicit siteID + token), which just makes authenticated HTTPS calls to
-// Netlify's Blobs API — it works the same from a Vercel function as it does
-// from a Netlify one, and both deployments end up sharing the same data.
+// Storage is handled separately by _store.js, which picks Netlify Blobs or a
+// private Vercel Blob store at runtime — the two deployments do NOT share data.
 
 function toVercelHandler(netlifyHandler) {
     return async (req, res) => {

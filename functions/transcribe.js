@@ -2,18 +2,22 @@
 // recorded in the browser (MediaRecorder) and forwards it to Groq's Whisper
 // endpoint. Uses Node's built-in fetch/FormData/Blob (no extra dependency).
 
+const { BASE_HEADERS: headers, preflight, rateLimit, tooMany } = require('./_util');
+
+const MAX_AUDIO_B64_CHARS = 5 * 1024 * 1024; // ~3.7MB of audio — well over a spoken turn
+
 exports.handler = async (event) => {
-    const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Content-Type": "application/json"
-    };
-    if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
+    if (event.httpMethod === "OPTIONS") return preflight();
 
     try {
-        const { audio, mimeType } = JSON.parse(event.body);
-        if (!audio) throw new Error("No audio provided");
+        const wait = rateLimit(event, "transcribe", 20, 60 * 1000);
+        if (wait) return tooMany(wait);
+
+        const { audio, mimeType } = JSON.parse(event.body || "{}");
+        if (!audio || typeof audio !== "string") throw new Error("No audio provided");
+        if (audio.length > MAX_AUDIO_B64_CHARS) {
+            return { statusCode: 413, headers, body: JSON.stringify({ error: "Audio clip is too large" }) };
+        }
 
         const buffer = Buffer.from(audio, "base64");
         const blob = new Blob([buffer], { type: mimeType || "audio/webm" });

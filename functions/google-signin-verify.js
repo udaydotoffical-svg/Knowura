@@ -10,6 +10,7 @@
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const { sign } = require('./_userToken');
+const { rateLimit, tooMany } = require('./_util');
 
 exports.handler = async (event) => {
     const headers = {
@@ -21,6 +22,9 @@ exports.handler = async (event) => {
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
 
     try {
+        const wait = rateLimit(event, "google-signin", 20, 60 * 1000);
+        if (wait) return tooMany(wait);
+
         const { credential } = JSON.parse(event.body || "{}");
         const clientId = process.env.GOOGLE_CLIENT_ID;
         const secret = process.env.KNOWURA_USER_TOKEN_SECRET;
@@ -46,6 +50,12 @@ exports.handler = async (event) => {
         }
         if (!info.sub) {
             return { statusCode: 401, headers, body: JSON.stringify({ verified: false, error: "Credential missing subject" }) };
+        }
+        if (info.iss && !["accounts.google.com", "https://accounts.google.com"].includes(info.iss)) {
+            return { statusCode: 401, headers, body: JSON.stringify({ verified: false, error: "Credential has an unexpected issuer" }) };
+        }
+        if (info.email && String(info.email_verified) !== "true") {
+            return { statusCode: 401, headers, body: JSON.stringify({ verified: false, error: "Google account email isn't verified" }) };
         }
         // tokeninfo already rejects expired tokens, but double-check defensively.
         if (info.exp && Date.now() >= Number(info.exp) * 1000) {
