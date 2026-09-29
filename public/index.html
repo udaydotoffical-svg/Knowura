@@ -222,7 +222,13 @@
 
         .sidebar-top { display: flex; flex-direction: column; gap: 10px; padding: 16px 14px 10px; flex-shrink: 0; }
         .sidebar-brand { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
-        .sidebar-logo { height: 34px; width: auto; display: block; }
+        .sidebar-logo { height: 28px; width: auto; display: block; }
+        .sidebar-logo-btn {
+            background: none; border: 0; padding: 2px; margin: 0; border-radius: 8px; cursor: pointer;
+            display: inline-flex; transition: transform 0.12s ease;
+        }
+        .sidebar-logo-btn:hover { transform: scale(1.06); }
+        .sidebar-logo-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         .new-chat-btn {
             flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
             background: var(--blue); color: #fff; border: 2.5px solid var(--ink); border-radius: 12px;
@@ -1302,7 +1308,9 @@
     <aside id="sidebar" class="sidebar">
             <div class="sidebar-top">
                 <div class="sidebar-brand">
-                    <img src="assets/brand/k-mark.svg" class="sidebar-logo" alt="Knowura">
+                    <button type="button" class="sidebar-logo-btn" onclick="newChat()" aria-label="Knowura — start a new chat" title="New chat">
+                        <img src="assets/brand/logo.png" class="sidebar-logo" alt="">
+                    </button>
                 </div>
                 <button class="new-chat-btn" onclick="newChat()">
                     <svg class="icon"><use href="#icon-plus"/></svg> New Chat
@@ -2508,11 +2516,18 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         return chat;
     }
 
+    // Goes to the empty landing screen. Deliberately does NOT create a chat — that
+    // only happens when the first message is sent (saveActiveChat's lazy createChat),
+    // so tapping the logo / New Chat repeatedly never piles up blank chats.
     function newChat() {
-        createChat();
+        // sweep out any blank chats left over from older versions that eagerly created them
+        chatStore.chats = chatStore.chats.filter(c => c.messages && c.messages.length);
+        chatStore.activeChatId = null;
+        saveChatStore();
         renderActiveChat();
         renderChatList();
         closeSidebarMobile();
+        document.getElementById('userInput')?.focus({ preventScroll: true });
     }
 
     function switchChat(id) {
