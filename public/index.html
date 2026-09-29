@@ -127,6 +127,7 @@
 })();
 </script>
 <noscript><style>#kw-boot { display: none; }</style><p style="color:#eaf6ff;text-align:center;padding:40px;font-family:sans-serif">Knowura needs JavaScript turned on to work.</p></noscript>
+<a class="skip-link" href="#userInput">Skip to message box</a>
 <!-- Main stylesheet lives in the body, after the instant loader, so the loader can paint before this big block finishes downloading. -->
 <style>
         :root {
@@ -1115,6 +1116,16 @@
         .menu-status-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
         .menu-status-row:empty { display: none; }
 
+        a.menu-link { text-decoration: none; }
+        .skip-link {
+            position: fixed; left: 12px; top: -64px; z-index: 2147483001; padding: 10px 16px; border-radius: 10px;
+            background: var(--cyan); color: #001018; font-weight: 700; font-size: 13px; text-decoration: none;
+            border: 2.5px solid var(--ink); transition: top 0.15s ease;
+        }
+        .skip-link:focus { top: 12px; }
+        /* Visible keyboard focus everywhere (mouse/touch users don't see it) */
+        :focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+        .pb-input:focus-visible, textarea:focus-visible, input:focus-visible { outline-offset: 0; }
         .menu-item {
             display: flex; align-items: center; gap: 10px; width: 100%;
             background: rgba(255,255,255,0.03); border: 2px solid var(--ink); border-radius: 10px;
@@ -1350,7 +1361,7 @@
 
     <div id="startup">
     <div class="glass-card">
-            <img src="assets/brand/logo.png" class="main-logo">
+            <img src="assets/brand/logo.png" class="main-logo" alt="Knowura">
             <div class="brand-title">Knowura AI</div>
             <div class="brand-sub" style="margin-bottom: 22px;">Engineered by Uday Singh</div>
             <div id="g_id_onload" data-client_id="21362482851-mj9pla405ejg3aqcvu8uve693u2ibjp8.apps.googleusercontent.com" data-callback="onSignIn"></div>
@@ -1420,7 +1431,7 @@
             <button id="sidebarToggleBtn" class="btn-ui icon-only chat-sidebar-toggle" onclick="toggleSidebar()" title="Toggle chat list">
                 <svg class="icon"><use href="#icon-sidebar"/></svg>
             </button>
-            <div id="chat-box"></div>
+            <div id="chat-box" role="log" aria-live="polite" aria-label="Conversation"></div>
             <div class="input-area">
                 <div class="prompt-bar" id="promptBar">
                     <div class="pb-menu" id="pbMenu" role="listbox" hidden></div>
@@ -1488,7 +1499,7 @@
             </div>
             <div class="progress-row">
                 <span id="curTime" class="time">0:00</span>
-                <input type="range" id="seekBar" class="seek-bar" min="0" max="1000" value="0">
+                <input type="range" id="seekBar" aria-label="Seek track" class="seek-bar" min="0" max="1000" value="0">
                 <span id="durTime" class="time">0:00</span>
             </div>
             <div class="transport">
@@ -1497,7 +1508,7 @@
                 <button class="transport-btn" onclick="nextTrack()" title="Next track"><svg class="icon"><use href="#icon-skip-forward"/></svg></button>
                 <div class="volume-row" title="Volume">
                     <span><svg class="icon"><use href="#icon-volume"/></svg></span>
-                    <input type="range" id="volumeBar" class="seek-bar volume" min="0" max="100" value="70">
+                    <input type="range" id="volumeBar" aria-label="Volume" class="seek-bar volume" min="0" max="100" value="70">
                 </div>
             </div>
             <div id="trackList" class="track-list"></div>
@@ -1516,7 +1527,7 @@
             <div class="settings-section">
                 <div class="settings-label">Glass Opacity</div>
                 <div class="glass-slider-row">
-                    <input type="range" id="glassOpacitySlider" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
+                    <input type="range" id="glassOpacitySlider" aria-label="Glass opacity" class="glass-slider" min="10" max="90" value="40" oninput="setGlassOpacity(this.value)">
                     <span id="glassOpacityValue" class="glass-slider-value">40%</span>
                 </div>
             </div>
@@ -1564,6 +1575,17 @@
             </div>
 
             <div class="settings-section">
+                <div class="settings-label">Typing Haptics</div>
+                <button class="choice-pill" data-group="haptics" data-value="on" onclick="setHaptics('on')">
+                    <span class="choice-row"><span class="choice-dot"></span>On</span>
+                    <span class="choice-hint">Phone buzzes softly as replies type out (Android phones)</span>
+                </button>
+                <button class="choice-pill" data-group="haptics" data-value="off" onclick="setHaptics('off')">
+                    <span class="choice-row"><span class="choice-dot"></span>Off</span>
+                </button>
+            </div>
+
+            <div class="settings-section">
                 <div class="settings-label">Voice Mode</div>
                 <button class="choice-pill" data-group="voiceMode" data-value="seamless" onclick="setVoiceMode('seamless')">
                     <span class="choice-row"><span class="choice-dot"></span>Seamless</span>
@@ -1587,6 +1609,13 @@
                 <button class="choice-pill" data-group="wakeWord" data-value="off" onclick="setWakeWord('off')">
                     <span class="choice-row"><span class="choice-dot"></span>Off</span>
                 </button>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Legal</div>
+                <a class="menu-item menu-link" href="/terms" target="_blank" rel="noopener"><svg class="icon"><use href="#icon-info"/></svg> Terms &amp; Conditions</a>
+                <a class="menu-item menu-link" href="/privacy" target="_blank" rel="noopener" style="margin-top:6px;"><svg class="icon"><use href="#icon-lock"/></svg> Privacy Policy</a>
+                <a class="menu-item menu-link" href="/eula" target="_blank" rel="noopener" style="margin-top:6px;"><svg class="icon"><use href="#icon-edit"/></svg> EULA</a>
             </div>
 
             <div class="settings-section">
@@ -1680,7 +1709,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', haptics: 'on', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -1797,6 +1826,13 @@
     }
 
     // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory) ──
+
+    function setHaptics(value) {
+        settings.haptics = value;
+        saveSettings();
+        updateSettingsUI();
+        if (value === 'on') navigator.vibrate?.(15); // a little sample buzz so you can feel it
+    }
 
     function toggleMemoryEnabled() {
         settings.memoryEnabled = !settings.memoryEnabled;
@@ -2379,6 +2415,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             setUltraThinkMode(cmd);
         }
 
+        finishTyping();
         addBubble(text, 'user', true);
         if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
         // Captured now (not later) so a background chat-title generation always
@@ -2465,6 +2502,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 html += renderMarkdown(reply);
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai');
+                typeReveal(thinking); // typewriter reveal (+ soft haptic ticks on phones); the saved copy is already complete
 
                 // First exchange of a chat — quietly generate a real title in the
                 // background instead of leaving the instant truncated-message one.
@@ -2511,6 +2549,64 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             }
         }
     }
+
+    // ─── TYPEWRITER REPLY + HAPTICS ─────────────────────────────────────
+    // The reply is fully rendered and saved first; this just hides its text and types it
+    // back in, so cancelling at any point (new message, chat switch) leaves the full text.
+    let activeTyper = null;
+    function finishTyping() { activeTyper?.finish(); }
+
+    function typeReveal(root) {
+        finishTyping();
+        // Only the OS "reduce motion" setting skips it — Lite-mode phones still get the light text-only effect + haptics.
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        const targets = [...root.children].filter(el => !el.matches('details.reasoning'));
+        const nodes = [];
+        for (const el of targets) {
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.trim()) nodes.push(n);
+        }
+        const full = nodes.map(n => n.nodeValue);
+        const total = full.reduce((a, t) => a + t.length, 0);
+        if (!total) return;
+        nodes.forEach(n => { n.nodeValue = ''; });
+
+        const box = document.getElementById('chat-box');
+        const rate = total / Math.min(total * 16, 6000); // chars per ms — ~60 chars/s, never longer than 6s
+        const start = performance.now();
+        let shown = 0, idx = 0, offset = 0, raf = 0, lastBuzz = 0, done = false;
+
+        function finish() {
+            if (done) return; done = true;
+            cancelAnimationFrame(raf);
+            nodes.forEach((n, i) => { n.nodeValue = full[i]; });
+            if (activeTyper === api) activeTyper = null;
+            navigator.vibrate?.(0);
+        }
+        function tick(now) {
+            if (done) return;
+            if (!root.isConnected) { finish(); return; }
+            const want = Math.min(total, Math.floor((now - start) * rate));
+            let add = want - shown;
+            while (add > 0 && idx < nodes.length) {
+                const take = Math.min(add, full[idx].length - offset);
+                offset += take; shown += take; add -= take;
+                nodes[idx].nodeValue = full[idx].slice(0, offset);
+                if (offset >= full[idx].length) { idx++; offset = 0; }
+            }
+            if (want > shown - 1 && settings.haptics !== 'off' && now - lastBuzz > 28) {
+                lastBuzz = now;
+                navigator.vibrate?.(6); // one tiny tick per burst of letters, like ChatGPT's mobile app
+            }
+            if (box && box.scrollHeight - box.scrollTop - box.clientHeight < 140) box.scrollTop = box.scrollHeight;
+            if (shown >= total) { finish(); return; }
+            raf = requestAnimationFrame(tick);
+        }
+        const api = { finish };
+        activeTyper = api;
+        raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) finishTyping(); });
 
     // ─── UI HELPERS ───────────────────────────────────────────────────────
 
@@ -2621,6 +2717,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function renderActiveChat() {
+        finishTyping();
         const box = document.getElementById('chat-box');
         box.innerHTML = '';
         conversationMessages = [];
@@ -4023,6 +4120,85 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // silently kills every listener/init call still below it in the file.
     tryResumeSession();
     tryResumeOwnerSession();
+    // ─── ACCESSIBILITY: keyboard + screen-reader helpers ────────────────────
+    // Made once, centrally, so dynamically-rendered UI (chat list, track list, …) is covered too.
+    (function a11y() {
+        const CLICKABLE = '[onclick]:not(button):not(a):not(input):not(select):not(textarea):not(summary):not(.owner-modal):not(.hamburger-panel):not(.sidebar-backdrop)';
+        function enhance(root) {
+            root.querySelectorAll?.(CLICKABLE).forEach(el => {
+                if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+                if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+                if (!el.hasAttribute('aria-label')) {
+                    const name = (el.querySelector('.chat-title, .name')?.textContent || el.textContent || '').trim().replace(/\s+/g, ' ');
+                    if (name) el.setAttribute('aria-label', name.slice(0, 80));
+                }
+            });
+            root.querySelectorAll?.('button:not([aria-label])').forEach(b => {
+                if (!b.textContent.trim() && b.title) b.setAttribute('aria-label', b.title);
+            });
+            root.querySelectorAll?.('img:not([alt])').forEach(i => i.setAttribute('alt', ''));
+            root.querySelectorAll?.('input:not([aria-label]):not([type=checkbox]):not([type=range])').forEach(i => {
+                if (i.placeholder && !i.labels?.length) i.setAttribute('aria-label', i.placeholder);
+            });
+        }
+        enhance(document);
+        new MutationObserver(muts => {
+            for (const m of muts) m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (n.matches?.(CLICKABLE)) enhance({ querySelectorAll: () => [n] }); enhance(n); } });
+        }).observe(document.body, { childList: true, subtree: true });
+
+        // Enter / Space activates our div-buttons like a real <button>
+        document.addEventListener('keydown', (e) => {
+            const el = e.target;
+            if (el?.getAttribute?.('role') === 'button' && !/^(BUTTON|A|INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                el.click();
+            }
+        });
+
+        // Keep Tab inside whichever dialog/menu is open, and return focus when it closes
+        const overlays = ['appDialog', 'ownerModal', 'hamburgerPanel'];
+        const lastFocus = {};
+        overlays.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            new MutationObserver(() => {
+                const open = el.classList.contains('open');
+                if (open && !lastFocus[id]) {
+                    lastFocus[id] = document.activeElement;
+                    setTimeout(() => el.querySelector('input:not([type=hidden]), button, a[href]')?.focus({ preventScroll: true }), 30);
+                } else if (!open && lastFocus[id]) {
+                    try { lastFocus[id].focus({ preventScroll: true }); } catch (e) { /* element gone */ }
+                    lastFocus[id] = null;
+                }
+            }).observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') document.getElementById('hamburgerPanel')?.classList.remove('open');
+            if (e.key !== 'Tab') return;
+            const open = overlays.map(id => document.getElementById(id)).find(el => el?.classList.contains('open'));
+            if (!open) return;
+            const f = [...open.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), [tabindex="0"]')].filter(x => x.offsetParent !== null);
+            if (!f.length) return;
+            const first = f[0], last = f[f.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        });
+
+        // A hidden/collapsed sidebar must not be reachable with Tab
+        const sb = document.getElementById('sidebar');
+        function syncSidebarInert() {
+            if (!sb) return;
+            const mobile = !!window.matchMedia?.('(max-width: 680px)').matches;
+            const hidden = mobile ? !sb.classList.contains('open') : sb.classList.contains('collapsed');
+            sb.inert = hidden;
+        }
+        if (sb) {
+            new MutationObserver(syncSidebarInert).observe(sb, { attributes: true, attributeFilter: ['class'] });
+            window.addEventListener('resize', syncSidebarInert);
+            syncSidebarInert();
+        }
+    })();
+
     window.kwBootDone?.(); // app is wired up — drop the instant loader
 
     // ─── FIRST-VISIT INTRO (plays once per browser, muted, skippable) ─────────

@@ -35,6 +35,7 @@ const fakeDocument = {
     querySelectorAll() { return []; },
     addEventListener() {},
     createElement() { return makeEl(); },
+    createTreeWalker() { return { nextNode() { return null; } }; },
     documentElement: makeEl(),
     body: makeEl(),
 };
@@ -69,6 +70,8 @@ const sandbox = {
     MediaRecorder: function () { return { start() {}, stop() {}, state: 'inactive' }; },
     Blob: function () { return {}; },
     marked: { parse: (s) => s },
+    MutationObserver: function () { return { observe() {}, disconnect() {} }; },
+    NodeFilter: { SHOW_TEXT: 4 },
 };
 sandbox.window = sandbox;
 sandbox.document = fakeDocument;

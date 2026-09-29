@@ -88,3 +88,13 @@ body {
 @media (max-width: 680px) {
     .legal-card { padding: 24px 18px; border-radius: 16px; }
 }
+
+/* Keyboard navigation */
+.skip-link {
+    position: absolute; left: 12px; top: -60px; z-index: 10; padding: 10px 16px; border-radius: 10px;
+    background: var(--cyan); color: #001018; font-weight: 700; text-decoration: none; border: 2.5px solid var(--ink);
+    transition: top 0.15s ease;
+}
+.skip-link:focus { top: 12px; }
+a:focus-visible, .btn:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; border-radius: 8px; }
+main:focus { outline: none; }
