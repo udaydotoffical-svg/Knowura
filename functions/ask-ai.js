@@ -2,6 +2,7 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const { verify: verifyOwnerToken } = require('./_ownerToken');
 const { getChatModels, DEFAULT_MODEL } = require('./_models');
 const { json, preflight, rateLimit, tooMany, parseBody } = require('./_util');
+const { STUDY_TOOLS, STUDY_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_study');
 
 const MAX_MESSAGES = 60;
 const MAX_MESSAGE_CHARS = 16000;
@@ -130,7 +131,8 @@ exports.handler = async (event, context) => {
 
         const ultraPrompt = `\n\nULTRA THINKING MODE IS ACTIVE. Reason extensively and rigorously before answering: break the problem into parts, consider multiple angles or approaches, check your own logic for mistakes, then converge on a well-justified final answer. Prioritize correctness and depth over speed.`;
 
-        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + searchAbility + memoryBlock + searchBlock + (isUltra ? ultraPrompt : "");
+        const offerStudy = wantsStudyTools(messages);
+        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + searchAbility + (offerStudy ? STUDY_PROMPT : "") + memoryBlock + searchBlock + (isUltra ? ultraPrompt : "");
 
         // The picker sends a real Groq model id (from the live /models list). Only
         // ids Groq currently offers for chat are accepted; anything else — including
@@ -167,6 +169,8 @@ exports.handler = async (event, context) => {
             payload.reasoning_effort = effort;
         }
 
+        if (offerStudy) { payload.tools = STUDY_TOOLS; payload.tool_choice = "auto"; }
+
         // One quick retry on a rate limit / upstream 5xx / dropped connection — these are
         // usually momentary and otherwise surface to the user as a failed message.
         const callGroq = () => fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -178,21 +182,46 @@ exports.handler = async (event, context) => {
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(25000)
         });
-        let response;
-        try { response = await callGroq(); } catch (e) { response = null; }
-        if (!response || response.status === 429 || response.status >= 500) {
-            await new Promise(r => setTimeout(r, 1200));
-            response = await callGroq();
+        const callWithRetry = async () => {
+            let r;
+            try { r = await callGroq(); } catch (e) { r = null; }
+            if (!r || r.status === 429 || r.status >= 500) {
+                await new Promise(res => setTimeout(res, 1200));
+                r = await callGroq();
+            }
+            return r;
+        };
+        let response = await callWithRetry();
+        // Some models reject or garble tool calls (400). Fall back to a plain text answer
+        // rather than failing the whole message.
+        if (!response.ok && response.status === 400 && payload.tools) {
+            delete payload.tools; delete payload.tool_choice;
+            response = await callWithRetry();
         }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             // Don't dress an upstream failure up as a success — the client checks res.ok.
             return json(response.status === 429 ? 429 : 502, { error: data?.error?.message || `Model provider returned ${response.status}` });
         }
-        return json(200, { ...data, ownerMode: isOwner, ultraThink: isUltra, model: payload.model });
+
+        // If the model called a study tool, validate it and hand the client a `study` payload
+        // plus a short text reply (the tool call itself never reaches the UI).
+        let study = null;
+        const msg = data?.choices?.[0]?.message;
+        const call = msg?.tool_calls?.[0]?.function;
+        if (call) {
+            study = sanitizeStudy(call.name, call.arguments);
+            if (study) {
+                msg.content = (msg.content && msg.content.trim()) || studyBlurb(study);
+            } else {
+                msg.content = (msg.content && msg.content.trim()) || "I tried to build that but it came out garbled — could you ask again?";
+            }
+            delete msg.tool_calls;
+        }
+        return json(200, { ...data, study, ownerMode: isOwner, ultraThink: isUltra, model: payload.model });
     } catch (error) {
         return json(500, { error: error.message });
     }
 };
 
-exports._test = { sanitizeMessages, sanitizeMemory, needsSearch };
+exports._test = { sanitizeMessages, sanitizeMemory, needsSearch, wantsStudyTools, sanitizeStudy };

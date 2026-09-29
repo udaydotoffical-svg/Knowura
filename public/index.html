@@ -7,18 +7,22 @@
         /* Instant loader — first thing in <head>, tiny and self-contained so it paints while the rest of this large page (and its images/scripts) is still downloading on a slow connection. */
         #kw-boot { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: radial-gradient(120% 90% at 50% 0%, #0f2a80 0%, #05070f 60%); color: #eaf6ff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; transition: opacity .45s ease; }
         #kw-boot.done { opacity: 0; pointer-events: none; }
-        #kw-boot .kwb-k { height: 96px; width: auto; filter: drop-shadow(0 0 18px rgba(34,229,255,.55)); animation: kwbPulse 1.6s ease-in-out infinite; }
-        #kw-boot .kwb-bar { width: min(220px, 60vw); height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); overflow: hidden; }
-        #kw-boot .kwb-bar i { display: block; height: 100%; width: 40%; border-radius: 6px; background: linear-gradient(90deg, #2f6bff, #22e5ff); animation: kwbSlide 1.3s ease-in-out infinite; }
+        #kw-boot .kwb-spin { position: relative; width: 148px; height: 148px; display: flex; align-items: center; justify-content: center; }
+        #kw-boot .kwb-ring { position: absolute; inset: 0; border-radius: 50%; border: 4px solid rgba(255,255,255,.1); border-top-color: #22e5ff; border-right-color: #2f6bff; animation: kwbSpin 1s linear infinite; }
+        #kw-boot .kwb-k { height: 84px; width: auto; filter: drop-shadow(0 0 16px rgba(34,229,255,.5)); animation: kwbPulse 1.8s ease-in-out infinite; }
+        #kw-boot .kwb-quote { max-width: min(420px, 86vw); text-align: center; padding: 0 8px; }
+        #kw-boot .kwb-quote q { display: block; quotes: none; font-size: 16px; line-height: 1.5; font-weight: 600; color: #eaf6ff; }
+        #kw-boot .kwb-quote cite { display: block; margin-top: 8px; font-style: normal; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; color: #22e5ff; }
+        @keyframes kwbSpin { to { transform: rotate(360deg); } }
         #kw-boot .kwb-msg { font-size: 13px; font-weight: 600; letter-spacing: .4px; color: #8fa6cc; min-height: 18px; text-align: center; padding: 0 24px; }
         #kw-boot .kwb-retry { display: none; margin-top: -6px; padding: 10px 18px; border-radius: 10px; border: 2px solid #22e5ff; background: transparent; color: #22e5ff; font-weight: 700; font-size: 13px; cursor: pointer; }
         #kw-boot.stuck .kwb-retry { display: inline-block; }
         @keyframes kwbPulse { 0%, 100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.06); opacity: 1; } }
         @keyframes kwbSlide { from { transform: translateX(-110%); } to { transform: translateX(260%); } }
         /* stays animated even in Lite performance mode (which otherwise freezes every animation) */
-        html.lite #kw-boot .kwb-k, html.balanced #kw-boot .kwb-k { animation: kwbPulse 1.6s ease-in-out infinite !important; filter: none !important; }
-        html.lite #kw-boot .kwb-bar i, html.balanced #kw-boot .kwb-bar i { animation: kwbSlide 1.3s ease-in-out infinite !important; }
-        @media (prefers-reduced-motion: reduce) { #kw-boot .kwb-k, #kw-boot .kwb-bar i { animation: none !important; } }
+        html.lite #kw-boot .kwb-ring, html.balanced #kw-boot .kwb-ring { animation: kwbSpin 1s linear infinite !important; }
+        html.lite #kw-boot .kwb-k, html.balanced #kw-boot .kwb-k { animation: kwbPulse 1.8s ease-in-out infinite !important; filter: none !important; }
+        @media (prefers-reduced-motion: reduce) { #kw-boot .kwb-k { animation: none !important; } #kw-boot .kwb-ring { animation-duration: 3s !important; } }
     </style>
     <title>Knowura AI | By Uday Singh</title>
     <link rel="icon" href="/favicon.ico?v=2" sizes="48x48">
@@ -99,14 +103,32 @@
 </head>
 <body>
 <div id="kw-boot" role="status" aria-live="polite">
-    <svg class="kwb-k" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><g transform="translate(-168.19 -156.38) scale(2.5939)"><g><g transform="translate(19 19)" fill="#000" stroke="#000" stroke-width="10" stroke-linejoin="miter"><path d="M160 134 L252 68 L252 134 Q206 181.0 160 202 Z"/><path d="M160 210 L252 276 L252 342 Q206 323.0 160 278 Z"/><path d="M90 130L125 70L160 130V342H90Z"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 250 L252 316 L252 342 Q206 323.0 160 278 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 259.2 Q206 296.2 252 324.6" fill="none"/><path d="M160 268.5 Q206 309.4 252 333.2" fill="none"/></g><polygon points="160,243 252,309 252,316 160,250" fill="#0f2a80"/><polygon points="160,210 252,276 252,309 160,243" fill="#22e5ff"/><rect x="160" y="210" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 174 L252 108 L252 134 Q206 181.0 160 202 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 183.2 Q206 154.2 252 116.6" fill="none"/><path d="M160 192.5 Q206 167.4 252 125.2" fill="none"/></g><polygon points="160,167 252,101 252,108 160,174" fill="#0f2a80"/><polygon points="160,134 252,68 252,101 160,167" fill="#22e5ff"/><rect x="160" y="134" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-width="10" stroke-linejoin="miter"><polygon points="90,130 125,70 160,130" fill="#eaf6ff"/><rect x="90" y="130" width="70" height="170" fill="#2f6bff"/><rect x="90" y="300" width="70" height="16" fill="#8fa6cc"/><rect x="90" y="316" width="70" height="26" rx="8" fill="#22e5ff"/></g><rect x="92" y="132" width="14" height="166" fill="#5b8dff"/><rect x="144" y="132" width="14" height="166" fill="#0f2a80"/><g stroke="#000" stroke-width="5"><line x1="106" y1="130" x2="106" y2="300"/><line x1="144" y1="130" x2="144" y2="300"/></g><polygon points="111,94 125,70 139,94" fill="#000"/></g></g></svg>
-    <div class="kwb-bar"><i></i></div>
+    <div class="kwb-spin" aria-hidden="true"><i class="kwb-ring"></i><svg class="kwb-k" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><g transform="translate(-168.19 -156.38) scale(2.5939)"><g><g transform="translate(19 19)" fill="#000" stroke="#000" stroke-width="10" stroke-linejoin="miter"><path d="M160 134 L252 68 L252 134 Q206 181.0 160 202 Z"/><path d="M160 210 L252 276 L252 342 Q206 323.0 160 278 Z"/><path d="M90 130L125 70L160 130V342H90Z"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 250 L252 316 L252 342 Q206 323.0 160 278 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 259.2 Q206 296.2 252 324.6" fill="none"/><path d="M160 268.5 Q206 309.4 252 333.2" fill="none"/></g><polygon points="160,243 252,309 252,316 160,250" fill="#0f2a80"/><polygon points="160,210 252,276 252,309 160,243" fill="#22e5ff"/><rect x="160" y="210" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 174 L252 108 L252 134 Q206 181.0 160 202 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 183.2 Q206 154.2 252 116.6" fill="none"/><path d="M160 192.5 Q206 167.4 252 125.2" fill="none"/></g><polygon points="160,167 252,101 252,108 160,174" fill="#0f2a80"/><polygon points="160,134 252,68 252,101 160,167" fill="#22e5ff"/><rect x="160" y="134" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-width="10" stroke-linejoin="miter"><polygon points="90,130 125,70 160,130" fill="#eaf6ff"/><rect x="90" y="130" width="70" height="170" fill="#2f6bff"/><rect x="90" y="300" width="70" height="16" fill="#8fa6cc"/><rect x="90" y="316" width="70" height="26" rx="8" fill="#22e5ff"/></g><rect x="92" y="132" width="14" height="166" fill="#5b8dff"/><rect x="144" y="132" width="14" height="166" fill="#0f2a80"/><g stroke="#000" stroke-width="5"><line x1="106" y1="130" x2="106" y2="300"/><line x1="144" y1="130" x2="144" y2="300"/></g><polygon points="111,94 125,70 139,94" fill="#000"/></g></g></svg></div>
+    <div class="kwb-quote"><q id="kwb-q">Education is the most powerful weapon which you can use to change the world.</q><cite id="kwb-a">Nelson Mandela</cite></div>
     <div class="kwb-msg" id="kwb-msg">Loading Knowura…</div>
     <button type="button" class="kwb-retry" onclick="location.reload()">Reload</button>
 </div>
 <script>
 (function () {
     var el = document.getElementById('kw-boot'), msg = document.getElementById('kwb-msg'), gone = false, timers = [];
+    // A random education quote each visit (the first one is already in the markup as the no-JS fallback).
+    var QUOTES = [
+        ['Education is the most powerful weapon which you can use to change the world.', 'Nelson Mandela'],
+        ['The beautiful thing about learning is that no one can take it away from you.', 'B.B. King'],
+        ['An investment in knowledge pays the best interest.', 'Benjamin Franklin'],
+        ['Live as if you were to die tomorrow. Learn as if you were to live forever.', 'Mahatma Gandhi'],
+        ['The more that you read, the more things you will know. The more that you learn, the more places you’ll go.', 'Dr. Seuss'],
+        ['Education is the passport to the future, for tomorrow belongs to those who prepare for it today.', 'Malcolm X'],
+        ['It does not matter how slowly you go as long as you do not stop.', 'Confucius'],
+        ['The roots of education are bitter, but the fruit is sweet.', 'Aristotle'],
+        ['The only thing that interferes with my learning is my education.', 'Albert Einstein'],
+        ['Study hard what interests you the most in the most undisciplined, irreverent and original manner possible.', 'Richard Feynman']
+    ];
+    try {
+        var pick = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+        document.getElementById('kwb-q').textContent = pick[0];
+        document.getElementById('kwb-a').textContent = '— ' + pick[1];
+    } catch (e) { /* keep the fallback quote */ }
     function say(t) { if (msg && !gone) msg.textContent = t; }
     function offline() { return navigator.onLine === false; }
     timers.push(setTimeout(function () { say(offline() ? "You're offline — waiting for a connection…" : 'Slow connection — hang tight…'); }, 5000));
@@ -1156,6 +1178,103 @@
         @media (prefers-reduced-motion: reduce) { .credits-heart { animation: none; } }
         @media (prefers-reduced-motion: reduce) { .menu-view.active { animation: none; } }
 
+        /* ─── STUDY POP-UP: quizzes + flashcards ─── */
+        .study-overlay {
+            display: none; position: fixed; inset: 0; z-index: 190; align-items: center; justify-content: center; padding: 16px;
+            background: rgba(3,6,14,0.62); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+        }
+        .study-overlay.open { display: flex; animation: studyFade 0.22s ease; }
+        @keyframes studyFade { from { opacity: 0; } to { opacity: 1; } }
+        .study-card {
+            position: relative; width: 100%; max-width: 640px; max-height: min(92dvh, 780px); display: flex; flex-direction: column;
+            background: var(--panel-strong); border: 3px solid var(--ink); border-radius: 22px; box-shadow: var(--shadow-lg);
+            animation: cardIn 0.3s cubic-bezier(.16,1,.3,1); overflow: hidden;
+        }
+        .study-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 10px; }
+        .study-kind { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--cyan); }
+        .study-title { font-size: 17px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+        .study-x {
+            flex: none; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+            background: rgba(255,255,255,0.05); color: var(--text); border: 2px solid var(--ink); border-radius: 11px; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .study-x:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .study-progress { height: 8px; margin: 0 18px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 2px solid var(--ink); overflow: hidden; }
+        .study-progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--blue), var(--cyan)); transition: width 0.4s cubic-bezier(.16,1,.3,1); }
+        .study-body { padding: 16px 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .study-meta { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px; }
+        .study-meta b { color: var(--cyan); }
+        .q-text { font-size: clamp(18px, 4.4vw, 22px); line-height: 1.35; font-weight: 700; overflow-wrap: anywhere; }
+        .q-opts { display: flex; flex-direction: column; gap: 9px; }
+        .q-opt {
+            display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+            padding: 12px 14px; border-radius: 13px; border: 2.5px solid var(--ink); background: rgba(255,255,255,0.05);
+            color: var(--text); font-size: 15px; font-weight: 600; line-height: 1.3; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease, opacity 0.2s ease;
+        }
+        .q-opt:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: rgba(47,107,255,0.2); }
+        .q-opt:disabled { cursor: default; }
+        .q-letter { flex: none; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 2px solid var(--ink); background: var(--blue); font-size: 13px; font-weight: 800; }
+        .q-opt.correct { background: #19c37d; color: #03140c; }
+        .q-opt.correct .q-letter { background: #eafff5; color: #03140c; }
+        .q-opt.wrong { background: #ff4d6d; color: #1b0309; animation: qShake 0.35s ease; }
+        .q-opt.wrong .q-letter { background: #fff0f3; color: #1b0309; }
+        .q-opt.dim { opacity: 0.45; }
+        @keyframes qShake { 0%, 100% { transform: none; } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+        .q-feedback { padding: 12px 14px; border-radius: 13px; border: 2.5px solid var(--ink); font-size: 14px; line-height: 1.45; animation: studyFade 0.25s ease; }
+        .q-feedback.good { background: rgba(25,195,125,0.16); }
+        .q-feedback.bad { background: rgba(255,77,109,0.16); }
+        .q-feedback b { display: block; margin-bottom: 3px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .study-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .study-actions .btn-ui { flex: 1; justify-content: center; min-width: 120px; }
+        .study-result { align-items: center; text-align: center; }
+        .score-ring { position: relative; width: 150px; height: 150px; margin: 6px auto 0; }
+        .score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .score-ring circle { fill: none; stroke-width: 11; stroke-linecap: round; }
+        .score-ring .track { stroke: rgba(255,255,255,0.12); }
+        .score-ring .fill { stroke: var(--cyan); stroke-dasharray: 339.3; stroke-dashoffset: 339.3; transition: stroke-dashoffset 1.1s cubic-bezier(.16,1,.3,1); }
+        .score-ring .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; }
+        .score-ring .num small { font-size: 12px; font-weight: 700; color: var(--text-dim); }
+        .result-head { font-size: 22px; font-weight: 800; }
+        .result-sub { color: var(--text-dim); font-size: 14px; }
+        .missed { width: 100%; display: flex; flex-direction: column; gap: 9px; text-align: left; }
+        .missed-item { padding: 11px 13px; border-radius: 12px; border: 2.5px solid var(--ink); background: rgba(255,255,255,0.05); font-size: 13.5px; line-height: 1.4; }
+        .missed-item b { display: block; margin-bottom: 4px; }
+        .missed-item .ans { color: #6ff0b4; font-weight: 700; }
+        /* flashcards */
+        .fc { perspective: 1400px; width: 100%; height: clamp(220px, 42dvh, 300px); border: 0; background: none; padding: 0; cursor: pointer; color: var(--text); text-align: center; }
+        .fc:focus-visible { outline: none; }
+        .fc:focus-visible .fc-face { box-shadow: 0 0 0 3px var(--cyan), var(--shadow-sm); }
+        .fc-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(.16,1,.3,1); }
+        .fc.flipped .fc-inner { transform: rotateY(180deg); }
+        .fc-face {
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 22px;
+            border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--shadow-sm); backface-visibility: hidden; -webkit-backface-visibility: hidden;
+            font-size: clamp(19px, 5vw, 26px); font-weight: 700; line-height: 1.3; overflow: auto; overflow-wrap: anywhere;
+        }
+        .fc-front { background: linear-gradient(145deg, var(--blue-deep), var(--blue)); }
+        .fc-back { background: linear-gradient(145deg, #0b3b47, #0e7f92); transform: rotateY(180deg); font-size: clamp(16px, 4.2vw, 20px); font-weight: 600; }
+        .fc-tag { font-size: 10.5px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; opacity: 0.7; }
+        .fc-hint { text-align: center; font-size: 12px; color: var(--text-dim); }
+        .btn-again { border-color: var(--ink); background: rgba(255,77,109,0.22); }
+        .btn-got { background: #19c37d; color: #03140c; }
+        .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 195; overflow: hidden; }
+        .confetti i { position: absolute; top: -16px; width: 9px; height: 14px; border-radius: 2px; animation: confettiFall linear forwards; }
+        @keyframes confettiFall { to { transform: translateY(105vh) rotate(720deg); opacity: 0.9; } }
+        /* the chip that reopens a quiz/deck from the chat */
+        .study-chip {
+            display: flex; align-items: center; gap: 12px; margin-top: 12px; width: 100%; max-width: 380px; text-align: left; cursor: pointer;
+            padding: 11px 13px; border-radius: 14px; border: 2.5px solid var(--ink); background: linear-gradient(135deg, rgba(47,107,255,0.35), rgba(34,229,255,0.2)); color: var(--text);
+            box-shadow: var(--shadow-sm); transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .study-chip:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .study-chip .icon { flex: none; width: 26px; height: 26px; color: var(--cyan); }
+        .study-chip-text { display: flex; flex-direction: column; min-width: 0; }
+        .study-chip-text b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .study-chip-text small { font-size: 11.5px; color: var(--text-dim); font-weight: 600; }
+        @media (prefers-reduced-motion: reduce) { .fc-inner, .score-ring .fill, .study-progress i { transition: none; } .q-opt.wrong { animation: none; } .confetti { display: none; } }
+        @media (max-width: 520px) { .study-overlay { padding: 8px; } .study-body { padding: 14px 14px 18px; } .study-top { padding: 14px 14px 8px; } }
+
         a.menu-link { text-decoration: none; }
         .skip-link {
             position: fixed; left: 12px; top: -64px; z-index: 2147483001; padding: 10px 16px; border-radius: 10px;
@@ -1165,7 +1284,11 @@
         .skip-link:focus { top: 12px; }
         /* Visible keyboard focus everywhere (mouse/touch users don't see it) */
         :focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
-        .pb-input:focus-visible, textarea:focus-visible, input:focus-visible { outline-offset: 0; }
+        /* Text fields sit inside containers that already light up on focus (prompt bar glow, search box),
+           so the extra square outline just looks like a stray box — the container shows focus instead. */
+        .pb-input:focus-visible, textarea:focus-visible, input[type="text"]:focus-visible,
+        input[type="password"]:focus-visible, input[type="search"]:focus-visible { outline: none; }
+        .sidebar-search:focus-within { border-color: var(--cyan); }
         .menu-item {
             display: flex; align-items: center; gap: 10px; width: 100%;
             background: rgba(255,255,255,0.03); border: 2px solid var(--ink); border-radius: 10px;
@@ -1575,7 +1698,7 @@
                 </button>
                 <button type="button" class="menu-nav" onclick="showMenuView('chat')">
                     <svg class="icon nav-ico"><use href="#icon-chat"/></svg>
-                    <span class="menu-nav-text"><span class="menu-nav-title">Chat</span><span class="menu-nav-sub" data-summary="chat">Startup and typing haptics</span></span>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Chat</span><span class="menu-nav-sub" data-summary="chat">Startup and haptics</span></span>
                     <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
                 </button>
                 <button type="button" class="menu-nav" onclick="showMenuView('memory')">
@@ -1653,10 +1776,14 @@
             </div>
 
             <div class="settings-section">
-                <div class="settings-label">Typing Haptics</div>
+                <div class="settings-label">Haptics</div>
                 <button class="choice-pill" data-group="haptics" data-value="on" onclick="setHaptics('on')">
                     <span class="choice-row"><span class="choice-dot"></span>On</span>
-                    <span class="choice-hint">Phone buzzes softly as replies type out (Android phones)</span>
+                    <span class="choice-hint">Buzzes on taps, typing, sending and replies (Android phones)</span>
+                </button>
+                <button class="choice-pill" data-group="haptics" data-value="max" onclick="setHaptics('max')">
+                    <span class="choice-row"><span class="choice-dot"></span>Crazy</span>
+                    <span class="choice-hint">Same everywhere, but way stronger</span>
                 </button>
                 <button class="choice-pill" data-group="haptics" data-value="off" onclick="setHaptics('off')">
                     <span class="choice-row"><span class="choice-dot"></span>Off</span>
@@ -1773,6 +1900,20 @@
     </div>
     </div>
 
+    <div id="studyOverlay" class="study-overlay" role="dialog" aria-modal="true" aria-labelledby="studyTitle" onclick="if (event.target === this) closeStudy()">
+        <div class="study-card">
+            <div class="study-top">
+                <div>
+                    <div id="studyKind" class="study-kind">Quiz</div>
+                    <div id="studyTitle" class="study-title"></div>
+                </div>
+                <button type="button" class="study-x" onclick="closeStudy()" aria-label="Close" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
+            </div>
+            <div class="study-progress" aria-hidden="true"><i id="studyBar"></i></div>
+            <div id="studyBody" class="study-body" aria-live="polite"></div>
+        </div>
+    </div>
+
     <div id="appDialog" class="owner-modal" onclick="if (event.target === this) dialogCancel()">
     <div class="owner-modal-card app-dialog-card">
             <div class="app-dialog-icon"><svg class="icon"><use href="#icon-x"/></svg></div>
@@ -1866,7 +2007,7 @@
         const set = (view, text) => { const el = document.querySelector(`[data-summary="${view}"]`); if (el) el.textContent = text; };
         const perf = { auto: 'Auto', balanced: 'Balanced', lite: 'Lite', full: 'Full' }[settings.perfMode] || 'Auto';
         set('appearance', `${perf} performance · Glass ${settings.glassOpacity}%`);
-        set('chat', `${settings.resumeChat === 'last' ? 'Resume last chat' : 'Start new chat'} · Haptics ${settings.haptics === 'off' ? 'off' : 'on'}`);
+        set('chat', `${settings.resumeChat === 'last' ? 'Resume last chat' : 'Start new chat'} · Haptics ${{ off: 'off', max: 'crazy' }[settings.haptics] || 'on'}`);
         set('memory', settings.memoryEnabled ? 'Remembering conversations' : 'Memory is off');
         set('voice', `${settings.voiceMode === 'ptt' ? 'Push to talk' : 'Seamless'} · Wake word ${{ voice: 'in calls', both: 'everywhere', off: 'off' }[settings.wakeWord] || 'in calls'}`);
     }
@@ -1977,11 +2118,57 @@
 
     // ─── MEMORY OPT-IN (default on — disabling stops reading/writing memory) ──
 
+    // ─── HAPTICS ───────────────────────────────────────────────────────────
+    // One place decides what every buzz feels like. Patterns are [buzz, pause, buzz, …] in ms;
+    // "Crazy" stretches the buzzes ×2.4 and adds extra pulses to the big moments. Only Android
+    // browsers implement navigator.vibrate (iPhones ignore it), and it needs a recent tap — all
+    // our triggers are taps, keys or their results, so that's satisfied.
+    const HAPTIC_PATTERNS = {
+        key: [4], tick: [5], tap: [9], nav: [11], select: [12, 26, 12], send: [32],
+        heavy: [46], success: [14, 40, 18, 40, 28], error: [52, 60, 52, 60, 90]
+    };
+    let lastHaptic = 0, lastSendHaptic = 0;
+    function haptic(kind = 'tap') {
+        if (!navigator.vibrate || settings.haptics === 'off') return;
+        const now = performance.now();
+        if (now - lastHaptic < 28) return; // never stack buzzes into one mush
+        lastHaptic = now;
+        if (kind === 'send') lastSendHaptic = now;
+        let pattern = HAPTIC_PATTERNS[kind] || HAPTIC_PATTERNS.tap;
+        if (settings.haptics === 'max') {
+            pattern = pattern.map((ms, i) => (i % 2 === 0 ? Math.round(ms * 2.4) : ms));
+            if (kind === 'success') pattern = [...pattern, 30, 45];
+            if (kind === 'error') pattern = [...pattern, 40, 90];
+        }
+        try { navigator.vibrate(pattern); } catch (e) { /* vibration blocked */ }
+    }
+
+    // Buzz on every kind of touch: taps on anything clickable, sliders, toggles, and keys typed in the prompt.
+    document.addEventListener('pointerdown', (e) => {
+        const el = e.target.closest?.('button, a[href], [role="button"], summary, label.pb-toggle, .choice-pill');
+        if (!el || el.disabled) return;
+        if (el.id === 'sendBtn' || el.classList.contains('pb-send')) haptic('send');
+        else if (el.classList.contains('new-chat-btn') || el.classList.contains('sidebar-logo-btn')) haptic('heavy');
+        else if (el.matches('.choice-pill, .menu-nav, .menu-item, .chat-list-item, .track-item, .suggestion-chip, .pb-menu-item')) haptic('select');
+        else haptic('tap');
+    }, { passive: true });
+    document.addEventListener('input', (e) => {
+        const t = e.target;
+        if (t?.type === 'range') haptic('tick');
+    }, { passive: true });
+    document.addEventListener('change', (e) => {
+        if (e.target?.type === 'checkbox') haptic('select');
+    }, { passive: true });
+    document.addEventListener('keydown', (e) => {
+        if (e.target?.id === 'userInput' && e.key.length === 1) haptic('key');
+    }, { passive: true });
+
     function setHaptics(value) {
         settings.haptics = value;
         saveSettings();
         updateSettingsUI();
-        if (value === 'on') navigator.vibrate?.(15); // a little sample buzz so you can feel it
+        lastHaptic = 0;
+        if (value !== 'off') haptic(value === 'max' ? 'success' : 'select'); // a sample so you can feel the level
     }
 
     function toggleMemoryEnabled() {
@@ -2566,6 +2753,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
 
         finishTyping();
+        if (performance.now() - lastSendHaptic > 400) haptic('send'); // Enter key / suggestion chips (the send button already buzzed on touch)
         addBubble(text, 'user', true);
         if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
         // Captured now (not later) so a background chat-title generation always
@@ -2650,8 +2838,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 const body = reasoning ? renderMarkdown(reasoning.length > 6000 ? reasoning.slice(0, 6000) + '\n\n…' : reasoning) : '<p class="reasoning-empty">No thought process was returned for this reply.</p>';
                 html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${body}</details>`;
                 html += renderMarkdown(reply);
+                if (data.study) html += studyChipHTML(data.study);
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai');
+                if (data.study && !opts.fromVoice) setTimeout(() => openStudy(data.study), 900); // pop it up on screen
                 typeReveal(thinking); // typewriter reveal (+ soft haptic ticks on phones); the saved copy is already complete
 
                 // First exchange of a chat — quietly generate a real title in the
@@ -2680,6 +2870,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         } catch (e) {
             if (searchStageTimer) clearTimeout(searchStageTimer);
             if (e.name === 'AbortError') { thinking.remove(); return; }
+            haptic('error');
             console.error(e);
             const reason = e.userFacing ? escapeHtml(e.message) : 'Couldn\'t reach Knowura. Check your connection and try again.';
             thinking.innerHTML = `<span class="typing" style="color:var(--owner);"><svg class="icon"><use href="#icon-alert"/></svg> ${reason}</span>`;
@@ -2710,7 +2901,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         finishTyping();
         // Only the OS "reduce motion" setting skips it — Lite-mode phones still get the light text-only effect + haptics.
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-        const targets = [...root.children].filter(el => !el.matches('details.reasoning'));
+        const targets = [...root.children].filter(el => !el.matches('details.reasoning, .study-chip'));
         const nodes = [];
         for (const el of targets) {
             const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -2726,12 +2917,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const start = performance.now();
         let shown = 0, idx = 0, offset = 0, raf = 0, lastBuzz = 0, done = false;
 
-        function finish() {
+        function finish(natural) {
             if (done) return; done = true;
             cancelAnimationFrame(raf);
             nodes.forEach((n, i) => { n.nodeValue = full[i]; });
             if (activeTyper === api) activeTyper = null;
             navigator.vibrate?.(0);
+            if (natural === true) { lastHaptic = 0; haptic('success'); } // reply finished typing (bypass the tick throttle)
         }
         function tick(now) {
             if (done) return;
@@ -2744,12 +2936,12 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 nodes[idx].nodeValue = full[idx].slice(0, offset);
                 if (offset >= full[idx].length) { idx++; offset = 0; }
             }
-            if (want > shown - 1 && settings.haptics !== 'off' && now - lastBuzz > 28) {
+            if (want > shown - 1 && now - lastBuzz > 28) {
                 lastBuzz = now;
-                navigator.vibrate?.(6); // one tiny tick per burst of letters, like ChatGPT's mobile app
+                haptic('tick'); // one tiny tick per burst of letters, like ChatGPT's mobile app
             }
             if (box && box.scrollHeight - box.scrollTop - box.clientHeight < 140) box.scrollTop = box.scrollHeight;
-            if (shown >= total) { finish(); return; }
+            if (shown >= total) { finish(true); return; }
             raf = requestAnimationFrame(tick);
         }
         const api = { finish };
@@ -2757,6 +2949,260 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         raf = requestAnimationFrame(tick);
     }
     document.addEventListener('visibilitychange', () => { if (document.hidden) finishTyping(); });
+
+    // ─── STUDY TOOLS: quiz + flashcard pop-up (the AI creates these via tool calls) ─────────
+    let study = null; // { data, ...state } while the overlay is open
+
+    function studyEl(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text !== undefined) e.textContent = text;
+        return e;
+    }
+    function studyChipHTML(data) {
+        const isQuiz = data.type === 'quiz';
+        const n = isQuiz ? `${data.questions.length} question${data.questions.length === 1 ? '' : 's'}` : `${data.cards.length} card${data.cards.length === 1 ? '' : 's'}`;
+        return `<button type="button" class="study-chip" data-study="${encodeURIComponent(JSON.stringify(data))}">`
+            + `<svg class="icon"><use href="#${isQuiz ? 'icon-info' : 'icon-tag'}"/></svg>`
+            + `<span class="study-chip-text"><b>${escapeHtml(data.title)}</b><small>${isQuiz ? 'Quiz' : 'Flashcards'} · ${n} · tap to open</small></span></button>`;
+    }
+    // reopen from a saved chip anywhere in the chat
+    document.getElementById('chat-box').addEventListener('click', (e) => {
+        const chip = e.target.closest?.('.study-chip');
+        if (!chip) return;
+        try { openStudy(JSON.parse(decodeURIComponent(chip.dataset.study))); } catch (err) { showAlert("Couldn't open that one.", 'Study'); }
+    });
+
+    function studyValid(d) {
+        if (d?.type === 'quiz') return Array.isArray(d.questions) && d.questions.every(q => q && Array.isArray(q.options) && Number.isInteger(q.answer));
+        if (d?.type === 'flashcards') return Array.isArray(d.cards) && d.cards.every(c => c && c.front && c.back);
+        return false;
+    }
+
+    function openStudy(data) {
+        if (!studyValid(data)) return;
+        const isQuiz = data.type === 'quiz';
+        study = isQuiz
+            ? { data, i: 0, score: 0, streak: 0, best: 0, missed: [], locked: false }
+            : { data, queue: shuffleArr(data.cards.map((_, i) => i)), known: 0, reviews: 0, flipped: false };
+        document.getElementById('studyKind').textContent = isQuiz ? 'Quiz' : 'Flashcards';
+        document.getElementById('studyTitle').textContent = data.title;
+        document.getElementById('studyBody').classList.remove('study-result');
+        document.getElementById('studyOverlay').classList.add('open');
+        haptic('success');
+        isQuiz ? renderQuizQ() : renderCard();
+    }
+
+    function closeStudy() {
+        document.getElementById('studyOverlay')?.classList.remove('open');
+        const sb = document.getElementById('studyBody');
+        sb.innerHTML = ''; sb.classList.remove('study-result');
+        document.querySelector('.confetti')?.remove();
+        study = null;
+    }
+    function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+    function setStudyProgress(frac) { document.getElementById('studyBar').style.width = `${Math.round(Math.max(0, Math.min(1, frac)) * 100)}%`; }
+
+    // ── quiz ──
+    function renderQuizQ() {
+        const q = study.data.questions[study.i], total = study.data.questions.length;
+        const body = document.getElementById('studyBody');
+        body.innerHTML = '';
+        study.locked = false;
+        setStudyProgress(study.i / total);
+
+        const meta = studyEl('div', 'study-meta');
+        meta.append(studyEl('span', '', `Question ${study.i + 1} of ${total}`));
+        const right = studyEl('span'); right.innerHTML = study.streak >= 2 ? `<b>🔥 ${study.streak} in a row</b>` : `Score ${study.score}`;
+        meta.append(right);
+        body.append(meta, studyEl('h2', 'q-text', q.question));
+
+        const opts = studyEl('div', 'q-opts');
+        opts.setAttribute('role', 'group'); opts.setAttribute('aria-label', 'Answer choices');
+        q.options.forEach((text, idx) => {
+            const b = studyEl('button', 'q-opt'); b.type = 'button'; b.dataset.idx = idx;
+            b.append(studyEl('span', 'q-letter', String.fromCharCode(65 + idx)), studyEl('span', '', text));
+            b.addEventListener('click', () => chooseOption(idx));
+            opts.append(b);
+        });
+        body.append(opts);
+        setTimeout(() => opts.querySelector('.q-opt')?.focus({ preventScroll: true }), 60);
+    }
+
+    function chooseOption(idx) {
+        if (!study || study.locked || study.data.type !== 'quiz') return;
+        study.locked = true;
+        const q = study.data.questions[study.i], total = study.data.questions.length;
+        const correct = idx === q.answer;
+        if (correct) { study.score++; study.streak++; study.best = Math.max(study.best, study.streak); haptic('success'); }
+        else { study.streak = 0; study.missed.push({ q, chosen: idx }); haptic('error'); }
+
+        document.querySelectorAll('#studyBody .q-opt').forEach((b, i) => {
+            b.disabled = true;
+            if (i === q.answer) b.classList.add('correct');
+            else if (i === idx) b.classList.add('wrong');
+            else b.classList.add('dim');
+        });
+        setStudyProgress((study.i + 1) / total);
+
+        const body = document.getElementById('studyBody');
+        const fb = studyEl('div', `q-feedback ${correct ? 'good' : 'bad'}`);
+        fb.append(studyEl('b', '', correct ? '✓ Correct!' : `✗ Not quite — it's ${String.fromCharCode(65 + q.answer)}`));
+        if (q.explanation) fb.append(document.createTextNode(q.explanation));
+        const actions = studyEl('div', 'study-actions');
+        const next = studyEl('button', 'btn-ui', study.i + 1 < total ? 'Next question →' : 'See results'); next.type = 'button';
+        next.addEventListener('click', nextQuestion);
+        actions.append(next);
+        body.append(fb, actions);
+        next.focus({ preventScroll: true });
+        next.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function nextQuestion() {
+        if (!study) return;
+        haptic('tap');
+        study.i++;
+        study.i < study.data.questions.length ? renderQuizQ() : renderQuizResult();
+    }
+
+    function renderQuizResult() {
+        const total = study.data.questions.length, pct = study.score / total;
+        const body = document.getElementById('studyBody');
+        body.innerHTML = '';
+        body.classList.add('study-result');
+        setStudyProgress(1);
+        const [head, sub] = pct === 1 ? ['Perfect score! 🎉', 'You nailed every question.']
+            : pct >= 0.8 ? ['Excellent work!', 'You really know this.']
+            : pct >= 0.6 ? ['Nice job!', 'A little more practice and you\'ve got it.']
+            : pct >= 0.4 ? ['Getting there', 'Review the misses below and try again.']
+            : ['Keep practicing', 'Every miss is a chance to learn — try again.'];
+        const ring = studyEl('div', 'score-ring');
+        ring.innerHTML = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="54"/><circle class="fill" cx="60" cy="60" r="54"/></svg>`
+            + `<div class="num">${study.score}/${total}<small>${Math.round(pct * 100)}%</small></div>`;
+        body.append(ring, studyEl('div', 'result-head', head), studyEl('div', 'result-sub', study.best >= 3 ? `${sub} Best streak: ${study.best} 🔥` : sub));
+        requestAnimationFrame(() => requestAnimationFrame(() => { ring.querySelector('.fill').style.strokeDashoffset = String(339.3 * (1 - pct)); }));
+
+        const actions = studyEl('div', 'study-actions');
+        actions.style.width = '100%';
+        const retry = studyEl('button', 'btn-ui', 'Retry quiz'); retry.type = 'button';
+        retry.addEventListener('click', () => { body.classList.remove('study-result'); openStudy(study.data); });
+        const done = studyEl('button', 'btn-ui', 'Done'); done.type = 'button'; done.addEventListener('click', closeStudy);
+        actions.append(retry, done);
+        if (study.missed.length) {
+            const review = studyEl('button', 'btn-ui', `Review ${study.missed.length} missed`); review.type = 'button';
+            review.addEventListener('click', () => { review.remove(); body.insertBefore(missedList(), actions); });
+            actions.prepend(review);
+        }
+        body.append(actions);
+        haptic(pct >= 0.6 ? 'success' : 'nav');
+        if (pct === 1) confettiBurst();
+        retry.focus({ preventScroll: true });
+    }
+
+    function missedList() {
+        const wrap = studyEl('div', 'missed');
+        study.missed.forEach(({ q, chosen }) => {
+            const it = studyEl('div', 'missed-item');
+            it.append(studyEl('b', '', q.question));
+            const a = studyEl('div'); a.innerHTML = 'Answer: <span class="ans"></span>';
+            a.querySelector('.ans').textContent = q.options[q.answer];
+            it.append(a);
+            if (chosen !== q.answer) it.append(studyEl('div', '', `You picked: ${q.options[chosen]}`));
+            if (q.explanation) it.append(studyEl('div', '', q.explanation));
+            wrap.append(it);
+        });
+        return wrap;
+    }
+
+    function confettiBurst() {
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        const layer = studyEl('div', 'confetti');
+        const colors = ['#22e5ff', '#2f6bff', '#19c37d', '#ffd23f', '#ff4d6d', '#eaf6ff'];
+        for (let i = 0; i < 44; i++) {
+            const c = document.createElement('i');
+            c.style.left = Math.random() * 100 + '%';
+            c.style.background = colors[i % colors.length];
+            c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+            c.style.animationDelay = (Math.random() * 0.5) + 's';
+            layer.append(c);
+        }
+        document.body.append(layer);
+        setTimeout(() => layer.remove(), 4000);
+    }
+
+    // ── flashcards ──
+    function renderCard() {
+        const body = document.getElementById('studyBody');
+        const total = study.data.cards.length;
+        body.innerHTML = '';
+        if (!study.queue.length) { renderDeckDone(); return; }
+        study.flipped = false;
+        setStudyProgress(study.known / total);
+        const card = study.data.cards[study.queue[0]];
+
+        const meta = studyEl('div', 'study-meta');
+        meta.append(studyEl('span', '', `${study.known} of ${total} learned`), studyEl('span', '', `${study.queue.length} left`));
+        const fc = studyEl('button', 'fc'); fc.type = 'button';
+        fc.setAttribute('aria-label', 'Flashcard — press to flip');
+        const inner = studyEl('div', 'fc-inner');
+        const front = studyEl('div', 'fc-face fc-front'); front.append(studyEl('span', 'fc-tag', 'Term'), studyEl('span', '', card.front));
+        const back = studyEl('div', 'fc-face fc-back'); back.append(studyEl('span', 'fc-tag', 'Answer'), studyEl('span', '', card.back));
+        inner.append(front, back); fc.append(inner);
+        fc.addEventListener('click', flipCard);
+
+        const actions = studyEl('div', 'study-actions');
+        const again = studyEl('button', 'btn-ui btn-again', '↺ Again'); again.type = 'button';
+        const got = studyEl('button', 'btn-ui btn-got', 'Got it ✓'); got.type = 'button';
+        again.addEventListener('click', () => rateCard(false));
+        got.addEventListener('click', () => rateCard(true));
+        actions.append(again, got);
+        body.append(meta, fc, studyEl('div', 'fc-hint', 'Tap the card (or press Space) to flip · ← Again · → Got it'), actions);
+        setTimeout(() => fc.focus({ preventScroll: true }), 60);
+    }
+    function flipCard() {
+        if (!study || study.data.type !== 'flashcards') return;
+        study.flipped = !study.flipped;
+        document.querySelector('#studyBody .fc')?.classList.toggle('flipped', study.flipped);
+        haptic('select');
+    }
+    function rateCard(knewIt) {
+        if (!study || !study.queue.length) return;
+        study.reviews++;
+        const idx = study.queue.shift();
+        if (knewIt) { study.known++; haptic('success'); }
+        else { study.queue.push(idx); haptic('nav'); }
+        renderCard();
+    }
+    function renderDeckDone() {
+        const total = study.data.cards.length;
+        const body = document.getElementById('studyBody');
+        body.classList.add('study-result');
+        setStudyProgress(1);
+        body.innerHTML = '';
+        body.append(studyEl('div', 'result-head', 'Deck complete! 🎉'),
+            studyEl('div', 'result-sub', `You learned all ${total} cards in ${study.reviews} review${study.reviews === 1 ? '' : 's'}.`));
+        const actions = studyEl('div', 'study-actions'); actions.style.width = '100%';
+        const again = studyEl('button', 'btn-ui', 'Study again'); again.type = 'button';
+        again.addEventListener('click', () => { body.classList.remove('study-result'); openStudy(study.data); });
+        const done = studyEl('button', 'btn-ui', 'Done'); done.type = 'button'; done.addEventListener('click', closeStudy);
+        actions.append(again, done);
+        body.append(actions);
+        haptic('success'); confettiBurst();
+        again.focus({ preventScroll: true });
+    }
+
+    // number keys pick answers, arrows drive flashcards (Enter/Space use the focused button as normal)
+    document.addEventListener('keydown', (e) => {
+        if (!study || !document.getElementById('studyOverlay').classList.contains('open')) return;
+        if (study.data.type === 'quiz') {
+            const n = parseInt(e.key, 10);
+            if (n >= 1 && n <= study.data.questions[study.i]?.options.length && !study.locked) { e.preventDefault(); chooseOption(n - 1); }
+            else if (e.key === 'ArrowRight' && study.locked) { e.preventDefault(); nextQuestion(); }
+        } else if (study.queue?.length) {
+            if (e.key === 'ArrowLeft') { e.preventDefault(); rateCard(false); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); rateCard(true); }
+        }
+    });
 
     // ─── UI HELPERS ───────────────────────────────────────────────────────
 
@@ -2887,7 +3333,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     const SUGGESTIONS = [
         { icon: 'icon-tag', label: 'Explain a concept', prompt: 'Explain a concept I\'m stuck on — ask me what it is, then break it down simply.' },
-        { icon: 'icon-info', label: 'Quiz me', prompt: 'Quiz me on a topic I\'m studying — ask what subject, then fire questions one at a time.' },
+        { icon: 'icon-info', label: 'Quiz me', prompt: 'Make me a quick multiple-choice quiz on a topic I\'m studying — ask me which topic first.' },
+        { icon: 'icon-tag', label: 'Flashcards', prompt: 'Make me a set of flashcards on a topic I\'m studying — ask me which topic first.' },
         { icon: 'icon-edit', label: 'Help me plan', prompt: 'Help me build a study schedule — ask what I\'m preparing for and by when.' },
         { icon: 'icon-search', label: "What's new today", prompt: "What's the latest news today?" }
     ];
@@ -3315,6 +3762,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     let dialogResolve = null;
 
     function showDialog({ title = '', message = '', confirmText = 'OK', cancelText = null }) {
+        haptic('nav');
         document.getElementById('appDialogTitle').innerText = title;
         document.getElementById('appDialogMessage').innerText = message;
         const confirmBtn = document.getElementById('appDialogConfirmBtn');
@@ -3527,6 +3975,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     let silenceTimer = null, maxCaptureTimer = null;
 
     async function openLivePanel() {
+        haptic('success');
         const liveOrb = document.getElementById('liveOrb');
         if (liveOrb && !liveOrb.getAttribute('src')) liveOrb.src = ORB_GIFS.idle; // decoded lazily: 60-frame gifs are tens of MB in memory
         document.getElementById('livePanel').classList.add('open');
@@ -4306,7 +4755,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         });
 
         // Keep Tab inside whichever dialog/menu is open, and return focus when it closes
-        const overlays = ['appDialog', 'ownerModal', 'hamburgerPanel'];
+        const overlays = ['appDialog', 'ownerModal', 'hamburgerPanel', 'studyOverlay'];
         const lastFocus = {};
         overlays.forEach(id => {
             const el = document.getElementById(id);
@@ -4326,7 +4775,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             }).observe(el, { attributes: true, attributeFilter: ['class'] });
         });
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') menuEscape();
+            if (e.key === 'Escape') { if (study) closeStudy(); else menuEscape(); }
             if (e.key !== 'Tab') return;
             const open = overlays.map(id => document.getElementById(id)).find(el => el?.classList.contains('open'));
             if (!open) return;
