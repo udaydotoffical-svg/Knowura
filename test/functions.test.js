@@ -65,3 +65,28 @@ test('passkey registration is locked down', () => {
     assert.equal(checkRegistrationAllowed({ headers: { 'x-setup-secret': 's3cret' } }, { id: 'k' }).statusCode, 403);
     assert.equal(checkRegistrationAllowed({ headers: { 'x-owner-token': owner.sign('owner-secret') } }, { id: 'k' }), null);
 });
+
+test('study tools: only offered for quiz/flashcard talk, and model output is validated', () => {
+    assert.equal(ask.wantsStudyTools([{ role: 'user', content: 'make me a quiz on fractions' }]), true);
+    assert.equal(ask.wantsStudyTools([{ role: 'user', content: 'flash cards for biology please' }]), true);
+    assert.equal(ask.wantsStudyTools([{ role: 'user', content: 'explain photosynthesis' }]), false);
+
+    const good = ask.sanitizeStudy('create_quiz', JSON.stringify({
+        title: 'Fractions', questions: [
+            { question: '1/2 + 1/2 = ?', options: ['1', '2', '1/4'], answer_index: 0, explanation: 'Halves add to a whole.' },
+            { question: 'bad answer index', options: ['a', 'b'], answer_index: 5, explanation: '' },   // dropped
+            { question: 'too few options', options: ['only'], answer_index: 0, explanation: '' }        // dropped
+        ]
+    }));
+    assert.equal(good.type, 'quiz');
+    assert.equal(good.questions.length, 1);
+    assert.equal(good.questions[0].answer, 0);
+
+    const deck = ask.sanitizeStudy('create_flashcards', { title: 'Bio', cards: [{ front: 'Cell', back: 'Basic unit of life' }, { front: '', back: 'x' }] });
+    assert.equal(deck.type, 'flashcards');
+    assert.equal(deck.cards.length, 1);
+
+    assert.equal(ask.sanitizeStudy('create_quiz', 'not json'), null);
+    assert.equal(ask.sanitizeStudy('create_quiz', { title: 'x', questions: [] }), null);
+    assert.equal(ask.sanitizeStudy('rm_rf', { anything: 1 }), null);
+});
