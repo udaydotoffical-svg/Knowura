@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Preview</title>
+<body style="margin:0;background:#fff">
+<script>
+// Sandbox shell for Knowura's live preview. The chat page hands over the code once via postMessage;
+// document.open() then wipes this listener, so nothing else can inject after that.
+addEventListener('message', function (e) {
+    if (e.source !== parent || !e.data || typeof e.data.html !== 'string') return;
+    document.open();
+    document.write(e.data.html);
+    document.close();
+});
+parent.postMessage('kw-preview-ready', '*');
+</script>

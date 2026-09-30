@@ -30,3 +30,34 @@ test('incognito never writes to storage, memory or the cloud', () => {
     assert.match(fn('    function getMemory() {'), /incognito/);
     for (const f of ['    async function extractFacts(', '    async function maybeSummarize(', '    async function generateChatTitle(']) assert.match(fn(f), /if \(incognito\) return;/, f);
 });
+
+test('mini-code-boxz: code blocks become cards, the panel lives inside #app, highlighter is vendored locally', () => {
+    const h = pub('index.html');
+    assert.match(h, /<script src="assets\/vendor\/highlightjs\/highlight\.min\.js"/);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/vendor/highlightjs/highlight.min.js')));
+    assert.match(h, /\.replace\(\/<pre><code[^\n]*codeCardHTML\)/);
+    assert.match(h, /data-code="\$\{escaped\.replace\(\/"\/g, '&quot;'\)\}"/);
+    const app = h.slice(h.indexOf('<div id="app">'), h.indexOf('<div id="musicPanel"'));
+    assert.match(app, /<aside id="codeBox"/);
+});
+
+test('live preview loads pages in a sandboxed /preview page with its own CSP, and the main CSP stays strict', () => {
+    const h = pub('index.html');
+    const tag = h.match(/<iframe id="cbFrame"[^>]*>/)[0];
+    assert.match(tag, /sandbox="allow-scripts"/);
+    assert.doesNotMatch(tag, /allow-same-origin|allow-top-navigation|allow-popups|allow-forms/);
+    assert.match(pub('preview.html'), /e\.source !== parent/);
+    const vercel = require('../vercel.json');
+    const rule = vercel.headers.find(r => r.source === '/preview');
+    const csp = rule.headers.find(x => x.key === 'Content-Security-Policy').value;
+    for (const d of ["connect-src 'none'", "form-action 'none'", 'sandbox allow-scripts', "frame-ancestors 'self'", 'img-src https:', 'font-src https:']) assert.ok(csp.includes(d), d);
+    assert.match(csp, /script-src 'unsafe-inline' https:\/\/cdnjs\.cloudflare\.com/);
+    const main = vercel.headers[0];
+    assert.match(main.source, /\?!preview/);
+    const mainCsp = main.headers.find(x => x.key === 'Content-Security-Policy').value;
+    assert.match(mainCsp, /img-src 'self' data: blob: https:\/\/\*\.googleusercontent\.com;/);
+    assert.match(mainCsp, /frame-src 'self' https:\/\/accounts\.google\.com/);
+    const netlify = fs.readFileSync(path.join(__dirname, '..', 'netlify.toml'), 'utf8');
+    assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = "default-src 'none'/);
+    assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    Content-Security-Policy/);
+});

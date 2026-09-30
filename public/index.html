@@ -98,6 +98,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="assets/vendor/marked/marked.umd.js" defer></script>
     <script src="assets/vendor/dompurify/purify.min.js" defer></script>
+    <script src="assets/vendor/highlightjs/highlight.min.js" defer></script>
     <script src="assets/vendor/simplewebauthn/index.umd.min.js" defer></script>
 
 </head>
@@ -552,6 +553,68 @@
             display: inline;
             color: var(--cyan);
             font-size: 0.9em;
+        }
+
+        /* ─── MINI-CODE-BOXZ: code blocks become a card in the chat; the code opens in a side panel (desktop) or over the chat (phone) ─── */
+        .cb-card {
+            display: flex; align-items: center; gap: 12px; width: 100%; min-width: 240px; max-width: 420px; margin: 10px 0; padding: 10px 12px;
+            text-align: left; font: inherit; color: var(--text); cursor: pointer;
+            background: #00040a; border: 2px solid var(--ink); border-radius: 12px; box-shadow: 2px 2px 0 rgba(34,229,255,0.25);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.15s ease;
+        }
+        .cb-card:hover { border-color: var(--cyan); }
+        .cb-card:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgba(34,229,255,0.25); }
+        .cb-card.active { border-color: var(--cyan); }
+        .cb-ic { flex: none; width: 38px; height: 38px; display: grid; place-items: center; padding: 6px; border-radius: 10px; background: #eef3ff; box-sizing: border-box; }
+        .cb-ic svg, .cb-ic img { display: block; width: 100%; height: 100%; object-fit: contain; }
+        .cb-title { display: flex; align-items: center; gap: 10px; }
+        .cb-title .cb-ic { width: 28px; height: 28px; padding: 4px; border-radius: 8px; }
+        .cb-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .cb-meta b { font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cb-meta i { font-style: normal; font-size: 12px; color: var(--text-dim); }
+        .cb-open { flex: none; font-size: 12px; font-weight: 700; color: var(--cyan); }
+
+        .codebox {
+            display: none; flex-direction: column; min-width: 0; overflow: hidden;
+            flex: 0 0 min(50%, 720px);
+            background: #00040a; border: 3px solid var(--ink); border-radius: 20px; box-shadow: var(--shadow-lg);
+        }
+        #app.cb-open .codebox { display: flex; }
+        .cb-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 2px solid var(--ink); background: rgba(34,229,255,0.06); flex: none; }
+        .cb-title { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cb-title small { font-weight: 400; color: var(--text-dim); margin-left: 8px; }
+        .cb-act { flex: none; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; color: var(--cyan); background: rgba(34,229,255,0.1); border: 1px solid rgba(34,229,255,0.4); border-radius: 8px; cursor: pointer; }
+        .cb-act:hover { background: rgba(34,229,255,0.2); }
+        .cb-act .icon { width: 17px; height: 17px; }
+        .cb-body { flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; padding: 12px 0; }
+        .cb-code { margin: 0; padding: 0; background: transparent; border: 0; box-shadow: none; min-width: max-content; }
+        .cb-code code { display: block; white-space: pre; font-family: 'Geist Pixel', 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #d6e4ff; background: transparent; padding: 0; }
+        .cb-line { display: block; padding: 0 16px 0 0; }
+        .cb-line::before { content: attr(data-n); display: inline-block; width: 3.2em; padding-right: 1em; text-align: right; color: rgba(143,166,204,0.45); user-select: none; -webkit-user-select: none; }
+        .cb-code .hljs-comment, .cb-code .hljs-quote { color: #6b7d9c; font-style: italic; }
+        .cb-code .hljs-keyword, .cb-code .hljs-selector-tag, .cb-code .hljs-literal, .cb-code .hljs-doctag { color: #ff7ab8; }
+        .cb-code .hljs-string, .cb-code .hljs-regexp, .cb-code .hljs-addition, .cb-code .hljs-meta .hljs-string { color: #9dffb0; }
+        .cb-code .hljs-number, .cb-code .hljs-symbol, .cb-code .hljs-bullet { color: #ffc46b; }
+        .cb-code .hljs-title, .cb-code .hljs-section, .cb-code .hljs-title.function_ { color: #22e5ff; }
+        .cb-code .hljs-built_in, .cb-code .hljs-type, .cb-code .hljs-class .hljs-title, .cb-code .hljs-title.class_ { color: #b69bff; }
+        .cb-code .hljs-attr, .cb-code .hljs-attribute, .cb-code .hljs-variable, .cb-code .hljs-template-variable, .cb-code .hljs-property { color: #7fb4ff; }
+        .cb-code .hljs-name, .cb-code .hljs-tag, .cb-code .hljs-selector-id, .cb-code .hljs-selector-class, .cb-code .hljs-deletion { color: #ff8f8f; }
+        .cb-code .hljs-meta { color: #8fa6cc; }
+        .cb-code .hljs-emphasis { font-style: italic; }
+        .cb-code .hljs-strong { font-weight: 700; }
+
+        .cb-tabs { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 2px solid var(--ink); flex: none; }
+        .cb-tabs[hidden] { display: none; }
+        .cb-tabs button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 700; color: var(--text-dim); background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+        .cb-tabs button .icon { width: 15px; height: 15px; }
+        .cb-tabs button.on { color: var(--cyan); background: rgba(34,229,255,0.12); border-color: rgba(34,229,255,0.4); }
+        .cb-frame { display: none; flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
+        .codebox.prev .cb-body { display: none; }
+        .codebox.prev .cb-frame { display: block; }
+        @media (min-width: 681px) and (max-width: 1500px) { #app.cb-open .sidebar { display: none; } }
+        @media (max-width: 680px) {
+            .codebox { position: fixed; inset: 8px; z-index: 170; flex: none; }
+            .cb-code code { font-size: 12px; }
         }
 
         /* ─── SKELETON LOADERS (reply placeholder + cloud chat load) ─── */
@@ -1584,6 +1647,10 @@
             <symbol id="icon-phone" viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.3 21 3 13.7 3 4.7c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z" fill="currentColor"/></symbol>
             <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2.3"/><line x1="16" y1="16" x2="21" y2="21" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></symbol>
             <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M12 3 22 20H2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></symbol>
+            <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></symbol>
+            <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+            <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2" fill="none"/></symbol>
+            <symbol id="icon-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
             <symbol id="icon-check" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
             <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
             <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10" width="2" height="7" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/></symbol>
@@ -1675,7 +1742,7 @@
                 <svg class="icon"><use href="#icon-sidebar"/></svg>
             </button>
             <div id="incognitoBanner" class="incognito-banner" hidden role="status"><span>🕶️ Incognito — not saved, not remembered</span><button type="button" onclick="setIncognito(false)">Exit</button></div>
-            <div id="chat-box" role="log" aria-live="polite" aria-label="Conversation"></div>
+            <div id="chat-box" role="log" aria-live="polite" aria-label="Conversation" onclick="codeBoxClick(event)"></div>
             <div class="input-area">
                 <div class="prompt-bar" id="promptBar">
                     <div class="pb-menu" id="pbMenu" role="listbox" hidden></div>
@@ -1731,7 +1798,22 @@
                 </div>
             </div>
     </div>
+    <aside id="codeBox" class="codebox" role="complementary" aria-label="Code viewer">
+        <div class="cb-top">
+            <div class="cb-title" id="cbTitle">Code</div>
+            <button type="button" class="cb-act" onclick="copyCodeBox(this)" title="Copy code" aria-label="Copy code"><svg class="icon"><use href="#icon-copy"/></svg></button>
+            <button type="button" class="cb-act" onclick="downloadCodeBox()" title="Download file" aria-label="Download file"><svg class="icon"><use href="#icon-download"/></svg></button>
+            <button type="button" class="cb-act" onclick="closeCodeBox()" title="Close" aria-label="Close code viewer"><svg class="icon"><use href="#icon-x"/></svg></button>
+        </div>
+        <div class="cb-tabs" id="cbTabs" hidden>
+            <button type="button" data-tab="preview" onclick="cbTab('preview')"><svg class="icon"><use href="#icon-eye"/></svg> Preview</button>
+            <button type="button" data-tab="code" onclick="cbTab('code')"><svg class="icon"><use href="#icon-code"/></svg> Code</button>
+        </div>
+        <div class="cb-body"><pre class="cb-code"><code id="cbCode"></code></pre></div>
+        <iframe id="cbFrame" class="cb-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Live preview" src="about:blank"></iframe>
+    </aside>
     </div>
+
 
     <div id="musicPanel" class="music-panel">
             <div class="now-playing">
@@ -2841,8 +2923,134 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function renderMarkdown(md) {
         const html = marked.parse(md);
         const safe = window.DOMPurify ? DOMPurify.sanitize(html) : escapeHtmlFallback(md);
-        return safe.replace(/<table>/g, '<div class="table-scroll"><table>').replace(/<\/table>/g, '</table></div>');
+        return safe.replace(/<table>/g, '<div class="table-scroll"><table>').replace(/<\/table>/g, '</table></div>')
+            .replace(/<pre><code(?: class="language-([\w+#.-]{1,20})")?>([\s\S]*?)<\/code><\/pre>/g, codeCardHTML);
     }
+
+    // ─── MINI-CODE-BOXZ ──────────────────────────────────────────────────
+    // Fenced code turns into a small card; the (already-escaped) code rides along in a data
+    // attribute, so saved chats keep working and the panel needs no separate storage.
+    const CB_LANGS = { js: 'JavaScript', javascript: 'JavaScript', ts: 'TypeScript', typescript: 'TypeScript', py: 'Python', python: 'Python', html: 'HTML', xml: 'HTML', css: 'CSS', json: 'JSON', java: 'Java', c: 'C', cpp: 'C++', 'c++': 'C++', cs: 'C#', 'c#': 'C#', go: 'Go', rust: 'Rust', rs: 'Rust', php: 'PHP', ruby: 'Ruby', rb: 'Ruby', sql: 'SQL', bash: 'Bash', sh: 'Shell', shell: 'Shell', kotlin: 'Kotlin', swift: 'Swift', yaml: 'YAML', yml: 'YAML', md: 'Markdown', markdown: 'Markdown', svg: 'SVG', htm: 'HTML', ino: 'Arduino', arduino: 'Arduino' };
+    const CB_EXT = { JavaScript: 'js', TypeScript: 'ts', Python: 'py', HTML: 'html', CSS: 'css', JSON: 'json', Java: 'java', C: 'c', 'C++': 'cpp', 'C#': 'cs', Go: 'go', Rust: 'rs', PHP: 'php', Ruby: 'rb', SQL: 'sql', Bash: 'sh', Shell: 'sh', Kotlin: 'kt', Swift: 'swift', YAML: 'yml', Markdown: 'md', Arduino: 'ino' };
+    // Official language logos (devicon, MIT) served from our own domain.
+    const CB_LOGO = { JavaScript: 'javascript', TypeScript: 'typescript', Python: 'python', HTML: 'html', CSS: 'css', JSON: 'json', Java: 'java', C: 'c', 'C++': 'cpp', 'C#': 'csharp', Go: 'go', Rust: 'rust', PHP: 'php', Ruby: 'ruby', SQL: 'sql', Bash: 'bash', Shell: 'bash', Kotlin: 'kotlin', Swift: 'swift', YAML: 'yaml', Markdown: 'markdown', Arduino: 'arduino' };
+    const CB_GENERIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5" fill="none" stroke="#0a2a44" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const cbIcon = (name) => CB_LOGO[name] ? `<img src="assets/vendor/devicon/${CB_LOGO[name]}.svg" alt="" draggable="false">` : CB_GENERIC;
+    function cbLangName(lang) { const k = (lang || '').toLowerCase(); return CB_LANGS[k] || (k ? k.toUpperCase() : 'Code'); }
+    function codeCardHTML(_m, lang, escaped) {
+        if (!lang && /^\s*(&lt;!doctype html|&lt;html)/i.test(escaped)) lang = 'html';
+        const name = cbLangName(lang);
+        const canPreview = name === 'HTML' || name === 'SVG' || name === 'Markdown';
+        const lines = escaped.replace(/\n$/, '').split('\n').length;
+                return `<button type="button" class="cb-card" data-lang="${lang || ''}" data-code="${escaped.replace(/"/g, '&quot;')}"><span class="cb-ic">${cbIcon(name)}</span><span class="cb-meta"><b>${name} snippet</b><i>${lines} line${lines === 1 ? '' : 's'}</i></span><span class="cb-open">${canPreview ? "Preview" : "Open"}</span></button>`;
+    }
+
+    // Highlighted HTML split per line, re-opening any span that runs across a line break.
+    function cbLines(html) {
+        const out = [];
+        let open = [];
+        for (const line of html.replace(/\n$/, '').split('\n')) {
+            let s = open.join('') + line;
+            for (const t of line.match(/<span[^>]*>|<\/span>/g) || []) t === '</span>' ? open.pop() : open.push(t);
+            out.push(s + '</span>'.repeat(open.length));
+        }
+        return out;
+    }
+
+    // Live preview: only HTML, SVG and Markdown. It renders inside /preview, a separate page whose own CSP lets
+    // pages load images, fonts, stylesheets and the popular CDN libraries but blocks fetch/XHR/forms, and which is
+    // sandboxed to an opaque origin (no cookies, storage or access to this page).
+    function cbKind(name, raw) {
+        if (name === 'SVG' || (name === 'HTML' && /^\s*<svg[\s>]/i.test(raw))) return 'svg';
+        if (name === 'HTML') return 'html';
+        if (name === 'Markdown') return 'md';
+        return null;
+    }
+    function cbSiblings(card, langName) {
+        const scope = card.closest('.msg') || card.parentElement;
+        return [...scope.querySelectorAll('.cb-card')].filter(c => c !== card && cbLangName(c.dataset.lang) === langName).map(c => c.dataset.code || '');
+    }
+    function cbSrcdoc(kind, raw, card) {
+        if (kind === 'svg') return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">${raw}</body></html>`;
+        if (kind === 'md') {
+            const body = window.DOMPurify && window.marked ? DOMPurify.sanitize(marked.parse(raw)) : '';
+            return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:0 auto;padding:20px;color:#1a1a1a}pre,code{background:#f3f4f6;border-radius:6px}pre{padding:12px;overflow:auto}code{padding:2px 5px}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px}blockquote{border-left:4px solid #ccc;margin:0;padding-left:14px;color:#555}</style></head><body>${body}</body></html>`;
+        }
+        let html = raw;
+        const css = cbSiblings(card, 'CSS'), js = cbSiblings(card, 'JavaScript');
+        if (css.length) html = html.replace(/<link\b[^>]*href=["'][^"']+\.css["'][^>]*>/gi, () => `<style>${css.join('\n')}</style>`);
+        if (js.length) html = html.replace(/<script\b[^>]*\bsrc=["'][^"']+\.js["'][^>]*>\s*<\/script>/gi, () => `<script>${js.join('\n').replace(/<\/script/gi, '<\\/script')}<\/script>`);
+        if (/<html[\s>]/i.test(html) || /<!doctype/i.test(html)) return html;
+        return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${html}</body></html>`;
+    }
+    function cbTab(t) {
+        const box = document.getElementById('codeBox');
+        box.classList.toggle('prev', t === 'preview');
+        document.querySelectorAll('#cbTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    }
+
+    let cbCurrent = null, cbPending = null, cbLoads = 0;
+    window.addEventListener('message', (e) => {
+        const f = document.getElementById('cbFrame');
+        if (e.source !== f.contentWindow || e.data !== 'kw-preview-ready' || cbPending == null) return;
+        f.contentWindow.postMessage({ html: cbPending }, '*');
+        cbPending = null;
+    });
+    function openCodeBox(card) {
+        const raw = card.dataset.code || '';
+        const lang = card.dataset.lang || '';
+        const name = cbLangName(lang);
+        let html;
+        try {
+            const h = window.hljs;
+            html = h && lang && h.getLanguage(lang.toLowerCase()) ? h.highlight(raw, { language: lang.toLowerCase(), ignoreIllegals: true }).value
+                : h ? h.highlightAuto(raw).value : null;
+        } catch (e) { html = null; }
+        if (html == null) html = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const lines = cbLines(html);
+        document.getElementById('cbCode').innerHTML = lines.map((l, i) => `<span class="cb-line" data-n="${i + 1}">${l || ' '}</span>`).join('');
+        document.getElementById('cbTitle').innerHTML = `<span class="cb-ic">${cbIcon(name)}</span>${name}<small>${lines.length} line${lines.length === 1 ? "" : "s"}</small>`;
+        cbCurrent = { raw, name };
+        const kind = cbKind(name, raw);
+        const frame = document.getElementById('cbFrame');
+        document.getElementById('cbTabs').hidden = !kind;
+        if (kind) { cbPending = cbSrcdoc(kind, raw, card); frame.src = `/preview?${++cbLoads}`; cbTab('preview'); }
+        else { cbPending = null; frame.src = 'about:blank'; cbTab('code'); }
+        document.querySelectorAll('.cb-card.active').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        document.getElementById('app').classList.add('cb-open');
+        document.querySelector('#codeBox .cb-body').scrollTop = 0;
+    }
+    function closeCodeBox() {
+        document.getElementById('app').classList.remove('cb-open');
+        document.querySelectorAll('.cb-card.active').forEach(c => c.classList.remove('active'));
+        cbCurrent = null;
+        cbPending = null;
+        document.getElementById('cbFrame').src = 'about:blank';
+    }
+    function codeBoxClick(e) {
+        const card = e.target.closest?.('.cb-card');
+        if (card) openCodeBox(card);
+    }
+    function copyCodeBox(btn) {
+        if (!cbCurrent) return;
+        navigator.clipboard?.writeText(cbCurrent.raw).then(() => {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<svg class="icon"><use href="#icon-check"/></svg>';
+            setTimeout(() => { btn.innerHTML = orig; }, 1400);
+        }).catch(() => {});
+    }
+    function downloadCodeBox() {
+        if (!cbCurrent) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([cbCurrent.raw], { type: 'text/plain' }));
+        a.download = `knowura-code.${CB_EXT[cbCurrent.name] || 'txt'}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && cbCurrent && !document.querySelector('.study-overlay.open, .limit-overlay.open')) closeCodeBox();
+    });
     function escapeHtmlFallback(text) {
         const d = document.createElement('div');
         d.textContent = text;
@@ -3086,7 +3294,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         finishTyping();
         // Only the OS "reduce motion" setting skips it — Lite-mode phones still get the light text-only effect + haptics.
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-        const targets = [...root.children].filter(el => !el.matches('details.reasoning, .study-chip'));
+        const targets = [...root.children].filter(el => !el.matches('details.reasoning, .study-chip, .cb-card'));
         const nodes = [];
         for (const el of targets) {
             const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -3663,6 +3871,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         chatStore.chats = chatStore.chats.filter(c => c.messages && c.messages.length);
         chatStore.activeChatId = null;
         saveChatStore();
+        closeCodeBox();
         renderActiveChat();
         renderChatList();
         closeSidebarMobile();
@@ -3673,6 +3882,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (id === chatStore.activeChatId) { closeSidebarMobile(); return; }
         chatStore.activeChatId = id;
         saveChatStore();
+        closeCodeBox();
         renderActiveChat();
         renderChatList();
         closeSidebarMobile();
