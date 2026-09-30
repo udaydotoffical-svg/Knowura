@@ -103,6 +103,6 @@ function studyBlurb(study) {
         : `Here's your **${study.title}** flashcard deck — ${study.cards.length} card${study.cards.length === 1 ? "" : "s"}. Flip through them and mark what you know.`;
 }
 
-const STUDY_PROMPT = ` You can make interactive study tools that pop up on the user's screen: call create_quiz for quizzes / tests / practice questions and create_flashcards for flashcards / study cards. Use them only when the user asks for one (if they haven't said the topic yet, ask first). After creating one, reply with a short friendly line — don't repeat the questions or cards in text.`;
+const STUDY_PROMPT = ` When asked, you can build a quiz (create_quiz) or flashcards (create_flashcards) that pop up for the user; get the topic first if it's missing, then reply with one short friendly line.`;
 
 module.exports = { STUDY_TOOLS, STUDY_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb };

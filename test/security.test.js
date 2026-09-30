@@ -257,3 +257,33 @@ test('chat-load renews owner mode only for the owner account', async () => {
     assert.ok(ownerBody.ownerToken && owner.verify(ownerBody.ownerToken, 'owner-secret'));
     assert.equal((await call('random-sub')).ownerToken, undefined);
 });
+
+
+test('the everyday system prompt has nothing secret in it for the thinking panel to reveal', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'functions', 'ask-ai.js'), 'utf8');
+    const base = src.slice(src.indexOf('const baseSystemPrompt = `'), src.indexOf('const ownerSystemPrompt = `'));
+    assert.ok(base.length > 100);
+    assert.doesNotMatch(base, /hidden|secret|owner|unlock|security key|password|clueless|never|must|instruction|policy|rule|refuse|reveal/i);
+    assert.ok(base.length < 400, 'keep the everyday prompt short so the model has little to echo');
+    assert.match(src, /reasoning/); // thinking still passes through untouched (no redaction step)
+    assert.equal(require('fs').existsSync(require('path').join(__dirname, '..', 'functions', '_redact.js')), false);
+});
+
+
+test('memory notes and web results travel as user text, never inside the system prompt', () => {
+    const msgs = askAi._test.buildMessages('SYS', 'About me: likes chemistry', [{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }, { role: 'user', content: 'latest news?' }], '\n\n[Web results]');
+    assert.equal(msgs[0].content, 'SYS');
+    assert.equal(msgs[1].role, 'user');
+    assert.match(msgs[1].content, /chemistry/);
+    assert.match(msgs[msgs.length - 1].content, /latest news\?\n\n\[Web results\]/);
+    assert.equal(msgs[2].content, 'hi');                 // earlier turns untouched
+    assert.doesNotMatch(msgs[0].content, /chemistry|Web results/);
+});
+
+
+test('the creator is only named when asked, not volunteered', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'functions', 'ask-ai.js'), 'utf8');
+    const base = src.slice(src.indexOf('const baseSystemPrompt = `'), src.indexOf('const ownerSystemPrompt = `'));
+    assert.match(base, /^const baseSystemPrompt = `You are Knowura, an AI study helper\./);   // identity first, no name-drop
+    assert.match(base, /If someone asks who made you/);
+});
