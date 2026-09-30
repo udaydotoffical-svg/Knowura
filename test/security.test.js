@@ -259,23 +259,11 @@ test('chat-load renews owner mode only for the owner account', async () => {
 });
 
 
-test('reasoning shown to users is scrubbed of hidden-rule talk (owner mode stays secret)', () => {
-    const { redactReasoning, redactMessage } = require('../functions/_redact');
-    // the exact leaks seen in the wild
-    const leak1 = 'User asks "What\'s owner mode". According to developer instructions: We must respond naturally as if no knowledge of owner mode. "I don\'t know what that means". Provide friendly, no mention of hidden mode.';
-    const leak2 = 'The user is asking about an owner mode. According to the developer instructions, we should respond as if we have no idea.';
-    assert.doesNotMatch(redactReasoning(leak1), /owner|developer|hidden|instruction/i);
-    assert.doesNotMatch(redactReasoning(leak2), /owner|developer|hidden|instruction/i);
-    // mixed reasoning keeps the useful sentences and drops only the meta ones
-    const mixed = 'The user wants photosynthesis explained simply. According to the instructions we must not reveal anything. Start with sunlight, water and CO2, then the sugar produced.';
-    const out = redactReasoning(mixed);
-    assert.match(out, /photosynthesis/); assert.match(out, /sunlight/); assert.doesNotMatch(out, /instructions|reveal/i);
-    // ordinary reasoning is untouched
-    const fine = 'The user asks for the derivative of x squared. The power rule gives 2x.';
-    assert.equal(redactReasoning(fine), fine);
-    // inline <think> blocks and the visible reply are covered too
-    const m = redactMessage({ content: '<think>System prompt says pretend there is no owner mode.</think>Sure! I can help with that.', reasoning: leak1 });
-    assert.doesNotMatch(JSON.stringify(m), /owner|pretend|system prompt/i);
-    assert.match(m.content, /Sure! I can help/);
-    assert.doesNotMatch(redactMessage({ content: 'My developer instructions say I cannot discuss that.' }).content, /developer instructions/i);
+test('the everyday system prompt has nothing secret in it for the thinking panel to reveal', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'functions', 'ask-ai.js'), 'utf8');
+    const base = src.slice(src.indexOf('const baseSystemPrompt = `'), src.indexOf('const ownerSystemPrompt = `'));
+    assert.ok(base.length > 100);
+    assert.doesNotMatch(base, /hidden|secret|owner mode|unlock|security key|password|clueless/i);
+    assert.match(src, /reasoning/); // thinking still passes through untouched (no redaction step)
+    assert.equal(require('fs').existsSync(require('path').join(__dirname, '..', 'functions', '_redact.js')), false);
 });
