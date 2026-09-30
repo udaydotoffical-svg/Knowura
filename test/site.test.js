@@ -30,3 +30,13 @@ test('incognito never writes to storage, memory or the cloud', () => {
     assert.match(fn('    function getMemory() {'), /incognito/);
     for (const f of ['    async function extractFacts(', '    async function maybeSummarize(', '    async function generateChatTitle(']) assert.match(fn(f), /if \(incognito\) return;/, f);
 });
+
+test('mini-code-boxz: code blocks become cards, the panel lives inside #app, highlighter is vendored locally', () => {
+    const h = pub('index.html');
+    assert.match(h, /<script src="assets\/vendor\/highlightjs\/highlight\.min\.js"/);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/vendor/highlightjs/highlight.min.js')));
+    assert.match(h, /\.replace\(\/<pre><code[^\n]*codeCardHTML\)/);
+    assert.match(h, /data-code="\$\{escaped\.replace\(\/"\/g, '&quot;'\)\}"/);
+    const app = h.slice(h.indexOf('<div id="app">'), h.indexOf('<div id="musicPanel"'));
+    assert.match(app, /<aside id="codeBox"/);
+});
