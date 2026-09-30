@@ -1277,6 +1277,45 @@
         @media (prefers-reduced-motion: reduce) { .fc-inner, .score-ring .fill, .study-progress i { transition: none; } .q-opt.wrong { animation: none; } .confetti { display: none; } }
         @media (max-width: 520px) { .study-overlay { padding: 8px; } .study-body { padding: 14px 14px 18px; } .study-top { padding: 14px 14px 8px; } }
 
+        /* ─── LIMIT REACHED pop-up ─── */
+        .limit-overlay {
+            display: none; position: fixed; inset: 0; z-index: 195; align-items: center; justify-content: center; padding: 16px;
+            background: rgba(3,6,14,0.66); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+        }
+        .limit-overlay.open { display: flex; animation: studyFade 0.22s ease; }
+        .limit-card {
+            position: relative; width: 100%; max-width: 420px; text-align: center; padding: 30px 24px 22px; border-radius: 24px; overflow: hidden;
+            background: var(--panel-strong); border: 3px solid var(--ink); box-shadow: var(--shadow-lg);
+            animation: cardIn 0.32s cubic-bezier(.16,1,.3,1);
+        }
+        .limit-card::before {
+            content: ''; position: absolute; inset: -60%; z-index: 0; opacity: 0.55;
+            background: conic-gradient(from 0deg, transparent 0 60%, rgba(34,229,255,0.55), rgba(47,107,255,0.55), transparent 90%);
+            animation: limitSpin 6s linear infinite;
+        }
+        .limit-card::after { content: ''; position: absolute; inset: 3px; z-index: 0; border-radius: 20px; background: var(--panel-strong); }
+        .limit-card > * { position: relative; z-index: 1; }
+        @keyframes limitSpin { to { transform: rotate(360deg); } }
+        .limit-ring { position: relative; width: 132px; height: 132px; margin: 0 auto 14px; }
+        .limit-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .limit-ring circle { fill: none; stroke-width: 8; stroke-linecap: round; }
+        .limit-ring .track { stroke: rgba(255,255,255,0.12); }
+        .limit-ring .fill { stroke: var(--owner); stroke-dasharray: 339.3; stroke-dashoffset: 0; transition: stroke-dashoffset 0.9s linear, stroke 0.4s ease; }
+        .limit-ring.ready .fill { stroke: #19c37d; }
+        .limit-bolt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 46px; animation: limitBob 2.2s ease-in-out infinite; }
+        @keyframes limitBob { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-5px) scale(1.06); } }
+        .limit-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+        .limit-card p { font-size: 14.5px; line-height: 1.5; color: var(--text-dim); margin: 0 auto 14px; max-width: 320px; }
+        .limit-count { font-size: 34px; font-weight: 800; letter-spacing: 1px; font-variant-numeric: tabular-nums; color: var(--cyan); }
+        .limit-count-sub { font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin: 2px 0 16px; }
+        .limit-perks { display: flex; flex-direction: column; gap: 5px; margin: 0 auto 16px; padding: 11px 14px; max-width: 320px; text-align: left; font-size: 13px; font-weight: 600; border: 2.5px solid var(--ink); border-radius: 13px; background: rgba(34,229,255,0.09); }
+        .limit-perks[hidden] { display: none; }
+        .limit-actions { display: flex; flex-direction: column; gap: 9px; }
+        .limit-actions .btn-ui { justify-content: center; width: 100%; }
+        .limit-cta { background: linear-gradient(135deg, var(--blue), var(--cyan)); color: #001018; font-weight: 800; }
+        .limit-actions [hidden] { display: none !important; }
+        @media (prefers-reduced-motion: reduce) { .limit-card::before, .limit-bolt { animation: none; } .limit-ring .fill { transition: none; } }
+
         a.menu-link { text-decoration: none; }
         .skip-link {
             position: fixed; left: 12px; top: -64px; z-index: 2147483001; padding: 10px 16px; border-radius: 10px;
@@ -1917,6 +1956,24 @@
         </div>
     </div>
 
+    <div id="limitOverlay" class="limit-overlay" role="dialog" aria-modal="true" aria-labelledby="limitTitle" onclick="if (event.target === this) closeLimit()">
+        <div class="limit-card">
+            <div class="limit-ring" id="limitRing">
+                <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="54"/><circle class="fill" id="limitFill" cx="60" cy="60" r="54"/></svg>
+                <div class="limit-bolt" id="limitIcon" aria-hidden="true">⚡</div>
+            </div>
+            <h2 id="limitTitle">Limit reached</h2>
+            <p id="limitText"></p>
+            <div class="limit-count" id="limitCount" aria-live="off">--:--:--</div>
+            <div class="limit-count-sub" id="limitCountSub">until your messages refill</div>
+            <div class="limit-perks" id="limitPerks" hidden></div>
+            <div class="limit-actions">
+                <button type="button" class="btn-ui limit-cta" id="limitSignIn" onclick="limitSignIn()" hidden>Continue with Google</button>
+                <button type="button" class="btn-ui" id="limitClose" onclick="closeLimit()">Got it</button>
+            </div>
+        </div>
+    </div>
+
     <div id="appDialog" class="owner-modal" onclick="if (event.target === this) dialogCancel()">
     <div class="owner-modal-card app-dialog-card">
             <div class="app-dialog-icon"><svg class="icon"><use href="#icon-x"/></svg></div>
@@ -2248,8 +2305,8 @@
         applyWakeWordSetting();
     }
 
-    async function logOut() {
-        if (!(await showConfirm('Log out of Knowura?', 'Log Out', 'Log Out', 'Cancel'))) return;
+    async function logOut(skipConfirm = false) {
+        if (skipConfirm !== true && !(await showConfirm('Log out of Knowura?', 'Log Out', 'Log Out', 'Cancel'))) return;
         document.getElementById('hamburgerPanel')?.classList.remove('open');
         endCall();
         stopWakeListener();
@@ -2369,9 +2426,18 @@
     // On a device that's actually yours, an unlock is remembered (localStorage) across
     // refreshes until the token's own 4h expiry — no need to re-key/re-type every reload.
     // Check "This isn't my PC" to skip that and only stay unlocked for this tab.
+    // Owner mode always runs as Uday — even when the visit started as a guest or another account.
+    function applyOwnerIdentity() {
+        currentUser = 'Uday';
+        const nameEl = document.getElementById('user-display');
+        if (nameEl) nameEl.innerText = 'Uday';
+        if (document.querySelector('#chat-box .empty-state')) renderEmptyState(); // refresh "Hi, …"
+    }
+
     function setOwnerUnlocked(token) {
         ownerMode = true;
         ownerToken = token;
+        applyOwnerIdentity();
         document.getElementById('owner-badge').style.display = 'inline-block';
         document.getElementById('sidebar')?.classList.add('owner-mode');
         document.getElementById('ownerBtn').style.display = 'none';
@@ -2397,6 +2463,21 @@
             document.getElementById('owner-badge').style.display = 'inline-block';
             document.getElementById('sidebar')?.classList.add('owner-mode');
             document.getElementById('ownerBtn').style.display = 'none';
+            const startup = document.getElementById('startup');
+            const alreadyInApp = startup.style.display === 'none';
+            currentUser = 'Uday';
+            document.getElementById('user-display').innerText = 'Uday';
+            if (!alreadyInApp) {
+                // No saved session but a valid owner token: sign straight in as the owner.
+                startup.style.display = 'none';
+                const app = document.getElementById('app');
+                app.style.display = 'flex';
+                app.style.opacity = '1';
+                landOnChat();
+                if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
+            } else if (document.querySelector('#chat-box .empty-state')) {
+                renderEmptyState();
+            }
         } catch (e) { /* ignore — just stays locked */ }
     }
 
@@ -2518,6 +2599,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    kind: 'aux', ownerToken: ownerToken, token: userToken,
                     memory: {},
                     messages: [
                         {
@@ -2560,13 +2642,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (count % 10 !== 0) return;
 
         const history = getActiveChat()?.messages || [];
-        const recentText = history.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'Knowura'}: ${m.text.replace(/<[^>]+>/g, '')}`).join('\n');
+        const recentText = history.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'Knowura'}: ${htmlToText(m.text)}`).join('\n');
 
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    kind: 'aux', ownerToken: ownerToken, token: userToken,
                     memory: {},
                     messages: [
                         {
@@ -2601,6 +2684,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    kind: 'aux', ownerToken: ownerToken, token: userToken,
                     memory: {},
                     messages: [
                         {
@@ -2783,9 +2867,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             setUltraThinkMode(cmd);
         }
 
+        if (limitBlocked('message')) { showLimit(limitState); return; } // still counting down: don't send a doomed request
         finishTyping();
         if (performance.now() - lastSendHaptic > 400) haptic('send'); // Enter key / suggestion chips (the send button already buzzed on touch)
-        addBubble(text, 'user', true);
+        addBubble(userBubbleHTML(text), 'user', true);
         if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
         // Captured now (not later) so a background chat-title generation always
         // targets the chat this message actually landed in, even if the user
@@ -2835,6 +2920,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     messages: conversationMessages,
                     memory: getMemory(),
                     ownerToken: ownerToken,
+                    token: userToken,
                     ultraThink: ultraThinkMode,
                     model: settings.modelChoice,
                     effort: settings.effortLevel
@@ -2847,6 +2933,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 const errBody = await res.json().catch(() => null);
                 const err = new Error(errBody?.error || `Server error (${res.status})`);
                 err.userFacing = true;
+                if (errBody?.limitReached) { err.limit = errBody; }
                 throw err;
             }
 
@@ -2870,6 +2957,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${body}</details>`;
                 html += renderMarkdown(reply);
                 if (data.study) html += studyChipHTML(data.study);
+                noteUsage(data.usage);
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai');
                 if (data.study && !opts.fromVoice) setTimeout(() => openStudy(data.study), 900); // pop it up on screen
@@ -2901,6 +2989,18 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         } catch (e) {
             if (searchStageTimer) clearTimeout(searchStageTimer);
             if (e.name === 'AbortError') { thinking.remove(); return; }
+            if (e.limit) {
+                // Not answered: take the message back out of the chat (and into the box) so nothing is lost, and show the pop-up.
+                thinking.remove();
+                [...document.querySelectorAll('#chat-box .msg.user')].pop()?.remove();
+                const ch = getActiveChat();
+                if (ch?.messages.length && ch.messages[ch.messages.length - 1].type === 'user') { ch.messages.pop(); saveChatStore(); }
+                conversationMessages.pop();
+                if (providedText === undefined) { input.value = text; updateSendBtnUI(); }
+                showLimit(e.limit);
+                if (opts.fromVoice) endCall();
+                return;
+            }
             haptic('error');
             console.error(e);
             const reason = e.userFacing ? escapeHtml(e.message) : 'Couldn\'t reach Knowura. Check your connection and try again.';
@@ -3235,6 +3335,80 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     });
 
+    // A quiet heads-up (in the tips bar) when the daily message allowance is nearly used up.
+    function noteUsage(usage) {
+        if (!usage || typeof usage.remaining !== 'number' || usage.remaining > 3) return;
+        const el = document.getElementById('tipsText');
+        if (el) el.innerText = usage.remaining === 0 ? "That was your last message for now — more unlock in a few hours." : `${usage.remaining} message${usage.remaining === 1 ? '' : 's'} left for now.`;
+    }
+
+    // ─── LIMIT REACHED pop-up (the server decides; this only presents it) ─────────
+    // limitState is a convenience so we don't fire doomed requests while the countdown runs —
+    // the server enforces the limit on every request regardless of what this page says.
+    let limitState = null, limitTimer = null;
+
+    function fmtCountdown(sec) {
+        const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+        return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+    }
+    function limitBlocked(what) {
+        if (ownerMode || !limitState || limitState.what !== what) return false;
+        if (Date.now() >= limitState.until) { limitState = null; return false; }
+        return true;
+    }
+    function showLimit(info) {
+        if (ownerMode || !info) return;
+        const what = info.what === 'voice' ? 'voice' : 'message';
+        limitState = { ...info, what, until: Date.now() + Math.max(1, Number(info.resetIn) || 60) * 1000 };
+        const guest = info.audience === 'guest';
+        const hrs = Math.round((info.windowSeconds || 18000) / 3600);
+        const [icon, title] = what === 'voice' ? ['🎙️', 'Voice break!'] : guest ? ['⚡', 'You\'ve used your free messages'] : ['🧊', 'Cooling down…'];
+        document.getElementById('limitIcon').textContent = icon;
+        document.getElementById('limitTitle').textContent = title;
+        document.getElementById('limitText').textContent = guest
+            ? `You sent all ${info.limit} guest ${what === 'voice' ? 'voice turns' : 'messages'} for this ${hrs}-hour window. Sign in with Google to keep going — it's free.`
+            : `You've used all ${info.limit} ${what === 'voice' ? 'voice turns' : 'messages'} for this ${hrs}-hour window. Your allowance refills on its own, so take a breather and come back.`;
+        const perks = document.getElementById('limitPerks');
+        perks.hidden = !guest;
+        if (guest) perks.innerHTML = `<span>✓ ${escapeHtml(String(info.upgradeTo || 150))} ${what === 'voice' ? 'voice turns' : 'messages'} every ${hrs} hours</span><span>✓ Your chats saved to your account</span><span>✓ Pick up on any device</span>`;
+        document.getElementById('limitSignIn').hidden = !guest;
+        document.getElementById('limitClose').textContent = guest ? 'Maybe later' : 'Got it';
+        document.getElementById('limitCountSub').textContent = 'until your messages refill';
+        document.getElementById('limitRing').classList.remove('ready');
+        document.getElementById('limitOverlay').classList.add('open');
+        haptic('error');
+        clearInterval(limitTimer);
+        tickLimit();
+        limitTimer = setInterval(tickLimit, 1000);
+        setTimeout(() => (guest ? document.getElementById('limitSignIn') : document.getElementById('limitClose'))?.focus({ preventScroll: true }), 60);
+    }
+    function tickLimit() {
+        if (!limitState) { clearInterval(limitTimer); return; }
+        const left = Math.max(0, Math.ceil((limitState.until - Date.now()) / 1000));
+        const total = limitState.windowSeconds || 18000;
+        document.getElementById('limitCount').textContent = fmtCountdown(left);
+        document.getElementById('limitFill').style.strokeDashoffset = String(339.3 * (1 - Math.min(1, left / total)));
+        if (left <= 0) {
+            clearInterval(limitTimer);
+            document.getElementById('limitCount').textContent = '✓';
+            document.getElementById('limitCountSub').textContent = "You're back — send away!";
+            document.getElementById('limitRing').classList.add('ready');
+            document.getElementById('limitClose').textContent = "Let's go";
+            document.getElementById('limitSignIn').hidden = true;
+            limitState = null;
+            haptic('success');
+        }
+    }
+    function closeLimit() {
+        document.getElementById('limitOverlay')?.classList.remove('open');
+        clearInterval(limitTimer);
+    }
+    // "Continue with Google": back to the sign-in screen (guest chats stay on this device and can be imported).
+    function limitSignIn() {
+        closeLimit();
+        logOut(true);
+    }
+
     // ─── UI HELPERS ───────────────────────────────────────────────────────
 
     function addBubble(t, c, save) {
@@ -3352,9 +3526,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!chat || chat.messages.length === 0) {
             renderEmptyState();
         } else {
-            chat.messages.forEach(m => addBubble(m.text, m.type, false));
+            chat.messages.forEach(m => addBubble(safeHtml(m.text), m.type, false));
             chat.messages.slice(-10).forEach(m => {
-                conversationMessages.push({ role: m.type === 'user' ? 'user' : 'assistant', content: m.text.replace(/<[^>]+>/g, '') });
+                conversationMessages.push({ role: m.type === 'user' ? 'user' : 'assistant', content: htmlToText(m.text) });
             });
         }
         updateBadge();
@@ -3399,7 +3573,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (chat.messages.length > 60) chat.messages = chat.messages.slice(-60);
         chat.updatedAt = Date.now();
         if (type === 'user' && chat.title === 'New Chat') {
-            const plain = text.replace(/<[^>]+>/g, '').trim();
+            const plain = htmlToText(text).trim();
             chat.title = plain.length > 42 ? plain.slice(0, 42).trim() + '…' : (plain || 'New Chat');
         }
         saveChatStore();
@@ -3431,6 +3605,17 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+    // Plain text of an HTML string, parsed inertly (no scripts/handlers/images ever run).
+    function htmlToText(html) {
+        return new DOMParser().parseFromString(String(html ?? ''), 'text/html').body.textContent || '';
+    }
+    // What the user typed, made safe to drop into a bubble (never trust it as HTML).
+    function userBubbleHTML(text) { return escapeHtml(text).replace(/\n/g, '<br>'); }
+    // Saved chat HTML (local or from the cloud) is re-sanitized before it's shown again.
+    function safeHtml(html) {
+        if (!window.DOMPurify) return escapeHtml(htmlToText(html));
+        return DOMPurify.sanitize(String(html ?? ''), { ADD_TAGS: ['use'], ADD_ATTR: ['data-study', 'href'] });
     }
 
     function renameChat(id) {
@@ -3581,6 +3766,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (!res.ok) throw new Error('chat-load ' + res.status); // e.g. expired session — never treat as "new account"
             const data = await res.json();
             cloudLoadFailed = false;
+            if (data.ownerToken) setOwnerUnlocked(data.ownerToken); // keeps the owner's Google session in owner mode
             cloudBaseUpdatedAt = data.doc?.updatedAt || 0;
             if (data.found && data.doc) {
                 chatStore = {
@@ -3680,6 +3866,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             userToken = data.token;
             userProfile = data.profile;
             document.getElementById('user-display').innerText = currentUser;
+            if (data.ownerToken) setOwnerUnlocked(data.ownerToken); // the owner's own Google account goes straight into owner mode
             saveSession(currentUser, { mode: 'google', sub: userSub, sessionToken: userToken, email: data.profile.email, picture: data.profile.picture });
             enterApp();
         } catch (e) {
@@ -3694,7 +3881,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             userToken = null;
             userProfile = null;
             document.getElementById('user-display').innerText = "Guest";
-            saveSession(currentUser, { mode: 'guest' });
+            if (ownerMode) { currentUser = 'Uday'; document.getElementById('user-display').innerText = 'Uday'; }
+            else saveSession(currentUser, { mode: 'guest' });
         }
         document.getElementById('startup').style.opacity = '0';
         setTimeout(() => {
@@ -3983,9 +4171,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const res = await fetch("/.netlify/functions/transcribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ audio: base64, mimeType: blob.type })
+            body: JSON.stringify({ audio: base64, mimeType: blob.type, ownerToken: ownerToken, token: userToken })
         });
         const data = await res.json();
+        if (data.limitReached) { showLimit(data); endCall(); return ''; }
         return (data.text || '').trim();
     }
 
@@ -4195,12 +4384,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const res = await fetch("/.netlify/functions/speak", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({ text, ownerToken: ownerToken, token: userToken })
             });
             const raw = await res.text();
             let data;
             try { data = JSON.parse(raw); }
             catch (e) { throw new Error(`Non-JSON response from /speak (HTTP ${res.status}): ${raw.slice(0, 300)}`); }
+            if (data.limitReached) { showLimit(data); endCall(); return; }
             if (!data.audio) throw new Error(data.error || `No audio returned (HTTP ${res.status})`);
 
             currentReplyAudio = new Audio(`data:${data.mimeType || 'audio/wav'};base64,${data.audio}`);
@@ -4786,7 +4976,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         });
 
         // Keep Tab inside whichever dialog/menu is open, and return focus when it closes
-        const overlays = ['appDialog', 'ownerModal', 'hamburgerPanel', 'studyOverlay'];
+        const overlays = ['appDialog', 'ownerModal', 'hamburgerPanel', 'studyOverlay', 'limitOverlay'];
         const lastFocus = {};
         overlays.forEach(id => {
             const el = document.getElementById(id);
@@ -4806,7 +4996,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             }).observe(el, { attributes: true, attributeFilter: ['class'] });
         });
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { if (study) closeStudy(); else menuEscape(); }
+            if (e.key === 'Escape') { if (document.getElementById('limitOverlay')?.classList.contains('open')) closeLimit(); else if (study) closeStudy(); else menuEscape(); }
             if (e.key !== 'Tab') return;
             const open = overlays.map(id => document.getElementById(id)).find(el => el?.classList.contains('open'));
             if (!open) return;

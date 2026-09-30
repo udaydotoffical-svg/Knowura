@@ -1,7 +1,9 @@
 const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
 const { getPlatformStore } = require('./_store');
 const { sign } = require('./_ownerToken');
-const { json, preflight, rateLimit, tooMany, parseBody } = require('./_util');
+const { json, guard, readJson } = require('./_util');
+const { authAttempt } = require('./_limits');
+const { cleanCredentialResponse } = require('./_webauthnInput');
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
@@ -10,13 +12,16 @@ function store() {
 }
 
 exports.handler = async (event) => {
-    if (event.httpMethod === "OPTIONS") return preflight();
+    const early = guard(event);
+    if (early) return early;
     try {
-        const wait = rateLimit(event, "webauthn-login", 20, 60 * 1000);
-        if (wait) return tooMany(wait);
+        const limited = await authAttempt(event, 'webauthn-login-verify');
+        if (limited) return limited;
 
-        const body = parseBody(event);
-        if (!body) return json(400, { verified: false, error: "Malformed JSON" });
+        const { body, error } = readJson(event, 16 * 1024, { allowEmpty: false });
+        if (error) return error;
+        const credential = cleanCredentialResponse(body);
+        if (!credential) return json(400, { verified: false, error: "Malformed credential" });
 
         const stored = await store().get("login-challenge", { type: "json" });
         const cred = await store().get("owner-credential", { type: "json" });
@@ -26,7 +31,7 @@ exports.handler = async (event) => {
         await store().setJSON("login-challenge", { challenge: null, at: 0 }); // one-shot: no replays
 
         const verification = await verifyAuthenticationResponse({
-            response: body,
+            response: credential,
             expectedChallenge: stored.challenge,
             expectedOrigin: process.env.ORIGIN,
             expectedRPID: process.env.RP_ID,
@@ -39,7 +44,7 @@ exports.handler = async (event) => {
 
         if (verification.verified) {
             if (!process.env.OWNER_TOKEN_SECRET) {
-                return json(500, { verified: false, error: "Server is missing OWNER_TOKEN_SECRET — key verified but can't issue a session token." });
+                return json(500, { verified: false, error: "Server isn't fully configured." });
             }
             await store().setJSON("owner-credential", { ...cred, counter: verification.authenticationInfo.newCounter });
         }
@@ -49,6 +54,6 @@ exports.handler = async (event) => {
             token: verification.verified ? sign(process.env.OWNER_TOKEN_SECRET) : undefined
         });
     } catch (error) {
-        return json(401, { verified: false, error: error.message });
+        return json(401, { verified: false, error: "Verification failed." });
     }
 };

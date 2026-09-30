@@ -1,4 +1,10 @@
 node_modules/
 .netlify/
+.vercel/
 .env
-.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.DS_Store
