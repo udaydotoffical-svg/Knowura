@@ -1,22 +1,18 @@
 // Returns the live list of chat models Groq currently offers, for the model picker.
 const { getChatModels, DEFAULT_MODEL } = require('./_models');
-const { rateLimit, tooMany } = require('./_util');
+const { json, guard, readJson, rateLimit, tooMany } = require('./_util');
 
 exports.handler = async (event) => {
-    const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=300"
-    };
-    if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
+    const early = guard(event, ["GET", "POST"]);
+    if (early) return early;
     try {
+        const { error: badBody } = readJson(event, 1024); // these routes take no body — refuse anything large or malformed
+        if (badBody) return badBody;
         const wait = rateLimit(event, "models", 60, 60 * 1000);
         if (wait) return tooMany(wait);
         const models = await getChatModels();
-        return { statusCode: 200, headers, body: JSON.stringify({ models, defaultModel: DEFAULT_MODEL }) };
+        return json(200, { models, defaultModel: DEFAULT_MODEL }, { "Cache-Control": "public, max-age=300" });
     } catch (error) {
-        return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+        return json(500, { error: "Couldn't load models." });
     }
 };

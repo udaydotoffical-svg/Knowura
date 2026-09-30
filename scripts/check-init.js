@@ -72,6 +72,7 @@ const sandbox = {
     marked: { parse: (s) => s },
     MutationObserver: function () { return { observe() {}, disconnect() {} }; },
     NodeFilter: { SHOW_TEXT: 4 },
+    DOMParser: function () { return { parseFromString: (h) => ({ body: { textContent: String(h).replace(/<[^>]+>/g, '') } }) }; },
 };
 sandbox.window = sandbox;
 sandbox.document = fakeDocument;

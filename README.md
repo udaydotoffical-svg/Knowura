@@ -240,16 +240,29 @@ in — pick one or set up both:
 Both paths verify server-side in `ask-ai.js` via a signed token; there's no
 way to unlock owner mode by sending a raw flag from the browser.
 
-### Abuse protection
+### Security & abuse protection
 
-`ask-ai`, `transcribe`, `speak`, `models`, sign-in, and the owner-password and
-passkey endpoints are rate-limited per client IP (in-memory per function
-instance — it slows one client down but isn't a hard global cap; put a WAF or
-platform rate limit in front if you need one). Chat requests drop any
-client-supplied `system` messages and cap message count/size, and audio uploads
-are size-capped. Chat replies are sanitized with DOMPurify before rendering,
-and the front-end libraries (marked, DOMPurify, SimpleWebAuthn) are
-self-hosted in `public/assets/vendor/` rather than loaded from a CDN.
+- **Auth routes** (owner password, security-key login/registration, Google sign-in) allow
+  **5 attempts per 15 minutes per IP** (Google sign-in counts *failed* attempts, so a shared
+  school network isn't locked out). Counters live in the private storage so they hold across
+  serverless instances.
+- **Message limits** protect the API keys: a per-minute burst limit, a daily cap per person
+  (guest `LIMIT_GUEST_DAILY`, signed-in `LIMIT_USER_DAILY`, voice `LIMIT_VOICE_DAILY`), a small
+  cap for background helper calls, and a global daily circuit breaker (`LIMIT_GLOBAL_DAILY`).
+  **Owner mode is never limited.** See `.env.example` for defaults.
+- **Payloads:** every function requires the right method, same-origin browser calls (extra
+  origins via `ALLOWED_ORIGINS`), a JSON *object* within a byte budget, and validates each
+  field's type and length. Cloud chat documents are rebuilt from a whitelist before saving.
+  Client-supplied `system` messages are dropped; saved "memory" is fenced off as untrusted data.
+- **Rendering:** the user's own messages are escaped, and all saved/AI HTML is sanitized with
+  DOMPurify. The front-end libraries are self-hosted in `public/assets/vendor/`. A strict
+  Content-Security-Policy (plus HSTS, frame, referrer and permissions headers) is set in
+  `vercel.json` / `netlify.toml`.
+- **Secrets:** everything sensitive is an environment variable (`.env.example` lists them);
+  `.env*` is git-ignored and `npm run check:secrets` (also part of `npm test`) fails if a
+  credential-looking string is committed. The Google OAuth *client ID* in `index.html` is
+  public by design.
+
 Run the tests with `npm test`.
 
 ### 4. Run locally

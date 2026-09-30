@@ -2369,9 +2369,18 @@
     // On a device that's actually yours, an unlock is remembered (localStorage) across
     // refreshes until the token's own 4h expiry — no need to re-key/re-type every reload.
     // Check "This isn't my PC" to skip that and only stay unlocked for this tab.
+    // Owner mode always runs as Uday — even when the visit started as a guest or another account.
+    function applyOwnerIdentity() {
+        currentUser = 'Uday';
+        const nameEl = document.getElementById('user-display');
+        if (nameEl) nameEl.innerText = 'Uday';
+        if (document.querySelector('#chat-box .empty-state')) renderEmptyState(); // refresh "Hi, …"
+    }
+
     function setOwnerUnlocked(token) {
         ownerMode = true;
         ownerToken = token;
+        applyOwnerIdentity();
         document.getElementById('owner-badge').style.display = 'inline-block';
         document.getElementById('sidebar')?.classList.add('owner-mode');
         document.getElementById('ownerBtn').style.display = 'none';
@@ -2397,6 +2406,21 @@
             document.getElementById('owner-badge').style.display = 'inline-block';
             document.getElementById('sidebar')?.classList.add('owner-mode');
             document.getElementById('ownerBtn').style.display = 'none';
+            const startup = document.getElementById('startup');
+            const alreadyInApp = startup.style.display === 'none';
+            currentUser = 'Uday';
+            document.getElementById('user-display').innerText = 'Uday';
+            if (!alreadyInApp) {
+                // No saved session but a valid owner token: sign straight in as the owner.
+                startup.style.display = 'none';
+                const app = document.getElementById('app');
+                app.style.display = 'flex';
+                app.style.opacity = '1';
+                landOnChat();
+                if (settings.sidebarCollapsed) document.getElementById('sidebar')?.classList.add('collapsed');
+            } else if (document.querySelector('#chat-box .empty-state')) {
+                renderEmptyState();
+            }
         } catch (e) { /* ignore — just stays locked */ }
     }
 
@@ -2518,6 +2542,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    kind: 'aux', ownerToken: ownerToken, token: userToken,
                     memory: {},
                     messages: [
                         {
@@ -2560,13 +2585,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (count % 10 !== 0) return;
 
         const history = getActiveChat()?.messages || [];
-        const recentText = history.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'Knowura'}: ${m.text.replace(/<[^>]+>/g, '')}`).join('\n');
+        const recentText = history.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'Knowura'}: ${htmlToText(m.text)}`).join('\n');
 
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    kind: 'aux', ownerToken: ownerToken, token: userToken,
                     memory: {},
                     messages: [
                         {
@@ -2601,6 +2627,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    kind: 'aux', ownerToken: ownerToken, token: userToken,
                     memory: {},
                     messages: [
                         {
@@ -2785,7 +2812,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
         finishTyping();
         if (performance.now() - lastSendHaptic > 400) haptic('send'); // Enter key / suggestion chips (the send button already buzzed on touch)
-        addBubble(text, 'user', true);
+        addBubble(userBubbleHTML(text), 'user', true);
         if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
         // Captured now (not later) so a background chat-title generation always
         // targets the chat this message actually landed in, even if the user
@@ -2835,6 +2862,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     messages: conversationMessages,
                     memory: getMemory(),
                     ownerToken: ownerToken,
+                    token: userToken,
                     ultraThink: ultraThinkMode,
                     model: settings.modelChoice,
                     effort: settings.effortLevel
@@ -2870,6 +2898,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${body}</details>`;
                 html += renderMarkdown(reply);
                 if (data.study) html += studyChipHTML(data.study);
+                noteUsage(data.usage);
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai');
                 if (data.study && !opts.fromVoice) setTimeout(() => openStudy(data.study), 900); // pop it up on screen
@@ -3235,6 +3264,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     });
 
+    // A quiet heads-up (in the tips bar) when the daily message allowance is nearly used up.
+    function noteUsage(usage) {
+        if (!usage || typeof usage.remaining !== 'number' || usage.remaining > 3) return;
+        const el = document.getElementById('tipsText');
+        if (el) el.innerText = usage.remaining === 0 ? "That was your last message for today — it resets tomorrow." : `${usage.remaining} message${usage.remaining === 1 ? '' : 's'} left today.`;
+    }
+
     // ─── UI HELPERS ───────────────────────────────────────────────────────
 
     function addBubble(t, c, save) {
@@ -3352,9 +3388,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!chat || chat.messages.length === 0) {
             renderEmptyState();
         } else {
-            chat.messages.forEach(m => addBubble(m.text, m.type, false));
+            chat.messages.forEach(m => addBubble(safeHtml(m.text), m.type, false));
             chat.messages.slice(-10).forEach(m => {
-                conversationMessages.push({ role: m.type === 'user' ? 'user' : 'assistant', content: m.text.replace(/<[^>]+>/g, '') });
+                conversationMessages.push({ role: m.type === 'user' ? 'user' : 'assistant', content: htmlToText(m.text) });
             });
         }
         updateBadge();
@@ -3399,7 +3435,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (chat.messages.length > 60) chat.messages = chat.messages.slice(-60);
         chat.updatedAt = Date.now();
         if (type === 'user' && chat.title === 'New Chat') {
-            const plain = text.replace(/<[^>]+>/g, '').trim();
+            const plain = htmlToText(text).trim();
             chat.title = plain.length > 42 ? plain.slice(0, 42).trim() + '…' : (plain || 'New Chat');
         }
         saveChatStore();
@@ -3431,6 +3467,17 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+    // Plain text of an HTML string, parsed inertly (no scripts/handlers/images ever run).
+    function htmlToText(html) {
+        return new DOMParser().parseFromString(String(html ?? ''), 'text/html').body.textContent || '';
+    }
+    // What the user typed, made safe to drop into a bubble (never trust it as HTML).
+    function userBubbleHTML(text) { return escapeHtml(text).replace(/\n/g, '<br>'); }
+    // Saved chat HTML (local or from the cloud) is re-sanitized before it's shown again.
+    function safeHtml(html) {
+        if (!window.DOMPurify) return escapeHtml(htmlToText(html));
+        return DOMPurify.sanitize(String(html ?? ''), { ADD_TAGS: ['use'], ADD_ATTR: ['data-study', 'href'] });
     }
 
     function renameChat(id) {
@@ -3694,7 +3741,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             userToken = null;
             userProfile = null;
             document.getElementById('user-display').innerText = "Guest";
-            saveSession(currentUser, { mode: 'guest' });
+            if (ownerMode) { currentUser = 'Uday'; document.getElementById('user-display').innerText = 'Uday'; }
+            else saveSession(currentUser, { mode: 'guest' });
         }
         document.getElementById('startup').style.opacity = '0';
         setTimeout(() => {
@@ -3983,7 +4031,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const res = await fetch("/.netlify/functions/transcribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ audio: base64, mimeType: blob.type })
+            body: JSON.stringify({ audio: base64, mimeType: blob.type, ownerToken: ownerToken, token: userToken })
         });
         const data = await res.json();
         return (data.text || '').trim();
@@ -4195,7 +4243,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const res = await fetch("/.netlify/functions/speak", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({ text, ownerToken: ownerToken, token: userToken })
             });
             const raw = await res.text();
             let data;
