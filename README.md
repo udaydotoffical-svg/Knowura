@@ -246,10 +246,11 @@ way to unlock owner mode by sending a raw flag from the browser.
   **5 attempts per 15 minutes per IP** (Google sign-in counts *failed* attempts, so a shared
   school network isn't locked out). Counters live in the private storage so they hold across
   serverless instances.
-- **Message limits** protect the API keys: a per-minute burst limit, a daily cap per person
-  (guest `LIMIT_GUEST_DAILY`, signed-in `LIMIT_USER_DAILY`, voice `LIMIT_VOICE_DAILY`), a small
-  cap for background helper calls, and a global daily circuit breaker (`LIMIT_GLOBAL_DAILY`).
-  **Owner mode is never limited.** See `.env.example` for defaults.
+- **Message limits** protect the API keys: a per-minute burst limit, a cap per person per
+  5-hour window (guest `LIMIT_GUEST`=60, signed-in `LIMIT_USER`=150, voice `LIMIT_VOICE`=40;
+  window length `LIMIT_WINDOW_HOURS`), a small cap for background helper calls, and a global
+  daily circuit breaker (`LIMIT_GLOBAL_DAILY`). **Owner mode is never limited.** See
+  `.env.example` for defaults.
 - **Payloads:** every function requires the right method, same-origin browser calls (extra
   origins via `ALLOWED_ORIGINS`), a JSON *object* within a byte budget, and validates each
   field's type and length. Cloud chat documents are rebuilt from a whitelist before saving.

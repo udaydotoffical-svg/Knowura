@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 
 process.env.OWNER_TOKEN_SECRET = 'owner-secret';
 process.env.KNOWURA_USER_TOKEN_SECRET = 'user-secret';
-process.env.LIMIT_GUEST_DAILY = '3';
-process.env.LIMIT_USER_DAILY = '5';
+process.env.LIMIT_GUEST = '3';
+process.env.LIMIT_USER = '5';
 
 const util = require('../functions/_util');
 const limits = require('../functions/_limits');
@@ -71,7 +71,7 @@ test('failed Google sign-ins are counted, successful ones are not', async () => 
     assert.equal((await limits.authBlocked(ev({}), 'google-signin-fail')).statusCode, 429);
 });
 
-test('daily message caps: guest, signed-in user, and owner is exempt', async () => {
+test('message caps per 5-hour window: guest, signed-in user, and owner is exempt', async () => {
     limits.setStoreForTests(fakeStore());
     const guest = limits.whoIs({}, ev({}));
     assert.equal(guest.kind, 'guest');
@@ -79,6 +79,10 @@ test('daily message caps: guest, signed-in user, and owner is exempt', async () 
     const blocked = await limits.usageGate(ev({}), guest);
     assert.equal(blocked.response.statusCode, 429);
     assert.match(JSON.parse(blocked.response.body).error, /Sign in with Google/);
+    assert.match(JSON.parse(blocked.response.body).error, /5 hours/);
+    assert.ok(Number(blocked.response.headers['Retry-After']) <= 5 * 3600);
+    assert.equal(limits.LIMITS().windowMs, 5 * 3600 * 1000);
+    assert.equal(limits.LIMITS().guest, 3); // (env override in this test; the default is 60)
 
     const token = user.sign('google|1', 'user-secret');
     const u = limits.whoIs({ token }, ev({}));

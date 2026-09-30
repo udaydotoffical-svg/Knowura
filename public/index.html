@@ -3268,7 +3268,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function noteUsage(usage) {
         if (!usage || typeof usage.remaining !== 'number' || usage.remaining > 3) return;
         const el = document.getElementById('tipsText');
-        if (el) el.innerText = usage.remaining === 0 ? "That was your last message for today — it resets tomorrow." : `${usage.remaining} message${usage.remaining === 1 ? '' : 's'} left today.`;
+        if (el) el.innerText = usage.remaining === 0 ? "That was your last message for now — more unlock in a few hours." : `${usage.remaining} message${usage.remaining === 1 ? '' : 's'} left for now.`;
     }
 
     // ─── UI HELPERS ───────────────────────────────────────────────────────

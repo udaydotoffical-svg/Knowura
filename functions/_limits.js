@@ -3,8 +3,9 @@
 //  - Auth routes: max 5 attempts per 15 minutes per client IP, counted in the
 //    persistent store so it holds across serverless instances (falls back to memory
 //    if the store isn't reachable — it never blocks requests because storage is down).
-//  - Chat/voice: a per-minute burst limit plus a daily cap per person (signed-in user or
-//    IP), a small cap for background helper calls, and a global daily circuit breaker.
+//  - Chat/voice: a per-minute burst limit plus a cap per person (signed-in user or IP) per
+//    rolling-ish 5-hour window, a small cap for background helper calls, and a global
+//    daily circuit breaker.
 //  - Owner mode (a verified owner token) skips every one of these.
 //
 // Limits are tunable with env vars (see .env.example). Not a route (no exports.handler).
@@ -17,9 +18,10 @@ const { verify: verifyUser } = require('./_userToken');
 
 const num = (name, dflt) => { const n = parseInt(process.env[name], 10); return Number.isFinite(n) && n >= 0 ? n : dflt; };
 const LIMITS = () => ({
-    guestDaily: num('LIMIT_GUEST_DAILY', 30),
-    userDaily: num('LIMIT_USER_DAILY', 120),
-    voiceDaily: num('LIMIT_VOICE_DAILY', 80),
+    windowMs: Math.max(1, num('LIMIT_WINDOW_HOURS', 5)) * 60 * 60 * 1000, // how long a per-person allowance lasts
+    guest: num('LIMIT_GUEST', 60),        // messages per window, not signed in
+    user: num('LIMIT_USER', 150),         // messages per window, signed in with Google
+    voice: num('LIMIT_VOICE', 40),        // voice turns (transcribe + speak) per window
     globalDaily: num('LIMIT_GLOBAL_DAILY', 5000),
     burstPerMin: num('LIMIT_BURST_PER_MIN', 10)
 });
@@ -95,19 +97,22 @@ async function usageGate(event, ident, kind = 'chat', cost = 1) {
     const wait = rateLimit(event, `burst-${kind}`, L.burstPerMin * (kind === 'aux' ? 4 : 1), 60 * 1000, ident.id);
     if (wait) return { response: tooMany(wait, `You're sending messages too fast — try again in ${wait} seconds.`) };
 
-    const daily = kind === 'voice' ? L.voiceDaily : ident.kind === 'user' ? L.userDaily : L.guestDaily;
-    const max = kind === 'aux' ? daily * 4 : daily;
+    const perWindow = kind === 'voice' ? L.voice : ident.kind === 'user' ? L.user : L.guest;
+    const max = kind === 'aux' ? perWindow * 4 : perWindow;
 
     const g = await hit('global-daily', 'all', { max: L.globalDaily, windowMs: DAY, cost });
     if (!g.allowed) return { response: json(503, { error: "Knowura is very busy right now. Please try again a little later." }, { 'Retry-After': String(g.retryAfter) }) };
 
-    const r = await hit(`daily-${kind}`, ident.id, { max, windowMs: DAY, cost });
+    const r = await hit(`window-${kind}`, ident.id, { max, windowMs: L.windowMs, cost });
     if (!r.allowed) {
         const hours = Math.max(1, Math.ceil(r.retryAfter / 3600));
+        const mins = Math.max(1, Math.ceil(r.retryAfter / 60));
+        const when = r.retryAfter < 5400 ? `${mins} minute${mins === 1 ? '' : 's'}` : `about ${hours} hour${hours === 1 ? '' : 's'}`;
+        const span = `${Math.round(L.windowMs / 3600000)} hours`;
         const what = kind === 'voice' ? 'voice' : 'message';
         const msg = ident.kind === 'guest'
-            ? `You've reached today's ${what} limit (${r.limit}). Sign in with Google for a higher limit, or try again in about ${hours} hour${hours === 1 ? '' : 's'}.`
-            : `You've reached today's ${what} limit (${r.limit}). It resets in about ${hours} hour${hours === 1 ? '' : 's'}.`;
+            ? `You've used all ${r.limit} ${what}s for this ${span}. Sign in with Google for more, or try again in ${when}.`
+            : `You've used all ${r.limit} ${what}s for this ${span}. You can send more in ${when}.`;
         return { response: json(429, { error: msg }, { 'Retry-After': String(r.retryAfter) }) };
     }
     return { usage: { limit: r.limit, remaining: r.remaining } };
