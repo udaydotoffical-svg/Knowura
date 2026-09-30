@@ -81,6 +81,7 @@ knowura/
 │   ├── terms.html            # /terms  (Terms & Conditions)
 │   ├── privacy.html          # /privacy (Privacy Policy)
 │   ├── eula.html             # /eula    (End User License Agreement)
+│   ├── dmca.html             # /dmca    (Copyright & DMCA policy)
 │   ├── 404.html              # custom not-found page (Vercel + Netlify pick it up automatically)
 │   ├── legal.css             # shared styles for those three pages
 │   └── assets/
@@ -272,6 +273,14 @@ way to unlock owner mode by sending a raw flag from the browser.
   `.env*` is git-ignored and `npm run check:secrets` (also part of `npm test`) fails if a
   credential-looking string is committed. The Google OAuth *client ID* in `index.html` is
   public by design.
+
+- **Incognito chat** (sidebar button, or ☰ → Chat): chats live only in the page's memory — nothing is
+  written to the device or cloud, saved memory isn't read or written, no titles are generated —
+  and it's gone on refresh. You can edit any message you sent (pencil on the bubble): Knowura
+  re-answers from that point.
+- **Version:** shown in ☰ → About & Legal. `npm run build` writes `public/version.json` (version from
+  `package.json` + the deploy's commit id). Bump `version` in `package.json` (and the fallback in
+  `index.html`, which a test keeps in sync) for each release.
 
 Run the tests with `npm test`.
 

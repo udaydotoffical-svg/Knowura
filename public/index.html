@@ -1316,6 +1316,41 @@
         .limit-actions [hidden] { display: none !important; }
         @media (prefers-reduced-motion: reduce) { .limit-card::before, .limit-bolt { animation: none; } .limit-ring .fill { transition: none; } }
 
+        /* ─── INCOGNITO MODE (purple tint, banner, sidebar toggle) ─── */
+        body.incognito { --blue: #8b5cf6; --blue-deep: #3b1c8c; --cyan: #c9b2ff; }
+        .incognito-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; cursor: pointer;
+            background: rgba(255,255,255,0.05); color: var(--text); border: 2.5px solid var(--ink); border-radius: 12px;
+            padding: 8px; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; box-shadow: var(--shadow-sm);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        }
+        .incognito-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+        .incognito-btn[aria-pressed="true"] { background: #8b5cf6; color: #fff; }
+        .incognito-banner {
+            position: sticky; top: 0; z-index: 5; align-self: center; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+            margin: 0 auto 6px; padding: 7px 12px; border: 2.5px solid var(--ink); border-radius: 999px; font-size: 12.5px; font-weight: 700;
+            background: rgba(59,28,140,0.9); color: #efe6ff; box-shadow: var(--shadow-sm);
+        }
+        .incognito-banner[hidden] { display: none; }
+        .incognito-banner button { background: #efe6ff; color: #2a1063; border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; font-weight: 800; font-size: 11.5px; cursor: pointer; }
+        /* ─── EDIT A SENT MESSAGE ─── */
+        .msg-edit {
+            position: absolute; right: 8px; bottom: -13px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 50%; border: 2px solid var(--ink); background: var(--panel-strong); color: var(--text); cursor: pointer; opacity: 0;
+            transition: opacity 0.15s ease, transform 0.12s ease;
+        }
+        .msg-edit .icon { width: 14px; height: 14px; }
+        .msg.user:hover .msg-edit, .msg.user:focus-within .msg-edit { opacity: 1; }
+        .msg-edit:hover { transform: scale(1.1); }
+        @media (hover: none) { .msg-edit { opacity: 0.85; } }
+        .msg.editing { padding: 10px; }
+        .msg-editor { width: min(520px, 76vw); min-height: 64px; max-height: 40vh; resize: vertical; background: rgba(0,0,0,0.25); color: #fff; border: 2px solid var(--ink); border-radius: 10px; padding: 10px; font: inherit; }
+        .msg-editor-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+        .msg-editor-actions button { border: 2px solid var(--ink); border-radius: 999px; padding: 5px 14px; font-weight: 800; font-size: 12px; cursor: pointer; background: rgba(255,255,255,0.12); color: #fff; }
+        .msg-editor-actions .save { background: var(--cyan); color: #001018; }
+        .about-version { padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,0.05); font-size: 13px; font-weight: 700; line-height: 1.5; }
+        .about-version small { display: block; font-weight: 500; color: var(--text-dim); }
+
         a.menu-link { text-decoration: none; }
         .skip-link {
             position: fixed; left: 12px; top: -64px; z-index: 2147483001; padding: 10px 16px; border-radius: 10px;
@@ -1554,6 +1589,7 @@
             <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10" width="2" height="7" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/></symbol>
             <symbol id="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
             <symbol id="icon-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="9.5" y1="4" x2="9.5" y2="20" stroke="currentColor" stroke-width="2"/></symbol>
+            <symbol id="icon-incognito" viewBox="0 0 24 24"><path d="M3 11h18M6 11l1.6-6h8.8L18 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/><circle cx="8" cy="16.5" r="2.6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="16.5" r="2.6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M10.6 16.3c.9-.5 1.9-.5 2.8 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
             <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5l3.5 3.5L8.5 19 4 20z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/></symbol>
             <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
             <symbol id="icon-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -1603,6 +1639,9 @@
                 <button class="new-chat-btn" onclick="newChat()">
                     <svg class="icon"><use href="#icon-plus"/></svg> New Chat
                 </button>
+                <button type="button" class="incognito-btn" id="incognitoBtn" onclick="toggleIncognito()" aria-pressed="false" title="Chat without saving anything">
+                    <svg class="icon"><use href="#icon-incognito"/></svg> <span id="incognitoBtnText">Incognito</span>
+                </button>
             </div>
             <div class="sidebar-search">
                 <svg class="icon"><use href="#icon-search"/></svg>
@@ -1635,6 +1674,7 @@
             <button id="sidebarToggleBtn" class="btn-ui icon-only chat-sidebar-toggle" onclick="toggleSidebar()" title="Toggle chat list">
                 <svg class="icon"><use href="#icon-sidebar"/></svg>
             </button>
+            <div id="incognitoBanner" class="incognito-banner" hidden role="status"><span>🕶️ Incognito — not saved, not remembered</span><button type="button" onclick="setIncognito(false)">Exit</button></div>
             <div id="chat-box" role="log" aria-live="polite" aria-label="Conversation"></div>
             <div class="input-area">
                 <div class="prompt-bar" id="promptBar">
@@ -1817,6 +1857,11 @@
             </div>
 
             <div class="settings-section">
+                <div class="settings-label">Incognito</div>
+                <button type="button" class="menu-item" onclick="toggleHamburgerMenu(); setIncognito(!incognito);"><svg class="icon"><use href="#icon-incognito"/></svg> <span id="incognitoMenuText">Start incognito chat</span></button>
+            </div>
+
+            <div class="settings-section">
                 <div class="settings-label">Haptics</div>
                 <button class="choice-pill" data-group="haptics" data-value="on" onclick="setHaptics('on')">
                     <span class="choice-row"><span class="choice-dot"></span>On</span>
@@ -1891,10 +1936,15 @@
 
             <div class="menu-view" data-view="about">
             <div class="settings-section">
+                <div class="settings-label">Version</div>
+                <div class="about-version" id="aboutVersion">Knowura AI <span id="aboutVersionNum">v1.1.0</span><small id="aboutVersionBuild">Latest build</small></div>
+            </div>
+            <div class="settings-section">
                 <div class="settings-label">Legal</div>
                 <a class="menu-item menu-link" href="/terms" target="_blank" rel="noopener"><svg class="icon"><use href="#icon-info"/></svg> Terms &amp; Conditions</a>
                 <a class="menu-item menu-link" href="/privacy" target="_blank" rel="noopener" style="margin-top:6px;"><svg class="icon"><use href="#icon-lock"/></svg> Privacy Policy</a>
                 <a class="menu-item menu-link" href="/eula" target="_blank" rel="noopener" style="margin-top:6px;"><svg class="icon"><use href="#icon-edit"/></svg> EULA</a>
+                <a class="menu-item menu-link" href="/dmca" target="_blank" rel="noopener" style="margin-top:6px;"><svg class="icon"><use href="#icon-info"/></svg> Copyright &amp; DMCA</a>
             </div>
 
             <div class="settings-section">
@@ -2313,6 +2363,7 @@
         clearSession();
         try { if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* Google Identity not loaded */ }
         clearTimeout(cloudSaveTimer);
+        incognito = false; stashedStore = null; document.body.classList.remove('incognito'); document.getElementById('incognitoBanner').hidden = true;
         currentUser = 'Learner';
         userSub = null;
         userToken = null;
@@ -2545,7 +2596,7 @@
     // ─── MEMORY HELPERS ──────────────────────────────────────────────────────
 
     function getMemory() {
-        if (!settings.memoryEnabled) return { summary: '', facts: [] };
+        if (incognito || !settings.memoryEnabled) return { summary: '', facts: [] };
         if (isCloudUser()) return cloudMemory;
         return {
             summary: localStorage.getItem('knowura_summary') || '',
@@ -2592,6 +2643,7 @@
     // ─── ENTITY EXTRACTION (runs after every AI reply) ────────────────────────
 
     async function extractFacts(userMsg, aiReply) {
+        if (incognito) return;
         const existing = isCloudUser() ? cloudMemory.facts : JSON.parse(localStorage.getItem('knowura_facts') || '[]');
 
         try {
@@ -2636,6 +2688,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // ─── SUMMARIZATION (runs every 10 messages) ───────────────────────────────
 
     async function maybeSummarize() {
+        if (incognito) return;
         let count = parseInt(localStorage.getItem('knowura_msg_count') || '0') + 1;
         localStorage.setItem('knowura_msg_count', count);
 
@@ -2679,6 +2732,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // in something better a moment later.
 
     async function generateChatTitle(chatId, userMsg, aiReply) {
+        if (incognito) return;
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
@@ -3409,6 +3463,105 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         logOut(true);
     }
 
+    // ─── INCOGNITO CHAT ───────────────────────────────────────────────────────────
+    // While on, the real chat list is set aside and chats live only in this page's memory: nothing is
+    // written to this device or the cloud, saved memory isn't read or written, and no titles are generated.
+    // Refreshing the page (or switching it off) throws the chat away. Not persisted on purpose.
+    let incognito = false, stashedStore = null;
+
+    function setIncognito(on) {
+        on = !!on;
+        if (on === incognito) return;
+        finishTyping();
+        abortAsk();
+        // flush any pending cloud save of the REAL chats before we set them aside
+        if (cloudSaveTimer) { clearTimeout(cloudSaveTimer); cloudSaveTimer = null; persistCloudStore(); }
+        if (on) {
+            stashedStore = chatStore;
+            chatStore = { chats: [], activeChatId: null };
+            incognito = true;
+        } else {
+            incognito = false;
+            if (stashedStore) chatStore = stashedStore;
+            stashedStore = null;
+        }
+        document.body.classList.toggle('incognito', incognito);
+        document.getElementById('incognitoBanner').hidden = !incognito;
+        const btn = document.getElementById('incognitoBtn');
+        btn?.setAttribute('aria-pressed', String(incognito));
+        const t = document.getElementById('incognitoBtnText'); if (t) t.textContent = incognito ? 'Exit incognito' : 'Incognito';
+        const mt = document.getElementById('incognitoMenuText'); if (mt) mt.textContent = incognito ? 'Exit incognito chat' : 'Start incognito chat';
+        renderActiveChat();
+        renderChatList();
+        closeSidebarMobile();
+        haptic('select');
+    }
+    function toggleIncognito() { setIncognito(!incognito); }
+
+    // ─── EDIT A SENT MESSAGE ─────────────────────────────────────────────────────
+    // Pencil on your own bubbles: change the text, and Knowura re-answers from that point
+    // (the old reply and anything after it are dropped, like editing in ChatGPT).
+    function bubbleIndex(div) {
+        const chat = getActiveChat();
+        if (!chat) return -1;
+        const bubbles = [...document.querySelectorAll('#chat-box .msg')];
+        const pos = bubbles.indexOf(div);
+        return pos < 0 ? -1 : chat.messages.length - bubbles.length + pos;
+    }
+
+    function editUserMessage(div) {
+        if (pbBusy) { haptic('error'); return; }
+        const chat = getActiveChat();
+        const idx = bubbleIndex(div);
+        if (!chat || idx < 0 || chat.messages[idx]?.type !== 'user') return;
+        const original = htmlToText(chat.messages[idx].text.replace(/<br\s*\/?>/gi, '\n'));
+
+        div.classList.add('editing');
+        div.innerHTML = '';
+        const ta = document.createElement('textarea');
+        ta.className = 'msg-editor'; ta.value = original; ta.setAttribute('aria-label', 'Edit your message');
+        const actions = document.createElement('div'); actions.className = 'msg-editor-actions';
+        const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel';
+        const save = document.createElement('button'); save.type = 'button'; save.className = 'save'; save.textContent = 'Save & send';
+        actions.append(cancel, save);
+        div.append(ta, actions);
+        ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+
+        const restore = () => renderActiveChat();
+        cancel.addEventListener('click', restore);
+        const commit = () => {
+            const text = ta.value.trim();
+            if (!text) return;
+            if (text === original.trim()) { restore(); return; }
+            chat.messages = chat.messages.slice(0, idx);            // drop this message and everything after it
+            if (idx === 0) chat.title = 'New Chat';
+            chat.updatedAt = Date.now();
+            saveChatStore();
+            renderActiveChat();
+            renderChatList();
+            ask(text);
+        };
+        save.addEventListener('click', commit);
+        ta.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { e.stopPropagation(); restore(); }
+            else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); }
+        });
+    }
+
+    // ─── VERSION (About screen) ───────────────────────────────────────────────────
+    async function loadVersion() {
+        try {
+            const res = await fetch('/version.json', { cache: 'no-store' });
+            if (!res.ok) return;
+            const v = await res.json();
+            if (v?.version) document.getElementById('aboutVersionNum').textContent = `v${String(v.version).slice(0, 20)}`;
+            const when = v?.builtAt ? new Date(v.builtAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+            const build = v?.build && v.build !== 'dev' ? `build ${String(v.build).slice(0, 12)}` : 'development build';
+            document.getElementById('aboutVersionBuild').textContent = [build, when].filter(Boolean).join(' · ');
+        } catch (e) { /* offline or no version.json — keeps the built-in number */ }
+    }
+    loadVersion();
+
     // ─── UI HELPERS ───────────────────────────────────────────────────────
 
     function addBubble(t, c, save) {
@@ -3418,6 +3571,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const div = document.createElement('div');
         div.className = `msg ${c}`;
         div.innerHTML = t;
+        if (c === 'user') {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'msg-edit'; b.title = 'Edit message'; b.setAttribute('aria-label', 'Edit message');
+            b.innerHTML = '<svg class="icon"><use href="#icon-edit"/></svg>';
+            b.addEventListener('click', () => editUserMessage(div));
+            div.appendChild(b);
+        }
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
         if (save) saveActiveChat(t, c);
@@ -3436,6 +3596,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     let chatStore = loadChatStore();
     function isCloudUser() { return !!(userSub && userToken); }
     function saveChatStore() {
+        if (incognito) return;                       // incognito never writes anywhere
         if (isCloudUser()) { scheduleCloudSave(); return; }
         localStorage.setItem('knowura_guest_chats', JSON.stringify(chatStore));
     }
@@ -3549,8 +3710,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         box.innerHTML = `
             <div class="empty-state">
                 <img src="assets/brand/logo.png" class="empty-logo" alt="Knowura">
-                <h1 class="empty-greeting">Hi, <b>${escapeHtml(currentUser)}</b></h1>
-                <p class="empty-sub">What do you want to know?</p>
+                <h1 class="empty-greeting">${incognito ? 'You\'re <b>incognito</b>' : `Hi, <b>${escapeHtml(currentUser)}</b>`}</h1>
+                <p class="empty-sub">${incognito ? 'This chat isn\'t saved and nothing is remembered.' : 'What do you want to know?'}</p>
                 <div class="empty-suggestions">
                     ${SUGGESTIONS.map(s => `
                         <button class="suggestion-chip" onclick="useSuggestion('${s.prompt.replace(/'/g, "\\'")}')">
@@ -3586,7 +3747,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const q = (filter ?? document.getElementById('chatSearchInput')?.value ?? '').trim().toLowerCase();
         const sorted = [...chatStore.chats].sort((a, b) => b.updatedAt - a.updatedAt);
         const filtered = q ? sorted.filter(c => c.title.toLowerCase().includes(q)) : sorted;
-        if (!filtered.length) { list.innerHTML = `<div class="chat-list-empty">No chats yet</div>`; return; }
+        if (!filtered.length) { list.innerHTML = `<div class="chat-list-empty">${incognito ? 'Incognito — nothing here is saved' : 'No chats yet'}</div>`; return; }
         list.innerHTML = filtered.map(c => `
             <div class="chat-list-item${c.id === chatStore.activeChatId ? ' active' : ''}" data-id="${c.id}" onclick="switchChat('${c.id}')">
                 <svg class="icon chat-icon"><use href="#icon-chat"/></svg>
@@ -3689,7 +3850,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     let cloudLoadFailed = false;
 
     function scheduleCloudSave() {
-        if (!isCloudUser() || cloudLoadFailed) return;
+        if (incognito || !isCloudUser() || cloudLoadFailed) return;
         clearTimeout(cloudSaveTimer);
         cloudSaveTimer = setTimeout(persistCloudStore, 1500);
     }
@@ -3705,7 +3866,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     async function persistCloudStore(retry = true) {
-        if (!isCloudUser() || cloudLoadFailed) return;
+        if (incognito || !isCloudUser() || cloudLoadFailed) return; // (chatStore is the throwaway chat while incognito — never save it over the real one)
         const doc = {
             version: 1,
             profile: userProfile || { sub: userSub },
