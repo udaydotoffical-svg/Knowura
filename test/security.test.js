@@ -279,3 +279,11 @@ test('memory notes and web results travel as user text, never inside the system 
     assert.equal(msgs[2].content, 'hi');                 // earlier turns untouched
     assert.doesNotMatch(msgs[0].content, /chemistry|Web results/);
 });
+
+
+test('the creator is only named when asked, not volunteered', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'functions', 'ask-ai.js'), 'utf8');
+    const base = src.slice(src.indexOf('const baseSystemPrompt = `'), src.indexOf('const ownerSystemPrompt = `'));
+    assert.match(base, /^const baseSystemPrompt = `You are Knowura, an AI study helper\./);   // identity first, no name-drop
+    assert.match(base, /If someone asks who made you/);
+});
