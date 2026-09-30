@@ -40,3 +40,11 @@ test('mini-code-boxz: code blocks become cards, the panel lives inside #app, hig
     const app = h.slice(h.indexOf('<div id="app">'), h.indexOf('<div id="musicPanel"'));
     assert.match(app, /<aside id="codeBox"/);
 });
+
+test('live preview runs only in a locked-down sandboxed iframe', () => {
+    const h = pub('index.html');
+    const tag = h.match(/<iframe id="cbFrame"[^>]*>/)[0];
+    assert.match(tag, /sandbox="allow-scripts"/);
+    assert.doesNotMatch(tag, /allow-same-origin|allow-top-navigation|allow-popups|allow-forms/);
+    assert.match(h, /default-src 'none'/);
+});

@@ -603,6 +603,14 @@
         .cb-code .hljs-emphasis { font-style: italic; }
         .cb-code .hljs-strong { font-weight: 700; }
 
+        .cb-tabs { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 2px solid var(--ink); flex: none; }
+        .cb-tabs[hidden] { display: none; }
+        .cb-tabs button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 700; color: var(--text-dim); background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+        .cb-tabs button .icon { width: 15px; height: 15px; }
+        .cb-tabs button.on { color: var(--cyan); background: rgba(34,229,255,0.12); border-color: rgba(34,229,255,0.4); }
+        .cb-frame { display: none; flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
+        .codebox.prev .cb-body { display: none; }
+        .codebox.prev .cb-frame { display: block; }
         @media (min-width: 681px) and (max-width: 1500px) { #app.cb-open .sidebar { display: none; } }
         @media (max-width: 680px) {
             .codebox { position: fixed; inset: 8px; z-index: 170; flex: none; }
@@ -1641,6 +1649,8 @@
             <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M12 3 22 20H2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></symbol>
             <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></symbol>
             <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+            <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2" fill="none"/></symbol>
+            <symbol id="icon-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
             <symbol id="icon-check" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
             <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
             <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10" width="2" height="7" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/></symbol>
@@ -1795,7 +1805,12 @@
             <button type="button" class="cb-act" onclick="downloadCodeBox()" title="Download file" aria-label="Download file"><svg class="icon"><use href="#icon-download"/></svg></button>
             <button type="button" class="cb-act" onclick="closeCodeBox()" title="Close" aria-label="Close code viewer"><svg class="icon"><use href="#icon-x"/></svg></button>
         </div>
+        <div class="cb-tabs" id="cbTabs" hidden>
+            <button type="button" data-tab="preview" onclick="cbTab('preview')"><svg class="icon"><use href="#icon-eye"/></svg> Preview</button>
+            <button type="button" data-tab="code" onclick="cbTab('code')"><svg class="icon"><use href="#icon-code"/></svg> Code</button>
+        </div>
         <div class="cb-body"><pre class="cb-code"><code id="cbCode"></code></pre></div>
+        <iframe id="cbFrame" class="cb-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Live preview"></iframe>
     </aside>
     </div>
 
@@ -2915,7 +2930,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // ─── MINI-CODE-BOXZ ──────────────────────────────────────────────────
     // Fenced code turns into a small card; the (already-escaped) code rides along in a data
     // attribute, so saved chats keep working and the panel needs no separate storage.
-    const CB_LANGS = { js: 'JavaScript', javascript: 'JavaScript', ts: 'TypeScript', typescript: 'TypeScript', py: 'Python', python: 'Python', html: 'HTML', xml: 'HTML', css: 'CSS', json: 'JSON', java: 'Java', c: 'C', cpp: 'C++', 'c++': 'C++', cs: 'C#', 'c#': 'C#', go: 'Go', rust: 'Rust', rs: 'Rust', php: 'PHP', ruby: 'Ruby', rb: 'Ruby', sql: 'SQL', bash: 'Bash', sh: 'Shell', shell: 'Shell', kotlin: 'Kotlin', swift: 'Swift', yaml: 'YAML', yml: 'YAML', md: 'Markdown', markdown: 'Markdown', ino: 'Arduino', arduino: 'Arduino' };
+    const CB_LANGS = { js: 'JavaScript', javascript: 'JavaScript', ts: 'TypeScript', typescript: 'TypeScript', py: 'Python', python: 'Python', html: 'HTML', xml: 'HTML', css: 'CSS', json: 'JSON', java: 'Java', c: 'C', cpp: 'C++', 'c++': 'C++', cs: 'C#', 'c#': 'C#', go: 'Go', rust: 'Rust', rs: 'Rust', php: 'PHP', ruby: 'Ruby', rb: 'Ruby', sql: 'SQL', bash: 'Bash', sh: 'Shell', shell: 'Shell', kotlin: 'Kotlin', swift: 'Swift', yaml: 'YAML', yml: 'YAML', md: 'Markdown', markdown: 'Markdown', svg: 'SVG', htm: 'HTML', ino: 'Arduino', arduino: 'Arduino' };
     const CB_EXT = { JavaScript: 'js', TypeScript: 'ts', Python: 'py', HTML: 'html', CSS: 'css', JSON: 'json', Java: 'java', C: 'c', 'C++': 'cpp', 'C#': 'cs', Go: 'go', Rust: 'rs', PHP: 'php', Ruby: 'rb', SQL: 'sql', Bash: 'sh', Shell: 'sh', Kotlin: 'kt', Swift: 'swift', YAML: 'yml', Markdown: 'md', Arduino: 'ino' };
     // Official language logos (devicon, MIT) served from our own domain.
     const CB_LOGO = { JavaScript: 'javascript', TypeScript: 'typescript', Python: 'python', HTML: 'html', CSS: 'css', JSON: 'json', Java: 'java', C: 'c', 'C++': 'cpp', 'C#': 'csharp', Go: 'go', Rust: 'rust', PHP: 'php', Ruby: 'ruby', SQL: 'sql', Bash: 'bash', Shell: 'bash', Kotlin: 'kotlin', Swift: 'swift', YAML: 'yaml', Markdown: 'markdown', Arduino: 'arduino' };
@@ -2923,9 +2938,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     const cbIcon = (name) => CB_LOGO[name] ? `<img src="assets/vendor/devicon/${CB_LOGO[name]}.svg" alt="" draggable="false">` : CB_GENERIC;
     function cbLangName(lang) { const k = (lang || '').toLowerCase(); return CB_LANGS[k] || (k ? k.toUpperCase() : 'Code'); }
     function codeCardHTML(_m, lang, escaped) {
+        if (!lang && /^\s*(&lt;!doctype html|&lt;html)/i.test(escaped)) lang = 'html';
         const name = cbLangName(lang);
+        const canPreview = name === 'HTML' || name === 'SVG' || name === 'Markdown';
         const lines = escaped.replace(/\n$/, '').split('\n').length;
-                return `<button type="button" class="cb-card" data-lang="${lang || ''}" data-code="${escaped.replace(/"/g, '&quot;')}"><span class="cb-ic">${cbIcon(name)}</span><span class="cb-meta"><b>${name} snippet</b><i>${lines} line${lines === 1 ? '' : 's'}</i></span><span class="cb-open">Open</span></button>`;
+                return `<button type="button" class="cb-card" data-lang="${lang || ''}" data-code="${escaped.replace(/"/g, '&quot;')}"><span class="cb-ic">${cbIcon(name)}</span><span class="cb-meta"><b>${name} snippet</b><i>${lines} line${lines === 1 ? '' : 's'}</i></span><span class="cb-open">${canPreview ? "Preview" : "Open"}</span></button>`;
     }
 
     // Highlighted HTML split per line, re-opening any span that runs across a line break.
@@ -2938,6 +2955,39 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             out.push(s + '</span>'.repeat(open.length));
         }
         return out;
+    }
+
+    // Live preview: only HTML, SVG and Markdown. It runs in a sandboxed iframe with an opaque origin
+    // (no cookies, storage, parent access, forms, popups or navigation) plus its own CSP with no network.
+    const CB_CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; media-src data: blob:; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">`;
+    function cbKind(name, raw) {
+        if (name === 'SVG' || (name === 'HTML' && /^\s*<svg[\s>]/i.test(raw))) return 'svg';
+        if (name === 'HTML') return 'html';
+        if (name === 'Markdown') return 'md';
+        return null;
+    }
+    function cbSiblings(card, langName) {
+        const scope = card.closest('.msg') || card.parentElement;
+        return [...scope.querySelectorAll('.cb-card')].filter(c => c !== card && cbLangName(c.dataset.lang) === langName).map(c => c.dataset.code || '');
+    }
+    function cbSrcdoc(kind, raw, card) {
+        if (kind === 'svg') return `<!doctype html><html><head><meta charset="utf-8">${CB_CSP}</head><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">${raw}</body></html>`;
+        if (kind === 'md') {
+            const body = window.DOMPurify && window.marked ? DOMPurify.sanitize(marked.parse(raw)) : '';
+            return `<!doctype html><html><head><meta charset="utf-8">${CB_CSP}<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:0 auto;padding:20px;color:#1a1a1a}pre,code{background:#f3f4f6;border-radius:6px}pre{padding:12px;overflow:auto}code{padding:2px 5px}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px}blockquote{border-left:4px solid #ccc;margin:0;padding-left:14px;color:#555}</style></head><body>${body}</body></html>`;
+        }
+        let html = raw;
+        const css = cbSiblings(card, 'CSS'), js = cbSiblings(card, 'JavaScript');
+        if (css.length) html = html.replace(/<link\b[^>]*href=["'][^"']+\.css["'][^>]*>/gi, () => `<style>${css.join('\n')}</style>`);
+        if (js.length) html = html.replace(/<script\b[^>]*\bsrc=["'][^"']+\.js["'][^>]*>\s*<\/script>/gi, () => `<script>${js.join('\n').replace(/<\/script/gi, '<\\/script')}<\/script>`);
+        if (/<head[^>]*>/i.test(html)) return html.replace(/<head[^>]*>/i, (m) => m + CB_CSP);
+        if (/<html[^>]*>/i.test(html)) return html.replace(/<html[^>]*>/i, (m) => `${m}<head>${CB_CSP}</head>`);
+        return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${CB_CSP}</head><body>${html}</body></html>`;
+    }
+    function cbTab(t) {
+        const box = document.getElementById('codeBox');
+        box.classList.toggle('prev', t === 'preview');
+        document.querySelectorAll('#cbTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
     }
 
     let cbCurrent = null;
@@ -2956,6 +3006,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.getElementById('cbCode').innerHTML = lines.map((l, i) => `<span class="cb-line" data-n="${i + 1}">${l || ' '}</span>`).join('');
         document.getElementById('cbTitle').innerHTML = `<span class="cb-ic">${cbIcon(name)}</span>${name}<small>${lines.length} line${lines.length === 1 ? "" : "s"}</small>`;
         cbCurrent = { raw, name };
+        const kind = cbKind(name, raw);
+        const frame = document.getElementById('cbFrame');
+        document.getElementById('cbTabs').hidden = !kind;
+        if (kind) { frame.srcdoc = cbSrcdoc(kind, raw, card); cbTab('preview'); }
+        else { frame.srcdoc = ''; cbTab('code'); }
         document.querySelectorAll('.cb-card.active').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         document.getElementById('app').classList.add('cb-open');
@@ -2965,6 +3020,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.getElementById('app').classList.remove('cb-open');
         document.querySelectorAll('.cb-card.active').forEach(c => c.classList.remove('active'));
         cbCurrent = null;
+        document.getElementById('cbFrame').srcdoc = '';
     }
     function codeBoxClick(e) {
         const card = e.target.closest?.('.cb-card');
