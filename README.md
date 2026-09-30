@@ -251,6 +251,15 @@ way to unlock owner mode by sending a raw flag from the browser.
   window length `LIMIT_WINDOW_HOURS`), a small cap for background helper calls, and a global
   daily circuit breaker (`LIMIT_GLOBAL_DAILY`). **Owner mode is never limited.** See
   `.env.example` for defaults.
+  Hitting a limit shows a pop-up with a live countdown (and, for guests, a prompt to sign in
+  with Google for a bigger allowance). Limits are counted on the server against a verified
+  identity — the signed-in account, else the IP address as the hosting platform reports it
+  (never a client-supplied header; IPv6 by /64). Background helper calls are only allowed in
+  proportion to real messages, so they can't be used as a side door. Add Upstash Redis
+  (`UPSTASH_REDIS_REST_URL/TOKEN`) to make the counters exact under parallel bursts.
+- **Owner mode via Google:** signing in with the Google account in `OWNER_EMAIL` (verified by
+  Google) switches to owner mode automatically; the server issues the owner token, and
+  reloading keeps it. Optionally pin the exact account with `OWNER_GOOGLE_SUB`.
 - **Payloads:** every function requires the right method, same-origin browser calls (extra
   origins via `ALLOWED_ORIGINS`), a JSON *object* within a byte budget, and validates each
   field's type and length. Cloud chat documents are rebuilt from a whitelist before saving.

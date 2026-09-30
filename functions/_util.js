@@ -24,11 +24,35 @@ function header(event, name) {
     return h[name] ?? h[name.toLowerCase()] ?? "";
 }
 
+// The caller's IP, read ONLY from the header the hosting platform itself sets — headers a client
+// could send are ignored, otherwise anyone could invent a fresh "IP" per request and walk
+// straight past every IP-based limit.
+//   Vercel  -> x-vercel-forwarded-for (set by Vercel; x-forwarded-for is overwritten by it too)
+//   Netlify -> x-nf-client-connection-ip (set by Netlify)
+// Anywhere else (local dev / tests) fall back to x-forwarded-for.
 function clientIp(event) {
-    return header(event, "x-nf-client-connection-ip")
-        || String(header(event, "x-forwarded-for")).split(",")[0].trim()
-        || header(event, "x-real-ip")
-        || "unknown";
+    let ip = "";
+    if (process.env.VERCEL) {
+        ip = header(event, "x-vercel-forwarded-for") || header(event, "x-real-ip") || String(header(event, "x-forwarded-for")).split(",")[0];
+    } else if (process.env.NETLIFY || process.env.NETLIFY_LOCAL) {
+        ip = header(event, "x-nf-client-connection-ip");
+    } else {
+        ip = String(header(event, "x-forwarded-for")).split(",")[0] || header(event, "x-real-ip");
+    }
+    return String(ip || "unknown").trim().slice(0, 64);
+}
+
+// What limits are counted against. IPv6 users typically control a whole /64, so rotating
+// addresses inside it must not mint new allowances — key on the /64 prefix instead.
+function ipKey(event) {
+    const ip = clientIp(event).toLowerCase();
+    if (!ip.includes(":")) return ip;                       // IPv4 / unknown
+    const v4 = ip.match(/(\d+\.\d+\.\d+\.\d+)$/);        // ::ffff:1.2.3.4
+    if (v4) return v4[1];
+    const [head, tail = ""] = ip.split("::");
+    const h = head ? head.split(":") : [], t = tail ? tail.split(":") : [];
+    const groups = ip.includes("::") ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t] : h;
+    return groups.slice(0, 4).map(g => g.replace(/^0+(?=.)/, "")).join(":") + "::/64";
 }
 
 // ─── request guards ───────────────────────────────────────────────────────
@@ -95,7 +119,7 @@ function cleanStr(v, max, min = 0) {
 const hits = new Map();
 function rateLimit(event, bucket, max, windowMs, id) {
     const now = Date.now();
-    const key = `${bucket}:${id || clientIp(event)}`;
+    const key = `${bucket}:${id || ipKey(event)}`;
     const recent = (hits.get(key) || []).filter(t => now - t < windowMs);
     if (recent.length >= max) {
         hits.set(key, recent);
@@ -115,6 +139,6 @@ function tooMany(retryAfter, message) {
 }
 
 module.exports = {
-    BASE_HEADERS, json, preflight, header, clientIp, guard, originAllowed, isPlainObject,
+    BASE_HEADERS, json, preflight, header, clientIp, ipKey, guard, originAllowed, isPlainObject,
     readJson, parseBody, cleanStr, rateLimit, tooMany
 };

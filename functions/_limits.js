@@ -1,18 +1,20 @@
 // Usage limits that protect the API keys (Groq / Tavily) and the auth routes.
 //
-//  - Auth routes: max 5 attempts per 15 minutes per client IP, counted in the
-//    persistent store so it holds across serverless instances (falls back to memory
-//    if the store isn't reachable — it never blocks requests because storage is down).
-//  - Chat/voice: a per-minute burst limit plus a cap per person (signed-in user or IP) per
-//    rolling-ish 5-hour window, a small cap for background helper calls, and a global
+//  - Auth routes: max 5 attempts per 15 minutes per client IP.
+//  - Chat/voice: a per-minute burst limit plus a cap per person (signed-in user, else IP)
+//    per 5-hour window, a background-helper allowance tied to real usage, and a global
 //    daily circuit breaker.
 //  - Owner mode (a verified owner token) skips every one of these.
 //
-// Limits are tunable with env vars (see .env.example). Not a route (no exports.handler).
+// Everything is decided on the server from verified identity — nothing the browser says
+// (a "guest" flag, a message count, a kind) can raise its own allowance. Counters live in
+// Upstash Redis when UPSTASH_REDIS_REST_URL/TOKEN are set (atomic INCRBY — exact even under
+// a burst of parallel requests), otherwise in the private Blob store (best-effort under
+// parallel bursts), with an in-memory copy in front. Not a route (no exports.handler).
 
 const crypto = require('crypto');
 const { getPlatformStore } = require('./_store');
-const { clientIp, rateLimit, tooMany, json } = require('./_util');
+const { clientIp, ipKey, rateLimit, tooMany, json } = require('./_util');
 const { verify: verifyOwner } = require('./_ownerToken');
 const { verify: verifyUser } = require('./_userToken');
 
@@ -29,6 +31,7 @@ const LIMITS = () => ({
 const DAY = 24 * 60 * 60 * 1000;
 const AUTH_WINDOW = 15 * 60 * 1000;
 const AUTH_MAX = 5;
+const AUX_PER_CHAT = 3; // background helper calls (title/memory/summary) allowed per real message
 
 let storeOverride = null; // tests inject an in-memory store
 const mem = new Map();
@@ -36,10 +39,50 @@ function store() { return storeOverride || getPlatformStore('ratelimit'); }
 function setStoreForTests(s) { storeOverride = s; mem.clear(); }
 const keyOf = (bucket, id) => crypto.createHash('sha256').update(`${bucket}|${id}`).digest('hex').slice(0, 40);
 
+// ─── atomic counters (Upstash Redis REST) ─────────────────────────────────
+function redisConf() {
+    const url = process.env.UPSTASH_REDIS_REST_URL, tok = process.env.UPSTASH_REDIS_REST_TOKEN;
+    return url && tok ? { url: url.replace(/\/$/, ''), tok } : null;
+}
+async function redisPipeline(conf, cmds) {
+    const r = await fetch(`${conf.url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${conf.tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(cmds),
+        signal: AbortSignal.timeout(2500)
+    });
+    if (!r.ok) throw new Error(`redis ${r.status}`);
+    const out = await r.json();
+    if (!Array.isArray(out) || out.some(o => o?.error)) throw new Error('redis error');
+    return out.map(o => o.result);
+}
+async function redisHit(conf, key, { max, windowMs, cost, peek }) {
+    const k = `kw:${key}`, ttl = Math.ceil(windowMs / 1000);
+    if (peek) {
+        const [n, pttl] = await redisPipeline(conf, [['GET', k], ['PTTL', k]]);
+        const used = Number(n || 0), retryAfter = Math.max(1, Math.ceil((Number(pttl) > 0 ? Number(pttl) : windowMs) / 1000));
+        return { allowed: used < max, used, limit: max, remaining: Math.max(0, max - used), retryAfter };
+    }
+    const [n, , pttl] = await redisPipeline(conf, [['INCRBY', k, String(cost)], ['EXPIRE', k, String(ttl), 'NX'], ['PTTL', k]]);
+    const used = Number(n);
+    let ms = Number(pttl);
+    if (!(ms > 0)) { ms = windowMs; redisPipeline(conf, [['EXPIRE', k, String(ttl)]]).catch(() => {}); } // never leave a key without an expiry
+    const retryAfter = Math.max(1, Math.ceil(ms / 1000));
+    if (used > max) {
+        redisPipeline(conf, [['DECRBY', k, String(cost)]]).catch(() => {}); // a refused request doesn't use up allowance
+        return { allowed: false, used: used - cost, limit: max, remaining: Math.max(0, max - (used - cost)), retryAfter };
+    }
+    return { allowed: true, used, limit: max, remaining: Math.max(0, max - used), retryAfter };
+}
+
 // Counts `cost` against a fixed window. peek=true reads without counting.
 // -> { allowed, used, limit, remaining, retryAfter }
 async function hit(bucket, id, { max, windowMs, cost = 1, peek = false }) {
     const key = keyOf(bucket, id), now = Date.now();
+
+    const conf = redisConf();
+    if (conf) { try { return await redisHit(conf, key, { max, windowMs, cost, peek }); } catch (e) { /* fall back to the Blob store */ } }
+
     let rec = null;
     try { rec = await store().get(key, { type: 'json' }); } catch (e) { rec = null; }
     const m = mem.get(key);
@@ -61,16 +104,16 @@ async function hit(bucket, id, { max, windowMs, cost = 1, peek = false }) {
 
 // Count an attempt; returns a 429 response when over the limit, else null.
 async function authAttempt(event, bucket, max = AUTH_MAX) {
-    const r = await hit(bucket, clientIp(event), { max, windowMs: AUTH_WINDOW });
+    const r = await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW });
     return r.allowed ? null : tooMany(r.retryAfter, `Too many attempts. Please wait ${Math.ceil(r.retryAfter / 60)} minutes and try again.`);
 }
 // Failures-only variants (Google sign-in): check first, record only the failures.
 async function authBlocked(event, bucket, max = AUTH_MAX) {
-    const r = await hit(bucket, clientIp(event), { max, windowMs: AUTH_WINDOW, peek: true });
+    const r = await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW, peek: true });
     return r.allowed ? null : tooMany(r.retryAfter, `Too many failed attempts. Please wait ${Math.ceil(r.retryAfter / 60)} minutes and try again.`);
 }
 async function authFailure(event, bucket, max = AUTH_MAX) {
-    await hit(bucket, clientIp(event), { max, windowMs: AUTH_WINDOW });
+    await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW });
 }
 
 // ─── who is calling? ──────────────────────────────────────────────────────
@@ -82,10 +125,27 @@ function whoIs(body, event) {
     if (owner) return { owner: true, sub: null, id: 'owner', kind: 'owner' };
     const session = verifyUser(typeof body?.token === 'string' ? body.token : '', process.env.KNOWURA_USER_TOKEN_SECRET);
     if (session) return { owner: false, sub: session.sub, id: `u:${session.sub}`, kind: 'user' };
-    return { owner: false, sub: null, id: `ip:${clientIp(event)}`, kind: 'guest' };
+    return { owner: false, sub: null, id: `ip:${ipKey(event)}`, kind: 'guest' };
 }
 
 // ─── chat / voice usage ───────────────────────────────────────────────────
+
+// The 429 the front end turns into the "limit reached" pop-up.
+function limitResponse(kind, ident, r, L) {
+    const hours = Math.max(1, Math.ceil(r.retryAfter / 3600));
+    const mins = Math.max(1, Math.ceil(r.retryAfter / 60));
+    const when = r.retryAfter < 5400 ? `${mins} minute${mins === 1 ? '' : 's'}` : `about ${hours} hour${hours === 1 ? '' : 's'}`;
+    const span = `${Math.round(L.windowMs / 3600000)} hours`;
+    const what = kind === 'voice' ? 'voice' : 'message';
+    const error = ident.kind === 'guest'
+        ? `You've used all ${r.limit} ${what}s for this ${span}. Sign in with Google for more, or try again in ${when}.`
+        : `You've used all ${r.limit} ${what}s for this ${span}. You can send more in ${when}.`;
+    return json(429, {
+        error, limitReached: true, audience: ident.kind, what, limit: r.limit,
+        resetIn: r.retryAfter, windowSeconds: Math.round(L.windowMs / 1000),
+        upgradeTo: ident.kind === 'guest' ? (kind === 'voice' ? L.voice : L.user) : undefined
+    }, { 'Retry-After': String(r.retryAfter) });
+}
 
 // kind: 'chat' (a message the person sent), 'aux' (background titles/summaries/memory),
 // 'voice' (transcribe + speak). Owner mode is never limited.
@@ -98,24 +158,24 @@ async function usageGate(event, ident, kind = 'chat', cost = 1) {
     if (wait) return { response: tooMany(wait, `You're sending messages too fast — try again in ${wait} seconds.`) };
 
     const perWindow = kind === 'voice' ? L.voice : ident.kind === 'user' ? L.user : L.guest;
-    const max = kind === 'aux' ? perWindow * 4 : perWindow;
+
+    // Background helper calls can't be used as a side door: the client only *says* a call is
+    // "aux", so they're allowed only in proportion to the real messages already sent.
+    if (kind === 'aux') {
+        const chat = await hit('window-chat', ident.id, { max: perWindow, windowMs: L.windowMs, peek: true });
+        const aux = await hit('window-aux', ident.id, { max: perWindow * AUX_PER_CHAT + AUX_PER_CHAT, windowMs: L.windowMs, peek: true });
+        if (aux.used + cost > chat.used * AUX_PER_CHAT + AUX_PER_CHAT) {
+            return { response: json(429, { error: "Too many background requests — send a message first.", limitReached: false }, { 'Retry-After': '60' }) };
+        }
+    }
+    const max = kind === 'aux' ? perWindow * AUX_PER_CHAT + AUX_PER_CHAT : perWindow;
 
     const g = await hit('global-daily', 'all', { max: L.globalDaily, windowMs: DAY, cost });
     if (!g.allowed) return { response: json(503, { error: "Knowura is very busy right now. Please try again a little later." }, { 'Retry-After': String(g.retryAfter) }) };
 
     const r = await hit(`window-${kind}`, ident.id, { max, windowMs: L.windowMs, cost });
-    if (!r.allowed) {
-        const hours = Math.max(1, Math.ceil(r.retryAfter / 3600));
-        const mins = Math.max(1, Math.ceil(r.retryAfter / 60));
-        const when = r.retryAfter < 5400 ? `${mins} minute${mins === 1 ? '' : 's'}` : `about ${hours} hour${hours === 1 ? '' : 's'}`;
-        const span = `${Math.round(L.windowMs / 3600000)} hours`;
-        const what = kind === 'voice' ? 'voice' : 'message';
-        const msg = ident.kind === 'guest'
-            ? `You've used all ${r.limit} ${what}s for this ${span}. Sign in with Google for more, or try again in ${when}.`
-            : `You've used all ${r.limit} ${what}s for this ${span}. You can send more in ${when}.`;
-        return { response: json(429, { error: msg }, { 'Retry-After': String(r.retryAfter) }) };
-    }
-    return { usage: { limit: r.limit, remaining: r.remaining } };
+    if (!r.allowed) return { response: limitResponse(kind, ident, r, L) };
+    return { usage: { limit: r.limit, remaining: r.remaining, resetIn: r.retryAfter } };
 }
 
 module.exports = { hit, authAttempt, authBlocked, authFailure, whoIs, usageGate, setStoreForTests, LIMITS, AUTH_MAX, AUTH_WINDOW };
