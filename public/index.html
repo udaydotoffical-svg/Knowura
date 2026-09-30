@@ -1810,7 +1810,7 @@
             <button type="button" data-tab="code" onclick="cbTab('code')"><svg class="icon"><use href="#icon-code"/></svg> Code</button>
         </div>
         <div class="cb-body"><pre class="cb-code"><code id="cbCode"></code></pre></div>
-        <iframe id="cbFrame" class="cb-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Live preview"></iframe>
+        <iframe id="cbFrame" class="cb-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Live preview" src="about:blank"></iframe>
     </aside>
     </div>
 
@@ -2957,9 +2957,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         return out;
     }
 
-    // Live preview: only HTML, SVG and Markdown. It runs in a sandboxed iframe with an opaque origin
-    // (no cookies, storage, parent access, forms, popups or navigation) plus its own CSP with no network.
-    const CB_CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; media-src data: blob:; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">`;
+    // Live preview: only HTML, SVG and Markdown. It renders inside /preview, a separate page whose own CSP lets
+    // pages load images, fonts, stylesheets and the popular CDN libraries but blocks fetch/XHR/forms, and which is
+    // sandboxed to an opaque origin (no cookies, storage or access to this page).
     function cbKind(name, raw) {
         if (name === 'SVG' || (name === 'HTML' && /^\s*<svg[\s>]/i.test(raw))) return 'svg';
         if (name === 'HTML') return 'html';
@@ -2971,18 +2971,17 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         return [...scope.querySelectorAll('.cb-card')].filter(c => c !== card && cbLangName(c.dataset.lang) === langName).map(c => c.dataset.code || '');
     }
     function cbSrcdoc(kind, raw, card) {
-        if (kind === 'svg') return `<!doctype html><html><head><meta charset="utf-8">${CB_CSP}</head><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">${raw}</body></html>`;
+        if (kind === 'svg') return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">${raw}</body></html>`;
         if (kind === 'md') {
             const body = window.DOMPurify && window.marked ? DOMPurify.sanitize(marked.parse(raw)) : '';
-            return `<!doctype html><html><head><meta charset="utf-8">${CB_CSP}<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:0 auto;padding:20px;color:#1a1a1a}pre,code{background:#f3f4f6;border-radius:6px}pre{padding:12px;overflow:auto}code{padding:2px 5px}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px}blockquote{border-left:4px solid #ccc;margin:0;padding-left:14px;color:#555}</style></head><body>${body}</body></html>`;
+            return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:0 auto;padding:20px;color:#1a1a1a}pre,code{background:#f3f4f6;border-radius:6px}pre{padding:12px;overflow:auto}code{padding:2px 5px}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px}blockquote{border-left:4px solid #ccc;margin:0;padding-left:14px;color:#555}</style></head><body>${body}</body></html>`;
         }
         let html = raw;
         const css = cbSiblings(card, 'CSS'), js = cbSiblings(card, 'JavaScript');
         if (css.length) html = html.replace(/<link\b[^>]*href=["'][^"']+\.css["'][^>]*>/gi, () => `<style>${css.join('\n')}</style>`);
         if (js.length) html = html.replace(/<script\b[^>]*\bsrc=["'][^"']+\.js["'][^>]*>\s*<\/script>/gi, () => `<script>${js.join('\n').replace(/<\/script/gi, '<\\/script')}<\/script>`);
-        if (/<head[^>]*>/i.test(html)) return html.replace(/<head[^>]*>/i, (m) => m + CB_CSP);
-        if (/<html[^>]*>/i.test(html)) return html.replace(/<html[^>]*>/i, (m) => `${m}<head>${CB_CSP}</head>`);
-        return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${CB_CSP}</head><body>${html}</body></html>`;
+        if (/<html[\s>]/i.test(html) || /<!doctype/i.test(html)) return html;
+        return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${html}</body></html>`;
     }
     function cbTab(t) {
         const box = document.getElementById('codeBox');
@@ -2990,7 +2989,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.querySelectorAll('#cbTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
     }
 
-    let cbCurrent = null;
+    let cbCurrent = null, cbPending = null, cbLoads = 0;
+    window.addEventListener('message', (e) => {
+        const f = document.getElementById('cbFrame');
+        if (e.source !== f.contentWindow || e.data !== 'kw-preview-ready' || cbPending == null) return;
+        f.contentWindow.postMessage({ html: cbPending }, '*');
+        cbPending = null;
+    });
     function openCodeBox(card) {
         const raw = card.dataset.code || '';
         const lang = card.dataset.lang || '';
@@ -3009,8 +3014,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const kind = cbKind(name, raw);
         const frame = document.getElementById('cbFrame');
         document.getElementById('cbTabs').hidden = !kind;
-        if (kind) { frame.srcdoc = cbSrcdoc(kind, raw, card); cbTab('preview'); }
-        else { frame.srcdoc = ''; cbTab('code'); }
+        if (kind) { cbPending = cbSrcdoc(kind, raw, card); frame.src = `/preview?${++cbLoads}`; cbTab('preview'); }
+        else { cbPending = null; frame.src = 'about:blank'; cbTab('code'); }
         document.querySelectorAll('.cb-card.active').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         document.getElementById('app').classList.add('cb-open');
@@ -3020,7 +3025,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.getElementById('app').classList.remove('cb-open');
         document.querySelectorAll('.cb-card.active').forEach(c => c.classList.remove('active'));
         cbCurrent = null;
-        document.getElementById('cbFrame').srcdoc = '';
+        cbPending = null;
+        document.getElementById('cbFrame').src = 'about:blank';
     }
     function codeBoxClick(e) {
         const card = e.target.closest?.('.cb-card');
