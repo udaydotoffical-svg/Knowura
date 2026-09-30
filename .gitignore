@@ -8,3 +8,4 @@ node_modules/
 *.key
 *.p12
 .DS_Store
+public/version.json
