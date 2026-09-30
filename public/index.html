@@ -565,10 +565,10 @@
         .cb-card:hover { border-color: var(--cyan); }
         .cb-card:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgba(34,229,255,0.25); }
         .cb-card.active { border-color: var(--cyan); }
-        .cb-ic { flex: none; width: 38px; height: 38px; display: block; }
-        .cb-ic svg, .cb-title svg { display: block; width: 100%; height: 100%; }
+        .cb-ic { flex: none; width: 38px; height: 38px; display: grid; place-items: center; padding: 6px; border-radius: 10px; background: #eef3ff; box-sizing: border-box; }
+        .cb-ic svg, .cb-ic img { display: block; width: 100%; height: 100%; object-fit: contain; }
         .cb-title { display: flex; align-items: center; gap: 10px; }
-        .cb-title .cb-ic { width: 24px; height: 24px; }
+        .cb-title .cb-ic { width: 28px; height: 28px; padding: 4px; border-radius: 8px; }
         .cb-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .cb-meta b { font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .cb-meta i { font-style: normal; font-size: 12px; color: var(--text-dim); }
@@ -2917,34 +2917,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // attribute, so saved chats keep working and the panel needs no separate storage.
     const CB_LANGS = { js: 'JavaScript', javascript: 'JavaScript', ts: 'TypeScript', typescript: 'TypeScript', py: 'Python', python: 'Python', html: 'HTML', xml: 'HTML', css: 'CSS', json: 'JSON', java: 'Java', c: 'C', cpp: 'C++', 'c++': 'C++', cs: 'C#', 'c#': 'C#', go: 'Go', rust: 'Rust', rs: 'Rust', php: 'PHP', ruby: 'Ruby', rb: 'Ruby', sql: 'SQL', bash: 'Bash', sh: 'Shell', shell: 'Shell', kotlin: 'Kotlin', swift: 'Swift', yaml: 'YAML', yml: 'YAML', md: 'Markdown', markdown: 'Markdown', ino: 'Arduino', arduino: 'Arduino' };
     const CB_EXT = { JavaScript: 'js', TypeScript: 'ts', Python: 'py', HTML: 'html', CSS: 'css', JSON: 'json', Java: 'java', C: 'c', 'C++': 'cpp', 'C#': 'cs', Go: 'go', Rust: 'rs', PHP: 'php', Ruby: 'rb', SQL: 'sql', Bash: 'sh', Shell: 'sh', Kotlin: 'kt', Swift: 'swift', YAML: 'yml', Markdown: 'md', Arduino: 'ino' };
-    const cbTile = (bg, inner) => `<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="${bg}"/>${inner}</svg>`;
-    const cbStroke = (d, c, w = 2.6) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
-    const CB_ICONS = {
-        Python: cbTile('#0d1a33', '<path d="M16 5c-4.5 0-5 1.8-5 3.6V11h5.5v1H8.6C6 12 5 14 5 16.5S6 21 8.4 21H11v-3.2c0-1.9 1.7-3.4 3.6-3.4h4.8c1.6 0 2.6-1 2.6-2.6V8.6C22 6.6 20.2 5 16 5z" fill="#4b8bbe"/><path d="M16 27c4.5 0 5-1.8 5-3.6V21h-5.5v-1h7.9c2.6 0 3.6-2 3.6-4.5S26 11 23.6 11H21v3.2c0 1.9-1.7 3.4-3.6 3.4h-4.8c-1.6 0-2.6 1-2.6 2.6v3.2C10 25.4 11.8 27 16 27z" fill="#ffd43b"/><circle cx="13.5" cy="8.5" r="1.1" fill="#fff"/><circle cx="18.5" cy="23.5" r="1.1" fill="#fff"/>'),
-        JavaScript: cbTile('#f7df1e', cbStroke('M13 9v10c0 2.6-1.4 3.6-3.4 3.6', '#1a1a1a') + cbStroke('M25 10.6c-.8-1.3-2.2-1.7-3.6-1.4-1.6.4-2.2 2-1.3 3.2 1.4 1.8 5.3 1.6 5.3 4.6 0 2.4-2.6 3.6-5 2.6-1-.4-1.7-1.1-2.1-2', '#1a1a1a', 2.3)),
-        TypeScript: cbTile('#3178c6', cbStroke('M6 10h11M11.5 10v13', '#fff') + cbStroke('M26 11.4c-.9-1.4-3.6-1.5-4.2.2-.7 2.3 4.6 1.6 4.4 4.7-.2 2.6-3.9 3-5.4.9', '#fff', 2.3)),
-        HTML: cbTile('#e44d26', cbStroke('M12 10l-6 6 6 6M20 10l6 6-6 6', '#fff') + cbStroke('M17.5 8l-3 16', '#ffd0c2', 2)),
-        CSS: cbTile('#1572b6', cbStroke('M12 8c-3 0-3 1.5-3 3v2c0 1.6-1 3-3 3 2 0 3 1.4 3 3v2c0 1.5 0 3 3 3M20 8c3 0 3 1.5 3 3v2c0 1.6 1 3 3 3-2 0-3 1.4-3 3v2c0 1.5 0 3-3 3', '#fff', 2.4)),
-        JSON: cbTile('#1f2a44', cbStroke('M12 8c-3 0-3 1.5-3 3v2c0 1.6-1 3-3 3 2 0 3 1.4 3 3v2c0 1.5 0 3 3 3M20 8c3 0 3 1.5 3 3v2c0 1.6 1 3 3 3-2 0-3 1.4-3 3v2c0 1.5 0 3-3 3', '#ffca3a', 2.4) + '<circle cx="16" cy="16" r="1.6" fill="#ffca3a"/>'),
-        Java: cbTile('#f8f4ee', '<path d="M8 15h13v4.5a5 5 0 0 1-5 5h-3a5 5 0 0 1-5-5z" fill="#e76f00"/>' + cbStroke('M21 16.5h1.5a2.4 2.4 0 0 1 0 4.8H21', '#e76f00', 2) + cbStroke('M12 12c-1.5-1.5 1.5-2.5 0-4.5M16.5 12c-1.5-1.5 1.5-2.5 0-4.5', '#5382a1', 1.8)),
-        C: cbTile('#5c6bc0', cbStroke('M22.5 11.5A7.5 7.5 0 1 0 22.5 20.5', '#fff', 3)),
-        'C++': cbTile('#00599c', cbStroke('M16 11.5A6 6 0 1 0 16 20.5', '#fff', 2.6) + cbStroke('M20 16h5M22.5 13.5v5M25.5 16h0', '#fff', 1.8)),
-        'C#': cbTile('#68217a', cbStroke('M15 11.5A6 6 0 1 0 15 20.5', '#fff', 2.6) + cbStroke('M19.5 12.5v7M23 12.5v7M18 14.7h6.5M18 17.4h6.5', '#fff', 1.6)),
-        Go: cbTile('#00add8', cbStroke('M20.5 12A6 6 0 1 0 20.5 20v-3.5H16', '#fff', 2.6) + cbStroke('M4 13h3M3 17h4', '#bff1ff', 1.8)),
-        Rust: cbTile('#3a2a22', '<circle cx="16" cy="16" r="6" fill="none" stroke="#f0b08a" stroke-width="2.4"/>' + cbStroke('M16 5v3M16 24v3M5 16h3M24 16h3M8.2 8.2l2.1 2.1M21.7 21.7l2.1 2.1M8.2 23.8l2.1-2.1M21.7 10.3l2.1-2.1', '#f0b08a', 2.2) + cbStroke('M13.5 19v-6h3a1.6 1.6 0 0 1 0 3.2h-3', '#f0b08a', 1.8)),
-        PHP: cbTile('#777bb3', '<ellipse cx="16" cy="16" rx="12" ry="7.5" fill="none" stroke="#fff" stroke-width="2"/>' + cbStroke('M9.5 19v-6h2.3a1.8 1.8 0 0 1 0 3.6H9.5M20 19v-6h2.3a1.8 1.8 0 0 1 0 3.6H20', '#fff', 1.7)),
-        Ruby: cbTile('#3a0f14', '<path d="M9 8h14l4 5-11 12L5 13z" fill="#e0263a"/><path d="M5 13h22M12 8l-2 5 6 12M20 8l2 5-6 12" fill="none" stroke="#ffb3bd" stroke-width="1.3" stroke-linejoin="round"/>'),
-        SQL: cbTile('#0e7c86', '<ellipse cx="16" cy="9.5" rx="8" ry="3.2" fill="#e0fbfc"/><path d="M8 9.5v13c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2v-13" fill="none" stroke="#e0fbfc" stroke-width="2.2"/><path d="M8 16c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2" fill="none" stroke="#e0fbfc" stroke-width="2"/>'),
-        Bash: cbTile('#111827', cbStroke('M8 10l6 6-6 6', '#4ade80') + cbStroke('M17 23h8', '#4ade80')),
-        Shell: cbTile('#111827', cbStroke('M8 10l6 6-6 6', '#4ade80') + cbStroke('M17 23h8', '#4ade80')),
-        Kotlin: cbTile('#7f52ff', '<path d="M7 7h18L16 16l9 9H7z" fill="#fff" opacity=".95"/>'),
-        Swift: cbTile('#f05138', cbStroke('M7 22c5 2 11 1 15-3-4 1.5-8 .5-11-3.5 3 2.4 6 3 9 2.2C15 14 12 9 10 7c5 3 10 6 13 11 1-2 1-5-1-7.5 3.5 4 3 10-1 13.5', '#fff', 2)),
-        YAML: cbTile('#cb171e', cbStroke('M9 10l4 5v6M23 10l-4 5', '#fff', 2.6) + cbStroke('M18 21h6', '#fff', 2.2)),
-        Markdown: cbTile('#1f2937', cbStroke('M6 22V10l4.5 6L15 10v12', '#e5e7eb', 2.4) + cbStroke('M21 10v10m0 0-3-3m3 3 3-3', '#e5e7eb', 2.4)),
-        Arduino: cbTile('#00979d', cbStroke('M6.5 16c0-3.6 3.2-5.5 6-3.4 2.4 1.8 4.8 5.2 7.5 5.2 2.6 0 4.5-3.6 0-5.6C16 10.5 8 16 8 16', '#fff', 2.4) + cbStroke('M9 16h4M11 14v4M19.5 16h3.5', '#fff', 1.8)),
-        Code: cbTile('#0a2a44', cbStroke('M12 10l-6 6 6 6M20 10l6 6-6 6', '#22e5ff', 2.6))
-    };
-    const cbIcon = (name) => CB_ICONS[name] || CB_ICONS.Code;
+    // Official language logos (devicon, MIT) served from our own domain.
+    const CB_LOGO = { JavaScript: 'javascript', TypeScript: 'typescript', Python: 'python', HTML: 'html', CSS: 'css', JSON: 'json', Java: 'java', C: 'c', 'C++': 'cpp', 'C#': 'csharp', Go: 'go', Rust: 'rust', PHP: 'php', Ruby: 'ruby', SQL: 'sql', Bash: 'bash', Shell: 'bash', Kotlin: 'kotlin', Swift: 'swift', YAML: 'yaml', Markdown: 'markdown', Arduino: 'arduino' };
+    const CB_GENERIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5" fill="none" stroke="#0a2a44" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const cbIcon = (name) => CB_LOGO[name] ? `<img src="assets/vendor/devicon/${CB_LOGO[name]}.svg" alt="" draggable="false">` : CB_GENERIC;
     function cbLangName(lang) { const k = (lang || '').toLowerCase(); return CB_LANGS[k] || (k ? k.toUpperCase() : 'Code'); }
     function codeCardHTML(_m, lang, escaped) {
         const name = cbLangName(lang);
