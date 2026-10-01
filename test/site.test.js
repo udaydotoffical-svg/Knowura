@@ -84,3 +84,14 @@ test('no unlicensed music ships: the Free To Use tracks are gone and the player 
     assert.doesNotMatch(pub('index.html'), /assets\/audio\/[\w-]+\.mp3|Lukrembo/);
     assert.doesNotMatch(pub('eula.html'), /Lukrembo/);
 });
+
+test('Android wrapper: the APK package, site host and Digital Asset Links file agree', () => {
+    const root = path.join(__dirname, '..');
+    const links = JSON.parse(fs.readFileSync(path.join(root, 'public/.well-known/assetlinks.json'), 'utf8'));
+    assert.equal(links[0].target.package_name, 'com.knowura.app');
+    assert.match(links[0].target.sha256_cert_fingerprints[0], /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
+    const manifest = fs.readFileSync(path.join(root, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+    assert.match(manifest, /DEFAULT_URL"\s+android:value="https:\/\/knowura\.vercel\.app\/"/);
+    assert.match(fs.readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8'), /applicationId 'com\.knowura\.app'/);
+    assert.ok(fs.existsSync(path.join(root, 'android/gradlew')));
+});

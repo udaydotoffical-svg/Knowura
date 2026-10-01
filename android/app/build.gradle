@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.knowura.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.knowura.app'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '1.1.0'
+    }
+
+    // Sideload-grade key (committed on purpose so every build has the same signature, which the site's
+    // assetlinks.json is tied to). For a Play Store release, make a private key and update assetlinks.json.
+    signingConfigs {
+        release {
+            storeFile file('../sideload.keystore')
+            storePassword 'knowura-sideload'
+            keyAlias 'knowura'
+            keyPassword 'knowura-sideload'
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
