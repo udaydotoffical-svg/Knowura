@@ -76,3 +76,11 @@ test('fonts are self-hosted: no page or CSP contacts Google Fonts, and the legal
     for (const re of [/not a human/, /under 18/i, /Governing law and courts/, /Severability/]) assert.match(t, re, String(re));
     assert.match(pub('index.html'), /confirm you are 13 or older/);
 });
+
+test('the background music is credited in the app and in the EULA', () => {
+    for (const f of ['index.html', 'eula.html']) {
+        const h = pub(f);
+        assert.match(h, /Lukrembo/, f);
+        assert.match(h, /freetouse\.com\/music\/lukrembo/, f);
+    }
+});
