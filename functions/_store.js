@@ -35,7 +35,10 @@ function vercelStore(name) {
                 const text = Buffer.concat(chunks).toString('utf8');
                 return opts?.type === 'json' ? JSON.parse(text) : text;
             } catch (e) {
-                return null; // no such blob — same "missing" contract as @netlify/blobs' get()
+                // Only a genuine 404 means "missing" (the SDK returns null for it). Any other failure
+                // must surface: reading it as "missing" lets chat-save overwrite newer cloud data.
+                if (e?.name === 'BlobNotFoundError') return null;
+                throw e;
             }
         },
         async setJSON(key, value) {
