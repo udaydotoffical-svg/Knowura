@@ -121,7 +121,7 @@ test('Android assistant: the floating panel page, the native service wiring and 
     for (const re of [/BIND_VOICE_INTERACTION/, /android\.service\.voice\.VoiceInteractionService/, /android\.speech\.RecognitionService/, /RECORD_AUDIO/]) assert.match(manifest, re, String(re));
     const xml = fs.readFileSync(path.join(root, 'android/app/src/main/res/xml/interaction_service.xml'), 'utf8');
     assert.match(xml, /supportsAssist="true"/);
-    for (const f of ['KnowuraInteractionService', 'KnowuraSessionService', 'KnowuraSession', 'KnowuraRecognitionService', 'MicPermissionActivity', 'SignInActivity']) {
+    for (const f of ['KnowuraInteractionService', 'KnowuraSessionService', 'KnowuraSession', 'KnowuraRecognitionService', 'MicPermissionActivity', 'InstallId', 'KnowuraLauncherActivity']) {
         assert.ok(fs.existsSync(path.join(root, `android/app/src/main/java/com/knowura/app/${f}.java`)), f);
     }
     assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8'), /assistant\?native=1/);
@@ -148,8 +148,9 @@ test('assistant panel: voice first, X to text, swipe-up handoff, cloud sync, stu
     assert.match(page, /pointerup/);
     assert.match(page, /chat-save/); assert.match(page, /chat-load/);   // cloud sync
     assert.match(page, /studyChipHTML/); assert.match(page, /openStudy/); // quizzes + flashcards
-    assert.match(page, /knowuraSignedIn/);
+    assert.match(page, /device-session/);                                  // signs in via the app's link
+    assert.doesNotMatch(page, /knowuraSignedIn/);
     const root = path.join(__dirname, '..');
-    assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/SignInActivity.java'), 'utf8'), /21362482851-mj9pla405ejg3aqcvu8uve693u2ibjp8/);
+    assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraLauncherActivity.java'), 'utf8'), /kwdev/);
     assert.match(pub('index.html'), /function importAssistantChat/);
 });

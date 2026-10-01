@@ -243,6 +243,7 @@
         .wake-mobile-note { margin: 0 0 8px; }
         .voice-launch { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 2147482000; display: inline-flex; align-items: center; gap: 10px; padding: 16px 26px; border-radius: 16px; border: 2px solid var(--ink); background: var(--cyan); color: #001018; font-weight: 800; font-size: 16px; box-shadow: 5px 5px 0 var(--ink); cursor: pointer; }
         .voice-launch .icon { width: 22px; height: 22px; }
+        .assistant-select { width: 100%; padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--panel-strong); color: var(--text); font-size: 13px; font-weight: 700; box-shadow: var(--shadow-sm); }
         /* ─── COOKIE NOTICE ─────────────────────────────────────────────── */
         .cookie-banner {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 400;
@@ -2003,6 +2004,11 @@
                     <span class="choice-row"><span class="choice-dot"></span>Off</span>
                 </button>
             </div>
+            <div class="settings-section" id="assistantSection" hidden>
+                <div class="settings-label">Android assistant</div>
+                <select id="assistantModelSelect" class="assistant-select" onchange="setAssistantModel(this.value)" aria-label="Model for the Android assistant"></select>
+                <div class="choice-hint" style="margin-top:6px;">The model used when you open Knowura from your phone's assistant. It signs in as you automatically.</div>
+            </div>
 
             </div>
 
@@ -2151,7 +2157,7 @@
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', haptics: 'on', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', assistantModel: '', haptics: 'on', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -2162,6 +2168,44 @@
 
     function saveSettings() {
         localStorage.setItem('knowura_settings', JSON.stringify(settings));
+    }
+
+    // ─── ANDROID ASSISTANT LINK ──────────────────────────────────────────────
+    // The Android app opens this site with ?kwdev=<install id> (a random secret only that install knows). We keep
+    // it, and while signed in tell the server "this install belongs to this account" plus the assistant model chosen
+    // below, so the assistant panel (a separate web view with its own storage) uses the same sign-in and model.
+    (function captureInstallId() {
+        try {
+            const u = new URL(location.href), id = u.searchParams.get('kwdev');
+            if (!id) return;
+            if (/^[A-Za-z0-9_-]{22,64}$/.test(id)) localStorage.setItem('knowura_install_id', id);
+            u.searchParams.delete('kwdev');
+            history.replaceState(null, '', u.pathname + u.search + u.hash);
+        } catch (e) { /* not essential */ }
+    })();
+    function installId() { try { return localStorage.getItem('knowura_install_id') || ''; } catch (e) { return ''; } }
+    function syncAssistantLink({ unlink = false } = {}) {
+        const id = installId();
+        if (!id || typeof fetch !== 'function') return;
+        const body = { installId: id, prefs: { assistantModel: settings.assistantModel || '' } };
+        if (unlink) body.unlink = true;
+        else if (isCloudUser()) body.token = userToken, body.profile = { given_name: userProfile?.given_name, email: userProfile?.email, picture: userProfile?.picture };
+        fetch('/.netlify/functions/device-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => { /* retried on the next launch */ });
+    }
+    function setAssistantModel(id) {
+        settings.assistantModel = id || '';
+        saveSettings();
+        syncAssistantLink();
+    }
+    // The picker only appears in the Android app (where there is an assistant); the first option follows the chat model.
+    function renderAssistantModelSelect() {
+        const sec = document.getElementById('assistantSection'), sel = document.getElementById('assistantModelSelect');
+        if (!sec || !sel) return;
+        sec.hidden = !installId();
+        const chat = normalizeModelChoice(settings.modelChoice);
+        sel.innerHTML = `<option value="">Same as chat (${escapeHtml(modelLabel(chat))})</option>`
+            + availableModels.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.label || modelLabel(m.id))}</option>`).join('');
+        sel.value = availableModels.some(m => m.id === settings.assistantModel) ? settings.assistantModel : '';
     }
 
     // ─── SETTINGS MENU NAVIGATION (main list → sub-menus) ─────────────────────
@@ -2218,6 +2262,7 @@
         if (slider) slider.value = settings.glassOpacity;
         applyGlassOpacity(settings.glassOpacity);
         syncModelSelectors();
+        renderAssistantModelSelect();
         updateMenuSummaries();
     }
 
@@ -2267,6 +2312,7 @@
             }).join('')
             : '<div class="model-dd-empty">Loading models…</div>';
         document.querySelectorAll('.model-dd-menu').forEach(menu => { menu.innerHTML = html; });
+        renderAssistantModelSelect();
     }
 
     function setModelChoice(value) {
@@ -2444,6 +2490,7 @@
     async function logOut(skipConfirm = false) {
         if (skipConfirm !== true && !(await showConfirm('Log out of Knowura?', 'Log Out', 'Log Out', 'Cancel'))) return;
         document.getElementById('hamburgerPanel')?.classList.remove('open');
+        syncAssistantLink({ unlink: true }); // the assistant panel signs out too
         endCall();
         stopWakeListener();
         clearSession();
@@ -3948,6 +3995,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         renderActiveChat();
         renderChatList();
         maybeOfferVoiceLaunch();
+        syncAssistantLink();
     }
 
     // The Android assistant panel hands its conversation over as #kwimport=<base64url JSON> when you swipe it up

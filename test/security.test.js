@@ -19,6 +19,8 @@ const owner = require('../functions/_ownerToken');
 const user = require('../functions/_userToken');
 const askAi = require('../functions/ask-ai');
 const chatSave = require('../functions/chat-save');
+const deviceLink = require('../functions/device-link');
+const deviceSession = require('../functions/device-session');
 const pwVerify = require('../functions/owner-password-verify');
 const { cleanCredentialResponse } = require('../functions/_webauthnInput');
 
@@ -300,4 +302,33 @@ test('phone wake-phrase clips have their own allowance and never trip the global
         // the global daily breaker (1 here) still has room for a real chat message
         assert.ok((await limits.usageGate(ev({}), guest, 'chat')).usage);
     } finally { delete process.env.LIMIT_WAKE; delete process.env.LIMIT_GLOBAL_DAILY; }
+});
+
+
+test('device link: the app links an install to an account and prefs; the panel gets the same sign-in; sign-out unlinks', async () => {
+    const id = 'A'.repeat(22) + 'b'.repeat(10);
+    const body = (o) => ev(JSON.stringify(o), { headers: { 'x-forwarded-for': '9.9.9.' + Math.floor(Math.random() * 200) } });
+    // nothing linked yet -> not linked, no prefs
+    let r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
+    assert.deepEqual(r, { linked: false, prefs: { assistantModel: '' } });
+    // a bad token can't link
+    assert.equal((await deviceLink.handler(body({ installId: id, token: 'nope' }))).statusCode, 401);
+    // a real session token links it, with the chosen assistant model
+    const tok = user.sign('google|42', 'user-secret');
+    assert.equal((await deviceLink.handler(body({ installId: id, token: tok, profile: { given_name: 'Uday', email: 'u@x.com', picture: 'https://lh3.googleusercontent.com/a' }, prefs: { assistantModel: 'openai/gpt-oss-120b' } }))).statusCode, 200);
+    r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
+    assert.equal(r.linked, true);
+    assert.deepEqual(user.verify(r.token, 'user-secret'), { sub: 'google|42' });
+    assert.equal(r.profile.given_name, 'Uday');
+    assert.equal(r.prefs.assistantModel, 'openai/gpt-oss-120b');
+    // changing only the model keeps the link
+    await deviceLink.handler(body({ installId: id, prefs: { assistantModel: 'bad model!' } }));
+    r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
+    assert.equal(r.linked, true); assert.equal(r.prefs.assistantModel, ''); // invalid ids are dropped
+    // sign out in the app -> the panel is signed out too
+    await deviceLink.handler(body({ installId: id, unlink: true }));
+    r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
+    assert.equal(r.linked, false);
+    // ids that aren't long random strings are refused, and nothing is stored in plain text
+    assert.equal((await deviceSession.handler(body({ installId: 'short' }))).statusCode, 400);
 });

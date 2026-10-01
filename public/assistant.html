@@ -265,11 +265,12 @@ function showAlert(message) { window.__note && window.__note(message); }
 
     // ── asking the model (shared by text and voice) ──
     async function askModel(text, { voice = false } = {}) {
+        await Promise.race([linkReady, new Promise((ok) => setTimeout(ok, 3000))]); // pick up the app's sign-in + model first
         msgs.push({ role: 'user', content: text });
         if (msgs.length > 10) msgs.shift();
         ctrl = new AbortController();
         try {
-            const res = await post('ask-ai', { messages: msgs, memory: {}, ownerToken, token: tok(), model: settings.modelChoice, effort: settings.effortLevel }, { signal: ctrl.signal });
+            const res = await post('ask-ai', { messages: msgs, memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel }, { signal: ctrl.signal });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; throw e; }
             let reply = String(data.choices[0].message && data.choices[0].message.content || '');
@@ -284,7 +285,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (e.limit && e.audience === 'guest' && !signedIn()) addSignInCta(b);
     }
     function addSignInCta(bubble) {
-        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-ui cta'; btn.textContent = 'Sign in with Google';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-ui cta'; btn.textContent = 'Sign in on the Knowura app';
         btn.onclick = signIn; bubble.appendChild(btn);
     }
 
@@ -465,8 +466,29 @@ function showAlert(message) { window.__note && window.__note(message); }
     $('endCallBtn').addEventListener('click', closePanel);
     $('voiceX').addEventListener('click', () => showText(false)); // the cross: leave voice, stay in the assistant as a text chat
 
-    // ── sign in (the phone's own Google account picker; the web page can't do it inside the panel) ──
-    function signIn() { if (bridge && bridge.signIn) bridge.signIn(); else openApp('/'); }
+    // ── sign in: done once in the Knowura app; this panel picks it up from the server by install id ──
+    const installId = bridge && bridge.installId ? bridge.installId() : '';
+    let prefs = { assistantModel: '' };
+    async function refreshLink() {
+        if (!installId) return;
+        try {
+            const r = await post('device-session', { installId });
+            if (!r.ok) return;
+            const d = await r.json();
+            prefs = d.prefs || prefs;
+            if (d.linked && d.token) {
+                session = { user: d.profile.given_name, savedAt: Date.now(), sub: d.profile.sub, email: d.profile.email, picture: d.profile.picture, sessionToken: d.token };
+                store('knowura_session', session);
+            } else { session = {}; store('knowura_session', null); } // signed out in the app -> signed out here
+            renderAcct();
+        } catch (e) { /* offline: keep what we have */ }
+    }
+    let linkReady = Promise.resolve();
+    function signIn() {
+        showText(false);
+        const b = addBubble('<p>Sign in on the Knowura app and it shows up here automatically, with your chats.</p>', 'ai');
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-ui cta'; btn.textContent = 'Open Knowura'; btn.onclick = () => openApp('/'); b.appendChild(btn);
+    }
     function renderAcct() {
         const label = signedIn() ? (session.picture ? '<img class="acct-img" alt="" src="' + escapeHtml(session.picture) + '" referrerpolicy="no-referrer"> ' : '') + escapeHtml((session.user || 'Account').slice(0, 10)) : 'Sign in';
         for (const b of [$('acctBtn'), $('acctVoice')]) { b.innerHTML = label; b.hidden = false; }
@@ -476,24 +498,12 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (!signedIn()) { signIn(); return; }
         const p = $('acctPop');
         if (!p.hidden) { p.hidden = true; return; }
-        p.innerHTML = '<div><b>' + escapeHtml(session.user || 'Signed in') + '</b><span>' + escapeHtml(session.email || '') + '</span></div><span>Chats here sync to your Knowura account.</span><button type="button" class="btn-ui" id="signOutBtn">Sign out</button>';
-        p.hidden = false; $('signOutBtn').onclick = () => { session = {}; store('knowura_session', null); store('knowura_owner_token', null); ownerToken = undefined; renderAcct(); };
+        p.innerHTML = '<div><b>' + escapeHtml(session.user || 'Signed in') + '</b><span>' + escapeHtml(session.email || '') + '</span></div><span>' + (bridge ? 'Signed in through the Knowura app. Sign out there to sign out here.' : 'Chats here sync to your Knowura account.') + '</span>' + (bridge ? '' : '<button type="button" class="btn-ui" id="signOutBtn">Sign out</button>');
+        p.hidden = false;
+        if ($('signOutBtn')) $('signOutBtn').onclick = () => { session = {}; store('knowura_session', null); store('knowura_owner_token', null); ownerToken = undefined; renderAcct(); };
     }
     $('acctBtn').addEventListener('click', acctClick);
     $('acctVoice').addEventListener('click', () => { if (!signedIn()) { signIn(); } else { showText(false); acctClick(); } });
-    window.knowuraSignedIn = async (idToken) => {
-        try {
-            const r = await post('google-signin-verify', { credential: idToken });
-            const d = await r.json().catch(() => ({}));
-            if (!r.ok || !d.verified) throw new Error(d.error || 'Sign-in failed.');
-            session = { user: d.profile.given_name, savedAt: Date.now(), sub: d.profile.sub, email: d.profile.email, picture: d.profile.picture, sessionToken: d.token };
-            store('knowura_session', session);
-            if (d.ownerToken) { ownerToken = d.ownerToken; store('knowura_owner_token', d.ownerToken); }
-            renderAcct(); scheduleCloud();
-            if (view === 'voice') { status('Signed in'); setTimeout(() => status(call ? 'Listening…' : 'Tap the mic to talk'), 1500); } else addBubble('<p>Signed in as ' + escapeHtml(session.user || 'you') + '. Chats here now sync to your Knowura account.</p>', 'ai');
-        } catch (e) { window.knowuraSignInFailed(e.message); }
-    };
-    window.knowuraSignInFailed = (msg) => { showText(false); addBubble('<p>' + escapeHtml(msg || "Couldn't sign in.") + '</p>', 'ai', { err: true }); };
 
     // ── handing the chat over to the full app ──
     function exportChat() {
@@ -534,11 +544,12 @@ function showAlert(message) { window.__note && window.__note(message); }
     }
 
     // hooks the Android assistant window calls
-    window.knowuraShown = (hasMic) => { restore(); renderAcct(); showVoice(); orb('idle'); startCall(true); };
+    window.knowuraShown = (hasMic) => { linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true); };
     window.knowuraHidden = () => { endCall(); stopSpeaking(); };
     window.knowuraNeedMic = () => { status('Microphone needed'); };
 
     // first paint
+    linkReady = refreshLink();
     restore(); renderAcct(); orb('idle');
     if (!bridge) startCall(true); // in a normal browser tab, begin listening right away
     window.__kw = { showText, showVoice, openAppWithChat, exportChat, get chat() { return chat; } }; // for tests
