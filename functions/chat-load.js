@@ -4,7 +4,7 @@
 
 const { getPlatformStore } = require('./_store');
 const { verify } = require('./_userToken');
-const { isOwnerSub, issueOwnerToken } = require('./_owner');
+const { isOwnerSub } = require('./_owner');
 const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_util');
 
 function store() {
@@ -25,9 +25,10 @@ exports.handler = async (event) => {
         if (!session) return json(401, { error: "Invalid or expired session" });
 
         const doc = await store().get(session.sub, { type: "json" });
-        // Keeps the owner's Google session in owner mode (a fresh short-lived owner token each load).
-        const ownerToken = (await isOwnerSub(session.sub)) ? (issueOwnerToken() || undefined) : undefined;
-        return json(200, { found: !!doc, doc: doc || null, ownerToken });
+        // Only says whether this is the owner's account (so the secret menu can offer "turn on owner mode").
+        // Owner mode itself is never switched on automatically.
+        const ownerEligible = await isOwnerSub(session.sub);
+        return json(200, { found: !!doc, doc: doc || null, ownerEligible });
     } catch (error) {
         return json(500, { error: "Couldn't load your chats." });
     }

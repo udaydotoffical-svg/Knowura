@@ -249,16 +249,33 @@ test('owner Google login: verified owner email only', async () => {
     assert.ok(o.issueOwnerToken());
 });
 
-test('chat-load renews owner mode only for the owner account', async () => {
+test('owner mode is never switched on by signing in: chat-load only says whether the account is the owner\'s', async () => {
     const chatLoad = require('../functions/chat-load');
     const o = require('../functions/_owner');
     o.setStoreForTests(fakeStore());
     await o.rememberOwner('owner-sub', 'uday.dot.offical@gmail.com');
     const call = async (sub) => JSON.parse((await chatLoad.handler(ev({ token: user.sign(sub, 'user-secret') }))).body);
     const ownerBody = await call('owner-sub');
-    assert.ok(ownerBody.ownerToken && owner.verify(ownerBody.ownerToken, 'owner-secret'));
-    assert.equal((await call('random-sub')).ownerToken, undefined);
+    assert.equal(ownerBody.ownerToken, undefined);          // no automatic owner mode
+    assert.equal(ownerBody.ownerEligible, true);
+    const other = await call('random-sub');
+    assert.equal(other.ownerToken, undefined); assert.equal(other.ownerEligible, false);
 });
+
+test('owner-enable gives an owner token (no password) only to a signed-in owner Google account', async () => {
+    const enable = require('../functions/owner-enable');
+    const o = require('../functions/_owner');
+    o.setStoreForTests(fakeStore());
+    await o.rememberOwner('owner-sub', 'uday.dot.offical@gmail.com');
+    const call = async (token) => enable.handler(ev({ token }));
+    const good = await call(user.sign('owner-sub', 'user-secret'));
+    assert.equal(good.statusCode, 200);
+    assert.ok(owner.verify(JSON.parse(good.body).ownerToken, 'owner-secret'));
+    assert.equal((await call(user.sign('random-sub', 'user-secret'))).statusCode, 403);   // someone else
+    assert.equal((await call('not.a.token')).statusCode, 401);                              // not signed in
+    assert.equal((await call(undefined)).statusCode, 401);
+});
+
 
 
 test('the everyday system prompt has nothing secret in it for the thinking panel to reveal', () => {

@@ -9,6 +9,8 @@
     { "source": "/api/device-link", "destination": "/api/misc?op=device-link" },
     { "source": "/api/device-session", "destination": "/api/misc?op=device-session" },
     { "source": "/api/models", "destination": "/api/misc?op=models" },
+    { "source": "/.netlify/functions/owner-enable", "destination": "/api/misc?op=owner-enable" },
+    { "source": "/api/owner-enable", "destination": "/api/misc?op=owner-enable" },
     {
       "source": "/.netlify/functions/:path*",
       "destination": "/api/:path*"

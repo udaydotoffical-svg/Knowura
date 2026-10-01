@@ -7,7 +7,7 @@
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const { sign } = require('./_userToken');
-const { isOwnerLogin, rememberOwner, issueOwnerToken } = require('./_owner');
+const { isOwnerLogin, rememberOwner } = require('./_owner');
 const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_util');
 const { authBlocked, authFailure } = require('./_limits');
 
@@ -57,14 +57,15 @@ exports.handler = async (event) => {
             picture: typeof info.picture === "string" && /^https:\/\//.test(info.picture) ? info.picture.slice(0, 500) : undefined
         };
 
-        // The owner's own Google account signs straight into owner mode (Google has verified the email).
-        let ownerToken;
+        // The owner's own Google account is only flagged as eligible: owner mode is never switched on by signing in.
+        // The owner turns it on from the secret menu (owner-enable.js), with no password needed on this account.
+        let ownerEligible = false;
         if (isOwnerLogin(info)) {
             await rememberOwner(profile.sub, info.email);
-            ownerToken = issueOwnerToken() || undefined;
+            ownerEligible = true;
         }
 
-        return json(200, { verified: true, token: sign(profile.sub, secret), profile, ownerToken });
+        return json(200, { verified: true, token: sign(profile.sub, secret), profile, ownerEligible });
     } catch (error) {
         return json(500, { verified: false, error: "Sign-in failed. Please try again." });
     }

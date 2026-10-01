@@ -2064,6 +2064,12 @@
                 </button>
             </div>
             <div id="ownerUnlockPanel">
+            <div id="ownerGoogleRow" hidden>
+                <button class="btn-ui" style="width:100%; justify-content:center; margin-bottom:16px;" onclick="enableOwnerWithGoogle()">
+                    <svg class="icon"><use href="#icon-unlock"/></svg> Turn on with my Google account
+                </button>
+                <div class="owner-modal-divider"><span>or use a key / password</span></div>
+            </div>
             <div class="brand-title" style="font-size:16px;">Unlock Owner Mode</div>
             <div class="brand-sub" style="margin-bottom:20px;">Verify it's really you</div>
 
@@ -2161,6 +2167,7 @@
     // ownerToken is the server-signed proof (from a security key or password unlock);
     // ownerMode is just a UI flag mirroring whether we currently hold one.
     let ownerMode = false;
+    let ownerEligible = false;   // signed in with the owner's own Google account: may turn owner mode on without a password (never automatic)
     let ownerToken = null;
     // Ultra Think mode is in-memory only, toggled from chat, voice, or by natural-language command
     let ultraThinkMode = false;
@@ -2522,6 +2529,7 @@
         document.getElementById('chat-box').innerHTML = '';
         conversationMessages = [];
         ownerMode = false;
+        ownerEligible = false;
         ownerToken = null;
         localStorage.removeItem('knowura_owner_token');
         document.getElementById('owner-badge').style.display = 'none';
@@ -2719,7 +2727,20 @@
         document.getElementById('ownerNotMyPc').checked = false;
         document.getElementById('ownerActivePanel').hidden = !ownerMode;     // already unlocked: offer to switch it off
         document.getElementById('ownerUnlockPanel').hidden = ownerMode;
+        document.getElementById('ownerGoogleRow').hidden = !ownerEligible;   // owner Google account: no password needed
         document.getElementById('ownerModal').classList.add('open');
+    }
+
+    // Owner Google account: turn owner mode on with no password. The server only agrees for the verified owner account.
+    async function enableOwnerWithGoogle() {
+        const statusEl = document.getElementById('ownerModalStatus');
+        statusEl.innerText = 'Turning it on…';
+        try {
+            const res = await fetch('/.netlify/functions/owner-enable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken }) });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ownerToken) { statusEl.innerText = data.error || 'Couldn\'t turn on owner mode.'; return; }
+            setOwnerUnlocked(data.ownerToken);
+        } catch (e) { statusEl.innerText = 'Couldn\'t reach the server.'; }
     }
 
     // Turns owner mode off again without signing out: forgets the token, then reloads so the app comes back as
@@ -4379,7 +4400,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (!res.ok) throw new Error('chat-load ' + res.status); // e.g. expired session — never treat as "new account"
             const data = await res.json();
             cloudLoadFailed = false;
-            if (data.ownerToken) setOwnerUnlocked(data.ownerToken); // keeps the owner's Google session in owner mode
+            ownerEligible = !!data.ownerEligible;   // only a flag: owner mode stays off until it is turned on from the secret menu
             cloudBaseUpdatedAt = data.doc?.updatedAt || 0;
             if (data.found && data.doc) {
                 chatStore = {
@@ -4479,7 +4500,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             userToken = data.token;
             userProfile = data.profile;
             document.getElementById('user-display').innerText = currentUser;
-            if (data.ownerToken) setOwnerUnlocked(data.ownerToken); // the owner's own Google account goes straight into owner mode
+            ownerEligible = !!data.ownerEligible;   // the owner's Google account is recognised, but signing in no longer switches owner mode on
             saveSession(currentUser, { mode: 'google', sub: userSub, sessionToken: userToken, email: data.profile.email, picture: data.profile.picture });
             enterApp();
         } catch (e) {
