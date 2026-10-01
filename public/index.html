@@ -2485,14 +2485,10 @@
         stopWakeListener();
         if (settings.wakeWord === 'off') return;
         const panelOpen = document.getElementById('livePanel').classList.contains('open');
-        // On mobile, the Web Speech API's own mic stream fights the call's
-        // getUserMedia/VAD stream for the microphone — two concurrent consumers
-        // there reliably breaks the call (the native "listening" indicator is
-        // a symptom of that second stream opening). Desktop Chrome handles the
-        // two side by side fine, so this only skips it on mobile mid-call.
-        if (isMobileUA && panelOpen) return;
-        // Also skip on mobile for "both" mode when a call is active to avoid sound interference
-        if (isMobileUA && settings.wakeWord === 'both' && callActive) return;
+        // Mobile browsers play the system "listening" beep every time Web Speech starts (and it
+        // restarts constantly), and its mic stream fights the call's getUserMedia/VAD stream.
+        // So the browser recognizer never runs on mobile.
+        if (isMobileUA) return;
         if (settings.wakeWord === 'both' || (settings.wakeWord === 'voice' && panelOpen)) {
             startWakeListener();
         }
@@ -2505,7 +2501,7 @@
         wakeRecognition.continuous = true;
         wakeRecognition.interimResults = true;
         wakeRecognition.lang = 'en-US';
-        let lastStartAttempt = 0;
+        let startedAt = 0;
         wakeRecognition.onresult = (e) => {
             const last = e.results[e.results.length - 1];
             const heard = last[0].transcript.toLowerCase();
@@ -2514,20 +2510,19 @@
             }
         };
         wakeRecognition.onerror = (e) => {
-            if (e.error !== 'no-speech' && e.error !== 'network') console.warn('Wake word listener error:', e.error);
+            if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') stopWakeListener(); // retrying can't help
+            else if (e.error !== 'no-speech' && e.error !== 'network' && e.error !== 'aborted') console.warn('Wake word listener error:', e.error);
         };
         wakeRecognition.onend = () => {
-            // Chrome auto-stops recognition periodically — restart while the feature is enabled
-            // But add a small delay to prevent rapid-fire restarts that trigger repeated UI sounds
-            if (wakeListenerActive) {
-                const now = Date.now();
-                if (now - lastStartAttempt > 1000) {
-                    lastStartAttempt = now;
-                    try { wakeRecognition.start(); } catch (e) { /* already starting */ }
-                }
-            }
+            // Chrome auto-stops recognition periodically: restart while enabled, at most once a second
+            if (!wakeListenerActive) return;
+            const rec = wakeRecognition;
+            setTimeout(() => {
+                if (!wakeListenerActive || wakeRecognition !== rec) return;
+                try { startedAt = Date.now(); rec.start(); } catch (e) { /* already starting */ }
+            }, Math.max(0, 1000 - (Date.now() - startedAt)));
         };
-        try { wakeRecognition.start(); wakeListenerActive = true; lastStartAttempt = Date.now(); }
+        try { wakeRecognition.start(); wakeListenerActive = true; startedAt = Date.now(); }
         catch (e) { console.warn('Could not start wake word listener:', e); }
     }
 
