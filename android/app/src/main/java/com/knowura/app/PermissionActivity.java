@@ -5,15 +5,16 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 
-/** An assistant panel can't show permission prompts itself, so it opens this invisible screen to ask once. */
-public class MicPermissionActivity extends Activity {
+/** An assistant panel can't show permission prompts itself, so it opens this invisible screen to ask once (microphone or camera). */
+public class PermissionActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+        String permission = "camera".equals(getIntent().getStringExtra("perm")) ? Manifest.permission.CAMERA : Manifest.permission.RECORD_AUDIO;
+        if (checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) {
             finish();
         } else {
-            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 1);
+            requestPermissions(new String[]{permission}, 1);
         }
     }
 

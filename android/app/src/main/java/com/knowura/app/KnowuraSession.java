@@ -27,6 +27,7 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
 /**
  * The floating assistant panel. It shows https://knowura.vercel.app/assistant (Knowura's own UI) in a
@@ -101,19 +102,30 @@ public class KnowuraSession extends VoiceInteractionSession {
                 pendingFiles = callback;
                 Intent pick = new Intent(getContext(), FilePickActivity.class);
                 pick.putExtra("multiple", params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+                String[] types = params.getAcceptTypes();
+                boolean imagesOnly = types != null && types.length > 0;
+                if (types != null) for (String t : types) if (t == null || !t.startsWith("image/")) imagesOnly = false;
+                pick.putExtra("images", imagesOnly);
                 openExternal(pick);
                 return true;
             }
 
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                boolean wantsMic = false;
-                for (String r : request.getResources()) if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) wantsMic = true;
-                if (wantsMic && hasMic() && HOST.equals(request.getOrigin().getHost())) {
-                    request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-                } else {
+                ArrayList<String> allowed = new ArrayList<>();
+                boolean missing = false;
+                for (String r : request.getResources()) {
+                    if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) {
+                        if (hasMic()) allowed.add(r); else missing = true;
+                    } else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) {
+                        if (hasCamera()) allowed.add(r); else missing = true;
+                    }
+                }
+                if (allowed.isEmpty() || !HOST.equals(request.getOrigin().getHost())) {
                     request.deny();
-                    web.evaluateJavascript("window.knowuraNeedMic&&window.knowuraNeedMic()", null);
+                    if (missing) web.evaluateJavascript("window.knowuraNeedMic&&window.knowuraNeedMic()", null);
+                } else {
+                    request.grant(allowed.toArray(new String[0]));
                 }
             }
         });
@@ -181,6 +193,10 @@ public class KnowuraSession extends VoiceInteractionSession {
         return getContext().checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean hasCamera() {
+        return getContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void openExternal(Intent intent) {
         try {
             startAssistantActivity(intent);
@@ -203,7 +219,17 @@ public class KnowuraSession extends VoiceInteractionSession {
 
         @JavascriptInterface
         public void requestMic() {
-            main.post(() -> openExternal(new Intent(getContext(), MicPermissionActivity.class)));
+            main.post(() -> openExternal(new Intent(getContext(), PermissionActivity.class).putExtra("perm", "mic")));
+        }
+
+        @JavascriptInterface
+        public boolean hasCamera() {
+            return KnowuraSession.this.hasCamera();
+        }
+
+        @JavascriptInterface
+        public void requestCamera() {
+            main.post(() -> openExternal(new Intent(getContext(), PermissionActivity.class).putExtra("perm", "camera")));
         }
 
         @JavascriptInterface

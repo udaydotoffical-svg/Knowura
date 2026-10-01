@@ -769,7 +769,7 @@
         .pb-pick:hover, .pb-pick[data-on] { background: rgba(255,255,255,0.15); color: var(--text); }
         .pb-pick:active { transform: scale(0.96); }
         .pb-attach { width: 34px; padding: 0; justify-content: center; }
-        .pb-attach .icon { width: 18px; height: 18px; }
+        .pb-attach .icon { width: 20px; height: 20px; }
         .pb-pick.max { color: var(--pb-spark); border-color: color-mix(in srgb, var(--pb-spark) 55%, transparent); }
         .pb-pick.max .icon { color: var(--pb-spark); }
 
@@ -1757,7 +1757,7 @@
                                 <canvas id="pbSparks" class="pb-sparks" aria-hidden="true"></canvas>
                                 <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt"></textarea>
                                 <div class="pb-bar">
-                                    <button type="button" id="pbAttachBtn" class="pb-pick pb-attach" aria-label="Attach files or pictures" title="Attach files or pictures" onclick="attachPick()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.4 11.1l-9.2 9.2a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg></button>
+                                    <button type="button" id="pbAttachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture" onclick="attachPick()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
                                     <button type="button" id="pbModelBtn" class="pb-pick" aria-label="Choose model" onclick="togglePbMenu('model')"><svg class="icon"><use href="#icon-cpu"/></svg><span id="pbModelLabel">Model</span><svg class="icon"><use href="#icon-chevron-down"/></svg></button>
                                     <button type="button" id="pbEffortBtn" class="pb-pick" aria-label="Choose effort" onclick="togglePbMenu('effort')"><svg class="icon"><use href="#icon-bolt"/></svg><span id="pbEffortLabel">Medium</span></button>
                                     <span class="pb-spacer"></span>

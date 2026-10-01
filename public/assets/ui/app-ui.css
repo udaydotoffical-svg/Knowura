@@ -285,7 +285,7 @@
         .pb-pick:hover, .pb-pick[data-on] { background: rgba(255,255,255,0.15); color: var(--text); }
         .pb-pick:active { transform: scale(0.96); }
         .pb-attach { width: 34px; padding: 0; justify-content: center; }
-        .pb-attach .icon { width: 18px; height: 18px; }
+        .pb-attach .icon { width: 20px; height: 20px; }
         .pb-pick.max { color: var(--pb-spark); border-color: color-mix(in srgb, var(--pb-spark) 55%, transparent); }
         .pb-pick.max .icon { color: var(--pb-spark); }
 

@@ -14,7 +14,7 @@ public class FilePickActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent get = new Intent(Intent.ACTION_GET_CONTENT)
-                .setType("*/*")
+                .setType(getIntent().getBooleanExtra("images", false) ? "image/*" : "*/*")
                 .addCategory(Intent.CATEGORY_OPENABLE)
                 .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, getIntent().getBooleanExtra("multiple", true));
         try {

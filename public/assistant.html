@@ -119,7 +119,7 @@
                         <div id="attBar" class="att-bar" hidden aria-label="Attachments"></div>
                         <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt" enterkeyhint="send"></textarea>
                         <div class="pb-bar">
-                            <button type="button" id="attachBtn" class="pb-pick pb-attach" aria-label="Attach files or pictures" title="Attach files or pictures"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.4 11.1l-9.2 9.2a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg></button>
+                            <button type="button" id="attachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
                             <span class="pb-spacer"></span>
                             <button type="button" id="sendBtn" class="pb-send mic-mode" title="Talk to Knowura live" aria-label="Talk to Knowura live">
                                 <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path id="pbGlyphPath" d="M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z"/></svg>
@@ -376,7 +376,13 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (!r.ok) throw Object.assign(new Error(d.error || 'Couldn\'t transcribe that audio.'), { friendly: true });
         return d.text || '';
     }
-    attachCtl = KnowuraAttach.mount({ input: $('userInput'), drop: $('textView'), bar: $('attBar'), transcribe: transcribeFile, onChange: () => setSend() });
+    attachCtl = KnowuraAttach.mount({
+        input: $('userInput'), drop: $('textView'), bar: $('attBar'), transcribe: transcribeFile, onChange: () => setSend(),
+        beforeCamera: () => { // the Android panel has to be granted the camera first
+            if (bridge && bridge.hasCamera && !bridge.hasCamera()) { bridge.requestCamera(); KnowuraAttach.toast('Allow the camera on the screen that opens, then tap Camera again.'); return false; }
+            return true;
+        }
+    });
     $('attachBtn').addEventListener('click', () => { if ($('textView').hidden) { $('textView').hidden = false; $('minBtn').hidden = false; } attachCtl.pick(); });
 
     // ── voice mode: the app's hands-free call loop (listen → transcribe → answer → speak) ──
