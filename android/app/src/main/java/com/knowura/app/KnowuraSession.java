@@ -46,6 +46,7 @@ public class KnowuraSession extends VoiceInteractionSession {
     private boolean pageFailed;
     private boolean showing;
     private boolean resuming;
+    private long loadedAt;   // when the panel's page last finished loading; an old one is reloaded on open so deploys always show
     private volatile NativeMic mic;
 
     public KnowuraSession(Context context) {
@@ -88,6 +89,7 @@ public class KnowuraSession extends VoiceInteractionSession {
 
             @Override
             public void onPageFinished(WebView view, String url) {
+                loadedAt = System.currentTimeMillis();
                 // the panel can be opened before the page has loaded; start it as soon as it has
                 if (showing) callShown();
             }
@@ -151,9 +153,10 @@ public class KnowuraSession extends VoiceInteractionSession {
         showing = true;
         current = new WeakReference<>(this);
         if (web == null) return;
-        if (pageFailed) {
+        boolean stale = !resuming && loadedAt > 0 && System.currentTimeMillis() - loadedAt > 5 * 60 * 1000L;
+        if (pageFailed || stale) {
             pageFailed = false;
-            web.loadUrl(ASSISTANT_URL);
+            web.loadUrl(ASSISTANT_URL);   // revalidates with the server, so the newest deploy shows up
             return; // onPageFinished starts it
         }
         callShown();
