@@ -23,22 +23,68 @@
             display: flex; flex-direction: column; gap: 10px; transition: bottom .22s cubic-bezier(.2,.9,.3,1), transform .2s ease, opacity .2s ease;
             padding: 12px 12px calc(14px + env(safe-area-inset-bottom));
         }
-        .stack.enter > * { animation: kwRise .5s cubic-bezier(.18,.95,.25,1.08) both; }
+        /* ── motion system: real spring easing (set in JS), state-aware orb, live waveform, ripples ── */
+        :root { --spring: cubic-bezier(.18,.95,.25,1.08); }
+        .stack.enter > * { animation: kwRise .7s var(--spring) both; }
         .stack.enter > *:nth-child(2) { animation-delay: .05s; } .stack.enter > *:nth-child(3) { animation-delay: .1s; }
-        .stack.leaving { transform: translateY(46px) scale(.97); opacity: 0; }
+        .stack.leaving { transform: translateY(54px) scale(.96); opacity: 0; transition: transform .2s cubic-bezier(.5,0,.9,.6), opacity .2s ease; }
         .scrim.leaving { opacity: 0; transition: opacity .2s ease; }
-        .view-in { animation: kwView .34s cubic-bezier(.2,.9,.25,1.05) both; }
-        @keyframes kwView { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
-        .msg { animation: kwMsg .3s cubic-bezier(.2,.9,.3,1.1) both; }
-        @keyframes kwMsg { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
-        #voiceView .orb-wrap { animation: kwFloat 5.5s ease-in-out infinite; }
-        @keyframes kwFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-        #voiceView .call-controls .mic-btn { transition: transform .15s cubic-bezier(.2,.9,.3,1.4), box-shadow .15s ease, background .2s ease; }
-        #voiceView .call-controls .mic-btn:active { transform: scale(.92); }
-        .mic-card { animation: kwView .38s cubic-bezier(.2,.9,.25,1.1) both; }
-        .live-status { transition: opacity .2s ease; }
-        @keyframes kwRise { from { opacity: 0; transform: translateY(46px) scale(.97); } to { opacity: 1; transform: none; } }
+        .scrim { overflow: hidden; }
+        .scrim::after { content: ''; position: absolute; left: 50%; bottom: -35%; width: 150%; aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%) scale(.2); opacity: 0;
+            background: radial-gradient(closest-side, rgba(34,229,255,.28), rgba(77,119,255,.12) 55%, transparent 72%); pointer-events: none; }
+        .scrim.glow::after { animation: kwGlow 1s cubic-bezier(.2,.8,.2,1) both; }
+        @keyframes kwGlow { 0% { transform: translateX(-50%) scale(.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 0; } }
+        .view-in { animation: kwView .5s var(--spring) both; }
+        @keyframes kwView { from { opacity: 0; transform: translateY(22px) scale(.95); } to { opacity: 1; transform: none; } }
+        .msg { animation: kwMsgL .42s var(--spring) both; transform-origin: 0 100%; }
+        .msg.user { animation-name: kwMsgR; transform-origin: 100% 100%; }
+        @keyframes kwMsgL { from { opacity: 0; transform: translate(-14px, 10px) scale(.94); } to { opacity: 1; transform: none; } }
+        @keyframes kwMsgR { from { opacity: 0; transform: translate(14px, 10px) scale(.94); } to { opacity: 1; transform: none; } }
+        .msg.reveal { animation: kwMsgL .42s var(--spring) both, kwReveal .8s cubic-bezier(.2,.8,.2,1) both; }
+        @keyframes kwReveal { from { clip-path: inset(-12px -12px 100% -12px); } to { clip-path: inset(-12px -12px -12px -12px); } }
+
+        /* orb: floats, glows in the colour of what it is doing, and shows listening / thinking / speaking differently */
+        #voiceView .orb-wrap { animation: kwFloat 5.5s ease-in-out infinite; --glow: rgba(34,229,255,.5); }
+        @keyframes kwFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        #voiceView .orb-wrap::before { content: ''; position: absolute; inset: -16%; border-radius: 50%; pointer-events: none;
+            background: radial-gradient(closest-side, var(--glow), transparent 72%); animation: kwBreathe 4s ease-in-out infinite; transition: background .6s ease; }
+        @keyframes kwBreathe { 0%, 100% { transform: scale(.9); opacity: .45; } 50% { transform: scale(1.1); opacity: .8; } }
+        #voiceView .orb-wrap.listening { --glow: rgba(34,229,255,.65); }
+        #voiceView .orb-wrap.thinking { --glow: rgba(160,120,255,.65); }
+        #voiceView .orb-wrap.speaking { --glow: rgba(255,100,160,.6); }
+        #voiceView .orb-wrap.thinking::after { content: ''; position: absolute; inset: 4%; border-radius: 50%; border: 3px solid transparent; border-top-color: rgba(200,170,255,.95); border-right-color: rgba(200,170,255,.3); animation: kwSpin .85s linear infinite; pointer-events: none; }
+        #voiceView .orb-wrap.speaking .ring { border-color: #ff6aa8; }
+        #voiceView .orb-wrap.speaking .ring1 { animation: ringPulse 1.5s ease-out infinite; }
+        #voiceView .orb-wrap.speaking .ring2 { animation: ringPulse 1.5s ease-out infinite .5s; }
+        #voiceView .orb-wrap.thinking .ring { border-color: #a678ff; }
+
+        /* live waveform under the orb: bars follow your voice while listening, ripple while it speaks, bounce while it thinks */
+        .bars { position: relative; z-index: 1; display: flex; gap: 5px; align-items: center; justify-content: center; height: 30px; opacity: 0; transition: opacity .35s ease; }
+        .bars i { width: 5px; height: 100%; border-radius: 99px; background: linear-gradient(#22e5ff, #4d77ff); transform: scaleY(.14); transform-origin: center; transition: transform .09s linear, background .4s ease; }
+        #voiceView[data-state="listening"] .bars, #voiceView[data-state="speaking"] .bars, #voiceView[data-state="thinking"] .bars { opacity: 1; }
+        #voiceView[data-state="listening"] .bars i { transform: scaleY(calc(.14 + var(--lvl, 0) * var(--k, 1))); }
+        #voiceView[data-state="speaking"] .bars i { background: linear-gradient(#ff6aa8, #ff9a6a); animation: kwWave 1s ease-in-out infinite; animation-delay: calc(var(--i) * -.11s); transition: none; }
+        #voiceView[data-state="thinking"] .bars i { background: linear-gradient(#b99bff, #7a5cff); animation: kwDot 1.1s ease-in-out infinite; animation-delay: calc(var(--i) * -.09s); transition: none; }
+        @keyframes kwWave { 0%, 100% { transform: scaleY(.2); } 50% { transform: scaleY(calc(.35 + var(--k, 1) * .55)); } }
+        @keyframes kwDot { 0%, 100% { transform: scaleY(.14); opacity: .5; } 50% { transform: scaleY(.5); opacity: 1; } }
+
+        #voiceView .call-controls .mic-btn { transition: transform .25s var(--spring), box-shadow .15s ease, background .2s ease, color .2s ease; }
+        #voiceView .call-controls .mic-btn:active { transform: scale(.9); }
+        .mic-card { animation: kwView .5s var(--spring) both, kwEdge 2.4s ease-in-out infinite .5s; }
+        @keyframes kwEdge { 0%, 100% { box-shadow: 0 0 22px -8px rgba(34,229,255,.4); } 50% { box-shadow: 0 0 36px -4px rgba(34,229,255,.85); } }
+        .live-status.pop-text { animation: kwText .3s ease-out both; }
+        @keyframes kwText { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        @keyframes kwRise { from { opacity: 0; transform: translateY(60px) scale(.95); } to { opacity: 1; transform: none; } }
         @keyframes kwFade { from { opacity: 0; } to { opacity: 1; } }
+
+        /* tap ripple on every button */
+        .rippler { overflow: hidden; }
+        .rip { position: absolute; border-radius: 50%; background: rgba(255,255,255,.38); transform: scale(0); animation: kwRip .6s ease-out forwards; pointer-events: none; }
+        @keyframes kwRip { to { transform: scale(1); opacity: 0; } }
+        .pb-send.fly .pb-glyph { animation: kwFly .42s cubic-bezier(.4,0,.2,1); }
+        @keyframes kwFly { 0% { transform: none; } 45% { transform: translateY(-16px) scale(.8); opacity: 0; } 55% { transform: translateY(14px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+        .msg-actions button.done svg { animation: kwPop .45s var(--spring); color: #5dffa6; }
+        @keyframes kwPop { 0% { transform: scale(.4) rotate(-20deg); } 100% { transform: none; } }
         .chip {
             align-self: flex-end; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer;
             border: 2.5px solid var(--ink); border-radius: 999px; color: var(--text);
@@ -61,9 +107,10 @@
         }
         @keyframes kwSpin { to { transform: rotate(360deg); } }
         #voiceView > :not(.live-close):not(.acct-voice) { position: relative; }
-        #voiceView .orb-gif { width: min(54vw, 30vh, 250px); height: min(54vw, 30vh, 250px); transform: scale(calc(1 + var(--lvl, 0) * .22)); transition: transform .08s linear; }
+        #voiceView .orb-gif { width: min(60vw, 33vh, 280px); height: min(60vw, 33vh, 280px); transform: scale(calc(1 + var(--lvl, 0) * .22)); transition: transform .08s linear; }
         #voiceView .orb-wrap.listening .ring { transform: scale(calc(1 + var(--lvl, 0) * .35)); }
-        #voiceView .call-controls { gap: 16px; }
+        #voiceView.live-panel { justify-content: center; }
+        #voiceView .call-controls { gap: 16px; margin-top: 6px; }
         #voiceView .live-transcript { max-width: 92%; max-height: 4.5em; overflow: hidden; }
         #voiceView .live-close { top: 14px; right: 14px; display: grid; place-items: center; }
         #voiceView .live-close svg { width: 18px; height: 18px; }
@@ -115,9 +162,13 @@
         .kw-toast {
             position: fixed; left: 50%; top: calc(18px + env(safe-area-inset-top)); z-index: 900; max-width: min(92vw, 420px); padding: 11px 16px;
             border: 2.5px solid var(--ink); border-radius: 14px; background: #0d1a3a; color: var(--text); font-size: 14px; font-weight: 700; text-align: center;
-            box-shadow: var(--shadow-sm), 0 0 26px -6px rgba(34,229,255,.55); transform: translate(-50%, -140%); transition: transform .32s cubic-bezier(.2,.9,.25,1.2); pointer-events: none;
+            box-shadow: var(--shadow-sm), 0 0 26px -6px rgba(34,229,255,.55); transform: translate(-50%, -150%); transition: transform .5s var(--spring); overflow: hidden; pointer-events: none;
         }
+        .kw-toast::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--cyan); transform-origin: left; transform: scaleX(0); }
+        .kw-toast.bad::after { background: #ff3057; }
         .kw-toast.show { transform: translate(-50%, 0); }
+        .kw-toast.show::after { animation: kwBar 2.2s linear forwards; }
+        @keyframes kwBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
         .kw-toast.bad { border-color: #ff3057; box-shadow: var(--shadow-sm), 0 0 26px -6px rgba(255,48,87,.6); }
         @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; transition-duration: .01s !important; } }
     </style>
@@ -138,6 +189,7 @@
             <div class="ring ring2"></div>
             <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
         </div>
+        <div id="bars" class="bars" aria-hidden="true"></div>
         <div id="micCard" class="mic-card" hidden>
             <b id="micTitle">Knowura needs your microphone</b>
             <p id="micText">Allow it once and you can just talk. Nothing is recorded until you speak.</p>
@@ -214,6 +266,31 @@ function showAlert(message) { window.__note && window.__note(message); }
 (function () {
     'use strict';
     const $ = (id) => document.getElementById(id);
+    // a real damped spring as a CSS easing (linear() points); older web views keep the cubic-bezier fallback
+    (function () {
+        try {
+            if (!(window.CSS && CSS.supports && CSS.supports('animation-timing-function', 'linear(0, 1)'))) return;
+            const w = 11, z = 0.52, wd = w * Math.sqrt(1 - z * z), N = 44, T = 1.15, pts = [];
+            for (let i = 0; i <= N; i++) { const t = i / N * T; pts.push((1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t))).toFixed(4)); }
+            pts[N] = '1';
+            document.documentElement.style.setProperty('--spring', 'linear(' + pts.join(', ') + ')');
+        } catch (e) { /* fallback easing stays */ }
+    })();
+    const setLvl = (v) => $('voiceView').style.setProperty('--lvl', v);
+    // waveform bars: taller in the middle; each reads --lvl (listening) or runs its own wave (speaking / thinking)
+    (function () {
+        const n = 13, bars = $('bars'); let h = '';
+        for (let i = 0; i < n; i++) { const k = (0.45 + (1 - Math.abs(i - (n - 1) / 2) / ((n - 1) / 2)) * 1.6).toFixed(2); h += '<i style="--i:' + i + ';--k:' + k + '"></i>'; }
+        bars.innerHTML = h;
+    })();
+    // tap ripple on buttons
+    document.addEventListener('pointerdown', (e) => {
+        const b = e.target.closest && e.target.closest('button'); if (!b || b.disabled) return;
+        b.classList.add('rippler'); if (getComputedStyle(b).position === 'static') b.style.position = 'relative';   // never override absolutely placed buttons
+        const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2, x = document.createElement('span');
+        x.className = 'rip'; x.style.width = x.style.height = d + 'px'; x.style.left = (e.clientX - r.left - d / 2) + 'px'; x.style.top = (e.clientY - r.top - d / 2) + 'px';
+        b.appendChild(x); setTimeout(() => x.remove(), 650);
+    }, { passive: true });
     const native = /KnowuraAssistant/.test(navigator.userAgent) || location.search.includes('native=1');
     const bridge = native && window.KnowuraNative ? window.KnowuraNative : null;
     if (native) document.body.classList.add('native');
@@ -269,7 +346,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         requestAnimationFrame(autosize); // it was sized while hidden (0px), so re-measure now it's visible
         if (focus) $('userInput').focus();
     }
-    function playEnter() { const st = $('stack'); st.classList.remove('leaving', 'enter'); $('scrim').classList.remove('leaving'); void st.offsetWidth; st.classList.add('enter'); }
+    function playEnter() { const st = $('stack'), sc = $('scrim'); st.classList.remove('leaving', 'enter'); sc.classList.remove('leaving', 'glow'); void st.offsetWidth; st.classList.add('enter'); sc.classList.add('glow'); }
     function closePanel() {
         endCall(); stopSpeaking();
         $('stack').classList.add('leaving'); $('scrim').classList.add('leaving');   // slide away, then hand back to Android
@@ -384,6 +461,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         stopSpeaking();
         const html = (atts.length ? KnowuraAttach.bubbleHTML(atts) : '') + userHTML(text);
         el.value = ''; if (attachCtl) attachCtl.take(); autosize(); busy = true; setSend();
+        const sb = $('sendBtn'); sb.classList.remove('fly'); void sb.offsetWidth; sb.classList.add('fly'); haptic('tick');
         addBubble(html, 'user');
         chat.messages.push({ text: html, type: 'user' });
         if (chat.messages.length === 1) chat.title = (text || (atts[0] && atts[0].name) || 'Assistant chat').slice(0, 40);
@@ -403,7 +481,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         lastReplyText = reply;
         let html = renderMd(reply);
         if (study) html += studyChipHTML(study);
-        bubble.innerHTML = html;
+        bubble.innerHTML = html; bubble.classList.add('reveal');
         chat.messages.push({ text: html, type: 'ai' });
         addReplyActions(bubble);
         persist(); scrollChat();
@@ -416,7 +494,11 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (!ok) { // last resort: a hidden textarea and the old copy command
             try { const t = document.createElement('textarea'); t.value = String(text); t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e) { ok = false; }
         }
-        if (btn) { btn.classList.add('on'); setTimeout(() => btn.classList.remove('on'), 1200); }
+        if (btn) {
+            const keep = btn.innerHTML; btn.classList.add('on', 'done');
+            if (ok) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+            setTimeout(() => { btn.classList.remove('on', 'done'); btn.innerHTML = keep; }, 1300);
+        }
         haptic(ok ? 'tick' : 'error'); toast(ok ? 'Copied' : 'Couldn\'t copy that', !ok);
         return ok;
     }
@@ -477,9 +559,16 @@ function showAlert(message) { window.__note && window.__note(message); }
     function orb(state) {
         const o = $('liveOrb'); const src = ORB[state] || ORB.idle;
         if (!o.src.endsWith(src)) o.src = src;
-        $('orbWrap').classList.toggle('listening', state === 'listening');
+        ui(state);
     }
-    const status = (t) => { $('liveStatus').textContent = t; };
+    // the look of a state (glow colour, rings, waveform) without touching the orb picture
+    function ui(state) {
+        const w = $('orbWrap');
+        for (const k of ['listening', 'thinking', 'speaking']) w.classList.toggle(k, state === k);
+        $('voiceView').dataset.state = state;
+        if (state !== 'listening') setLvl(0);
+    }
+    const status = (t) => { const el = $('liveStatus'); if (el.textContent === t) return; el.textContent = t; el.classList.remove('pop-text'); void el.offsetWidth; el.classList.add('pop-text'); };
     // mode 'allow' = the permission is missing; 'busy' = it is granted but the microphone couldn't be opened (another app has it)
     let micMode = 'allow', micWhy = '';
     function showMicCard(on, mode) {
@@ -528,10 +617,10 @@ function showAlert(message) { window.__note && window.__note(message); }
         const c = call = { native: true, state: 'listening', muted: false, dead: false, chunks: [], rec: null };
         $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>'; $('muteBtn').classList.remove('muted');
         $('orbWrap').querySelector('img').src = ORB_INTRO; setTimeout(() => { if (call === c && c.state === 'listening') orb('listening'); }, 1400);
-        status('Listening…');
+        status('Listening…'); ui('listening');
         return true;
     }
-    window.knowuraLevel = (rms) => { if (call && call.native && call.state === 'listening') $('orbWrap').style.setProperty('--lvl', Math.min(1, rms * 8).toFixed(3)); };
+    window.knowuraLevel = (rms) => { if (call && call.native && call.state === 'listening') setLvl(Math.min(1, rms * 8).toFixed(3)); };
     window.knowuraClip = (b64) => {
         const c = call;
         if (!c || !c.native || c.dead || c.muted || c.state !== 'listening') return;
@@ -570,7 +659,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         const c = call = { stream, ctx, an, data: new Uint8Array(an.frequencyBinCount), state: 'listening', muted: false, rec: null, chunks: [], lastLoud: 0, t0: 0, dead: false };
         $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>'; $('muteBtn').classList.remove('muted');
         $('orbWrap').querySelector('img').src = ORB_INTRO; setTimeout(() => { if (call === c && c.state === 'listening') orb('listening'); }, 1400);
-        status('Listening…');
+        status('Listening…'); ui('listening');
         c.timer = setInterval(() => tick(c), 50);
     }
     function tick(c) {
@@ -578,7 +667,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         c.an.getByteTimeDomainData(c.data);
         let s = 0; for (let i = 0; i < c.data.length; i++) { const v = (c.data[i] - 128) / 128; s += v * v; }
         const rms = Math.sqrt(s / c.data.length), now = performance.now();
-        $('orbWrap').style.setProperty('--lvl', Math.min(1, rms * 6).toFixed(3));
+        setLvl(Math.min(1, rms * 6).toFixed(3));
         if (c.state === 'listening') { if (rms > VAD.rms) beginCapture(c); }
         else if (c.state === 'capturing') {
             if (rms > VAD.rms) c.lastLoud = now;
@@ -659,7 +748,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         try { if (c.rec && c.rec.state !== 'inactive') { c.rec.onstop = null; c.rec.stop(); } } catch (e) { /* ignore */ }
         if (c.native) { try { bridge.micStop(); } catch (e) { /* gone */ } }
         else { c.stream.getTracks().forEach((t) => t.stop()); c.ctx.close().catch(() => {}); }
-        stopSpeaking(); orb('idle'); $('liveTranscript').textContent = ''; $('orbWrap').style.setProperty('--lvl', 0);
+        stopSpeaking(); orb('idle'); $('liveTranscript').textContent = ''; setLvl(0);
     }
     $('muteBtn').addEventListener('click', () => {
         const c = call; if (!c) { startCall(false); return; }
@@ -735,9 +824,9 @@ function showAlert(message) { window.__note && window.__note(message); }
     // swiping the handle up opens the app with this chat; swiping down minimizes the sheet
     (function () {
         const grab = $('grab'), sheet = $('textView'); let y0 = null, dy = 0;
-        grab.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; try { grab.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } });
+        grab.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; sheet.style.transition = 'max-height .22s ease'; try { grab.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } });
         grab.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = e.clientY - y0; sheet.style.transform = 'translateY(' + Math.max(-70, Math.min(dy, 90)) + 'px)'; });
-        const end = () => { if (y0 == null) return; const d = dy; y0 = null; sheet.style.transform = ''; if (d < -55) openAppWithChat(); else if (d > 70) minimize(); };
+        const end = () => { if (y0 == null) return; const d = dy; y0 = null; sheet.style.transition = 'transform .6s var(--spring), max-height .22s ease'; sheet.style.transform = ''; setTimeout(() => { sheet.style.transition = ''; }, 650); if (d < -55) openAppWithChat(); else if (d > 70) minimize(); };
         grab.addEventListener('pointerup', end); grab.addEventListener('pointercancel', end);
     })();
     function minimize() { stopSpeaking(); $('textView').hidden = true; $('minBtn').hidden = true; }
