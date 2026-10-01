@@ -216,3 +216,15 @@ test('the app lets go of the microphone when the assistant panel takes focus, an
     assert.match(app, /window\.addEventListener\('focus'/);
     assert.match(panel, /NotReadableError/);
 });
+
+test('assistant panel listens through Android (AudioRecord) and falls back to the browser microphone', () => {
+    const panel = pub('assistant.html');
+    const dir = path.join(__dirname, '..', 'android/app/src/main');
+    const mic = fs.readFileSync(path.join(dir, 'java/com/knowura/app/NativeMic.java'), 'utf8');
+    const session = fs.readFileSync(path.join(dir, 'java/com/knowura/app/KnowuraSession.java'), 'utf8');
+    assert.match(mic, /new AudioRecord\(/); assert.match(mic, /RIFF/);
+    assert.match(session, /public synchronized boolean micStart\(\)/); assert.match(session, /public void micArm\(/); assert.match(session, /public void micStop\(\)/);
+    assert.match(fs.readFileSync(path.join(dir, 'AndroidManifest.xml'), 'utf8'), /MODIFY_AUDIO_SETTINGS/);
+    assert.match(panel, /typeof bridge\.micStart === 'function'/);   // old installs without the native mic still use the browser path
+    assert.match(panel, /window\.knowuraClip/);
+});

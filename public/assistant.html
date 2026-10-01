@@ -498,6 +498,31 @@ function showAlert(message) { window.__note && window.__note(message); }
         }
         throw last;
     }
+    // ── listening through Android itself (KnowuraNative.micStart): no browser microphone involved ──
+    const hasNativeMic = () => !!(bridge && typeof bridge.micStart === 'function');
+    function startNative() {
+        if (!hasNativeMic()) return false;
+        let started = false;
+        try { started = bridge.micStart() === true; } catch (e) { started = false; }
+        if (!started) return false;
+        if (view !== 'voice') { try { bridge.micStop(); } catch (e) { /* gone */ } return true; }
+        const c = call = { native: true, state: 'listening', muted: false, dead: false, chunks: [], rec: null };
+        $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>'; $('muteBtn').classList.remove('muted');
+        $('orbWrap').querySelector('img').src = ORB_INTRO; setTimeout(() => { if (call === c && c.state === 'listening') orb('listening'); }, 1400);
+        status('Listening…');
+        return true;
+    }
+    window.knowuraLevel = (rms) => { if (call && call.native && call.state === 'listening') $('orbWrap').style.setProperty('--lvl', Math.min(1, rms * 8).toFixed(3)); };
+    window.knowuraClip = (b64) => {
+        const c = call;
+        if (!c || !c.native || c.dead || c.muted || c.state !== 'listening') return;
+        let blob;
+        try { const bin = atob(b64), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); blob = new Blob([bytes], { type: 'audio/wav' }); }
+        catch (e) { backToListening(c); return; }
+        c.state = 'processing'; orb('thinking'); status('Thinking…');
+        onCaptured(c, null, blob);
+    };
+
     let starting = false;
     async function startCall(auto) {
         if (call || starting) return;
@@ -508,6 +533,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (bridge && !bridge.hasMic()) { showMicCard(true); status('Microphone needed'); $('liveTranscript').textContent = ''; orb('idle'); return; }
         showMicCard(false);
         status('Connecting…'); orb('idle');
+        if (startNative()) return;   // Android listens for us; otherwise fall back to the browser's microphone below
         let stream;
         try { stream = await openMic(); }
         catch (e) {
@@ -548,9 +574,9 @@ function showAlert(message) { window.__note && window.__note(message); }
         rec.start();
     }
     function endCapture(c) { try { c.rec.stop(); } catch (e) { /* already stopped */ } }
-    async function onCaptured(c, rec) {
+    async function onCaptured(c, rec, ready) {
         if (c.dead) return;
-        const blob = new Blob(c.chunks, { type: rec.mimeType || 'audio/webm' });
+        const blob = ready || new Blob(c.chunks, { type: rec.mimeType || 'audio/webm' });
         if (blob.size < VAD.minBytes || c.muted) { backToListening(c); return; }
         c.state = 'processing'; status('Thinking…'); orb('thinking');
         try {
@@ -570,7 +596,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); setTimeout(() => backToListening(c), 1800); return; }
         backToListening(c);
     }
-    function backToListening(c) { if (c.dead || call !== c) return; c.state = 'listening'; status(c.muted ? 'Muted' : 'Listening…'); orb('listening'); }
+    function backToListening(c) { if (c.dead || call !== c) return; c.state = 'listening'; if (c.native) { try { bridge.micArm(!c.muted); } catch (e) { /* gone */ } } status(c.muted ? 'Muted' : 'Listening…'); orb('listening'); }
 
     // ── speech out (also used by "read aloud") ──
     function stopSpeaking() { if (speakingAudio) { try { speakingAudio.pause(); } catch (e) { /* gone */ } speakingAudio = null; } $('orbWrap').querySelector('img').style.transform = ''; }
@@ -611,12 +637,15 @@ function showAlert(message) { window.__note && window.__note(message); }
         const c = call; if (!c) return;
         call = null; c.dead = true; clearInterval(c.timer); clearTimeout(captionTimer);
         try { if (c.rec && c.rec.state !== 'inactive') { c.rec.onstop = null; c.rec.stop(); } } catch (e) { /* ignore */ }
-        c.stream.getTracks().forEach((t) => t.stop()); c.ctx.close().catch(() => {});
+        if (c.native) { try { bridge.micStop(); } catch (e) { /* gone */ } }
+        else { c.stream.getTracks().forEach((t) => t.stop()); c.ctx.close().catch(() => {}); }
         stopSpeaking(); orb('idle'); $('liveTranscript').textContent = ''; $('orbWrap').style.setProperty('--lvl', 0);
     }
     $('muteBtn').addEventListener('click', () => {
         const c = call; if (!c) { startCall(false); return; }
-        c.muted = !c.muted; c.stream.getAudioTracks().forEach((t) => { t.enabled = !c.muted; });
+        c.muted = !c.muted;
+        if (c.native) { try { bridge.micArm(!c.muted && c.state === 'listening'); } catch (e) { /* gone */ } }
+        else c.stream.getAudioTracks().forEach((t) => { t.enabled = !c.muted; });
         $('muteBtn').classList.toggle('muted', c.muted);
         $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-' + (c.muted ? 'mic-off' : 'mic') + '"/></svg>';
         if (c.muted && c.state === 'capturing') endCapture(c);

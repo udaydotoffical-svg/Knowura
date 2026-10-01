@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.voice.VoiceInteractionSession;
+import android.util.Base64;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -45,6 +46,7 @@ public class KnowuraSession extends VoiceInteractionSession {
     private boolean pageFailed;
     private boolean showing;
     private boolean resuming;
+    private volatile NativeMic mic;
 
     public KnowuraSession(Context context) {
         super(context);
@@ -184,17 +186,31 @@ public class KnowuraSession extends VoiceInteractionSession {
     public void onHide() {
         super.onHide();
         showing = false;
+        stopMic();
         if (web != null) web.evaluateJavascript("window.knowuraHidden&&window.knowuraHidden()", null);
     }
 
     @Override
     public void onDestroy() {
+        stopMic();
         if (web != null) {
             web.removeJavascriptInterface("KnowuraNative");
             web.destroy();
             web = null;
         }
         super.onDestroy();
+    }
+
+    private void stopMic() {
+        NativeMic m = mic;
+        mic = null;
+        if (m != null) m.stop();
+    }
+
+    private void js(final String code) {
+        main.post(() -> {
+            if (web != null) web.evaluateJavascript(code, null);
+        });
     }
 
     private boolean hasMic() {
@@ -246,6 +262,38 @@ public class KnowuraSession extends VoiceInteractionSession {
         @JavascriptInterface
         public void hide() {
             main.post(KnowuraSession.this::hide);
+        }
+
+        /** Listens with Android itself. Returns false if it can't, and the page falls back to the browser's microphone. */
+        @JavascriptInterface
+        public synchronized boolean micStart() {
+            if (!KnowuraSession.this.hasMic()) return false;
+            stopMic();
+            NativeMic m = new NativeMic();
+            boolean ok = m.start(new NativeMic.Listener() {
+                @Override
+                public void onLevel(float rms) {
+                    js("window.knowuraLevel&&window.knowuraLevel(" + rms + ")");
+                }
+
+                @Override
+                public void onClip(byte[] wav) {
+                    js("window.knowuraClip&&window.knowuraClip('" + Base64.encodeToString(wav, Base64.NO_WRAP) + "')");
+                }
+            });
+            if (ok) mic = m;
+            return ok;
+        }
+
+        @JavascriptInterface
+        public void micArm(boolean on) {
+            NativeMic m = mic;
+            if (m != null) m.arm(on);
+        }
+
+        @JavascriptInterface
+        public void micStop() {
+            stopMic();
         }
 
         @JavascriptInterface
