@@ -3,6 +3,12 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/.netlify/functions/device-link", "destination": "/api/misc?op=device-link" },
+    { "source": "/.netlify/functions/device-session", "destination": "/api/misc?op=device-session" },
+    { "source": "/.netlify/functions/models", "destination": "/api/misc?op=models" },
+    { "source": "/api/device-link", "destination": "/api/misc?op=device-link" },
+    { "source": "/api/device-session", "destination": "/api/misc?op=device-session" },
+    { "source": "/api/models", "destination": "/api/misc?op=models" },
     {
       "source": "/.netlify/functions/:path*",
       "destination": "/api/:path*"

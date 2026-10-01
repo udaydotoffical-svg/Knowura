@@ -186,3 +186,10 @@ test('the camera is never opened by the page itself: the phone camera app takes 
     assert.doesNotMatch(manifest, /permission\.CAMERA/);
     assert.match(fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/FilePickActivity.java'), 'utf8'), /ACTION_IMAGE_CAPTURE/);
 });
+
+test('Vercel stays within the free plan\'s 12 functions, and the merged endpoints are routed', () => {
+    const fns = fs.readdirSync(path.join(__dirname, '..', 'api')).filter((f) => f.endsWith('.js') && !f.startsWith('_'));
+    assert.ok(fns.length <= 12, `api/ has ${fns.length} functions`);
+    const rewrites = require('../vercel.json').rewrites.map((r) => `${r.source}>${r.destination}`).join(' ');
+    for (const n of ['device-link', 'device-session', 'models']) assert.ok(rewrites.includes(`/.netlify/functions/${n}>/api/misc?op=${n}`), n);
+});
