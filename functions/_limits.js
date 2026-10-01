@@ -24,6 +24,7 @@ const LIMITS = () => ({
     guest: num('LIMIT_GUEST', 60),        // messages per window, not signed in
     user: num('LIMIT_USER', 150),         // messages per window, signed in with Google
     voice: num('LIMIT_VOICE', 40),        // voice turns (transcribe + speak) per window
+    wake: num('LIMIT_WAKE', 300),         // short wake-phrase clips (phone "Hey Knowura") per window
     globalDaily: num('LIMIT_GLOBAL_DAILY', 5000),
     burstPerMin: num('LIMIT_BURST_PER_MIN', 10)
 });
@@ -148,7 +149,7 @@ function limitResponse(kind, ident, r, L) {
 }
 
 // kind: 'chat' (a message the person sent), 'aux' (background titles/summaries/memory),
-// 'voice' (transcribe + speak). Owner mode is never limited.
+// 'voice' (transcribe + speak), 'wake' (short phone wake-phrase clips). Owner mode is never limited.
 // -> { response } to send back when blocked, or { usage: { limit, remaining } }.
 async function usageGate(event, ident, kind = 'chat', cost = 1) {
     if (ident.owner) return { usage: null };
@@ -157,7 +158,7 @@ async function usageGate(event, ident, kind = 'chat', cost = 1) {
     const wait = rateLimit(event, `burst-${kind}`, L.burstPerMin * (kind === 'aux' ? 4 : 1), 60 * 1000, ident.id);
     if (wait) return { response: tooMany(wait, `You're sending messages too fast — try again in ${wait} seconds.`) };
 
-    const perWindow = kind === 'voice' ? L.voice : ident.kind === 'user' ? L.user : L.guest;
+    const perWindow = kind === 'voice' ? L.voice : kind === 'wake' ? L.wake : ident.kind === 'user' ? L.user : L.guest;
 
     // Background helper calls can't be used as a side door: the client only *says* a call is
     // "aux", so they're allowed only in proportion to the real messages already sent.
@@ -170,7 +171,8 @@ async function usageGate(event, ident, kind = 'chat', cost = 1) {
     }
     const max = kind === 'aux' ? perWindow * AUX_PER_CHAT + AUX_PER_CHAT : perWindow;
 
-    const g = await hit('global-daily', 'all', { max: L.globalDaily, windowMs: DAY, cost });
+    // wake-phrase clips are tiny and capped per person, so they don't count toward (or trip) the global chat breaker
+    const g = kind === 'wake' ? { allowed: true } : await hit('global-daily', 'all', { max: L.globalDaily, windowMs: DAY, cost });
     if (!g.allowed) return { response: json(503, { error: "Knowura is very busy right now. Please try again a little later." }, { 'Retry-After': String(g.retryAfter) }) };
 
     const r = await hit(`window-${kind}`, ident.id, { max, windowMs: L.windowMs, cost });

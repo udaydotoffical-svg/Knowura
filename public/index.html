@@ -1983,7 +1983,7 @@
             </div>
             <div class="settings-section">
                 <div class="settings-label">Wake Word — "Hey Knowura"</div>
-                <div class="choice-hint wake-mobile-note">Desktop browsers only for now. Phones play a system beep every time a browser listens for a wake word, so on a phone just tap the mic or talk during a call.</div>
+                <div class="choice-hint wake-mobile-note">On phones, "Chat &amp; Voice" keeps the mic on while Knowura is open and sends short speech clips for transcription to catch "Hey Knowura". Nothing is kept.</div>
                 <button class="choice-pill" data-group="wakeWord" data-value="voice" onclick="setWakeWord('voice')">
                     <span class="choice-row"><span class="choice-dot"></span>Voice Mode Only</span>
                     <span class="choice-hint">Default — say it mid-call to grab its attention</span>
@@ -2483,9 +2483,12 @@
         if (settings.wakeWord === 'off') return;
         const panelOpen = document.getElementById('livePanel').classList.contains('open');
         // Mobile browsers play the system "listening" beep every time Web Speech starts (and it
-        // restarts constantly), and its mic stream fights the call's getUserMedia/VAD stream.
-        // So the browser recognizer never runs on mobile.
-        if (isMobileUA) return;
+        // restarts constantly), so phones use their own mic-stream listener instead (see below).
+        // During a call the call's own always-on listening does the job, so it stays off then.
+        if (isMobileUA) {
+            if (settings.wakeWord === 'both' && !panelOpen && !document.hidden) startMobileWake();
+            return;
+        }
         if (settings.wakeWord === 'both' || (settings.wakeWord === 'voice' && panelOpen)) {
             startWakeListener();
         }
@@ -2524,6 +2527,7 @@
     }
 
     function stopWakeListener() {
+        stopMobileWake();
         wakeListenerActive = false;
         if (wakeRecognition) {
             wakeRecognition.onend = null;
@@ -2532,6 +2536,88 @@
             wakeRecognition = null;
         }
     }
+
+    // ─── WAKE WORD ON PHONES ────────────────────────────────────────────────
+    // Same silent mic path the call uses (getUserMedia + a volume check, so no system beep): a short burst of
+    // speech is recorded and the server transcribes it just to spot "Hey Knowura". Only runs while the page is
+    // visible, only in "Chat & Voice" mode, and the clip is not kept.
+    const WAKE_RMS = 0.03, WAKE_SILENCE_MS = 600, WAKE_MIN_MS = 350, WAKE_MAX_MS = 3000, WAKE_GAP_MS = 7000;
+    const WAKE_RE = /\b(?:hey|hay|hi|ok|okay)[,.!\s]+(?:k?no+w?u?r+[aeo]h?|nou?r+[aeo]h?|k[ae]nu?r+[aeo]h?|know\s?ra)\b|knowura|nowura/i;
+    let mWake = null;
+
+    function startMobileWake() {
+        if (mWake || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return;
+        const w = mWake = { stream: null, ctx: null, timer: null, rec: null, lastUpload: 0 };
+        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(stream => {
+            if (mWake !== w) { stream.getTracks().forEach(t => t.stop()); return; }
+            w.stream = stream;
+            w.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (w.ctx.state === 'suspended') {
+                const wake = () => { w.ctx?.resume(); document.removeEventListener('pointerdown', wake); };
+                w.ctx.resume().catch(() => {});
+                document.addEventListener('pointerdown', wake, { passive: true });
+            }
+            const analyser = w.ctx.createAnalyser();
+            analyser.fftSize = 512;
+            w.ctx.createMediaStreamSource(stream).connect(analyser);
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            let burstStart = 0, lastLoud = 0;
+            w.timer = setInterval(() => {
+                analyser.getByteTimeDomainData(data);
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+                const rms = Math.sqrt(sum / data.length), now = performance.now();
+                if (!w.rec) {
+                    if (rms > WAKE_RMS && now - w.lastUpload > WAKE_GAP_MS) {
+                        const chunks = [];
+                        const rec = w.rec = new MediaRecorder(stream);
+                        burstStart = lastLoud = now;
+                        rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+                        rec.onstop = () => {
+                            const ms = lastLoud - burstStart;
+                            const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+                            if (ms >= WAKE_MIN_MS && ms < WAKE_MAX_MS - 100 && blob.size >= 3000) { w.lastUpload = performance.now(); checkWakeClip(blob, w); }
+                        };
+                        rec.start();
+                    }
+                } else if (rms > WAKE_RMS) {
+                    lastLoud = now;
+                } else if (now - lastLoud > WAKE_SILENCE_MS || now - burstStart > WAKE_MAX_MS) {
+                    const rec = w.rec; w.rec = null;
+                    try { rec.stop(); } catch (e) { /* already stopped */ }
+                }
+            }, 60);
+        }).catch(() => { if (mWake === w) mWake = null; }); // mic denied: just stay off
+    }
+
+    function stopMobileWake() {
+        const w = mWake;
+        if (!w) return;
+        mWake = null;
+        clearInterval(w.timer);
+        try { if (w.rec && w.rec.state !== 'inactive') { w.rec.onstop = null; w.rec.stop(); } } catch (e) { /* ignore */ }
+        w.stream?.getTracks().forEach(t => t.stop());
+        w.ctx?.close().catch(() => {});
+    }
+
+    async function checkWakeClip(blob, w) {
+        try {
+            const res = await fetch("/.netlify/functions/transcribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ audio: await blobToBase64(blob), mimeType: blob.type, wake: true, ownerToken: ownerToken, token: userToken })
+            });
+            if (res.status === 429) { stopMobileWake(); return; } // hit the wake allowance: stay quiet until the next refresh
+            if (!res.ok || mWake !== w) return;
+            const { text } = await res.json();
+            if (WAKE_RE.test(text || '') && mWake === w) onWakeWordDetected();
+        } catch (e) { /* offline or blip: try again on the next burst */ }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!isMobileUA) return;
+        if (document.hidden) stopMobileWake(); else applyWakeWordSetting();
+    });
 
     function onWakeWordDetected() {
         const panelOpen = document.getElementById('livePanel').classList.contains('open');
@@ -2543,6 +2629,7 @@
             }
             if (callActive) { setLiveStatus('Yes?'); enterListeningState(); }
         } else {
+            stopMobileWake(); // hand the mic over to the call
             openLivePanel();
         }
     }

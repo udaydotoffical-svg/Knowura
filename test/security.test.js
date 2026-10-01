@@ -287,3 +287,17 @@ test('the creator is only named when asked, not volunteered', () => {
     assert.match(base, /^const baseSystemPrompt = `You are Knowura, an AI study helper\./);   // identity first, no name-drop
     assert.match(base, /If someone asks who made you/);
 });
+
+test('phone wake-phrase clips have their own allowance and never trip the global chat breaker', async () => {
+    limits.setStoreForTests(fakeStore());
+    process.env.LIMIT_WAKE = '2';
+    process.env.LIMIT_GLOBAL_DAILY = '1';
+    try {
+        const guest = limits.whoIs({}, ev({}));
+        assert.ok((await limits.usageGate(ev({}), guest, 'wake')).usage);
+        assert.ok((await limits.usageGate(ev({}), guest, 'wake')).usage);
+        assert.equal((await limits.usageGate(ev({}), guest, 'wake')).response.statusCode, 429); // its own cap
+        // the global daily breaker (1 here) still has room for a real chat message
+        assert.ok((await limits.usageGate(ev({}), guest, 'chat')).usage);
+    } finally { delete process.env.LIMIT_WAKE; delete process.env.LIMIT_GLOBAL_DAILY; }
+});
