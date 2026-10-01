@@ -77,10 +77,10 @@ test('fonts are self-hosted: no page or CSP contacts Google Fonts, and the legal
     assert.match(pub('index.html'), /confirm you are 13 or older/);
 });
 
-test('the background music is credited in the app and in the EULA', () => {
-    for (const f of ['index.html', 'eula.html']) {
-        const h = pub(f);
-        assert.match(h, /Lukrembo/, f);
-        assert.match(h, /freetouse\.com\/music\/lukrembo/, f);
-    }
+test('no unlicensed music ships: the Free To Use tracks are gone and the player has no dangling references', () => {
+    const dir = path.join(__dirname, '..', 'public/assets/audio');
+    for (const f of ['apple-tree', 'bean', 'flower-cup', 'spaceship', 'sunflower']) assert.ok(!fs.existsSync(path.join(dir, f + '.mp3')), f);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')), []);
+    assert.doesNotMatch(pub('index.html'), /assets\/audio\/[\w-]+\.mp3|Lukrembo/);
+    assert.doesNotMatch(pub('eula.html'), /Lukrembo/);
 });
