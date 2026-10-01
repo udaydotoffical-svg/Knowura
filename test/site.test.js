@@ -273,3 +273,8 @@ test('the Android panel reloads a stale page when it opens, so deploys always sh
     const java = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8');
     assert.match(java, /loadedAt/); assert.match(java, /boolean stale = !resuming/); assert.match(java, /pageFailed \|\| stale/);
 });
+
+test('the assistant panel shows which build it is running', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /id="buildTag"/); assert.match(panel, /'build ' \+/);
+});

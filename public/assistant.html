@@ -159,6 +159,7 @@
 
         /* a quick message that tells you what just happened (copied, shared, couldn't open...) */
         .kb-open #minBtn { display: none; }
+        .build-tag { position: fixed; left: 50%; top: calc(4px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 5; font: 600 10px/1 ui-monospace, monospace; color: rgba(143,166,204,.75); letter-spacing: .4px; pointer-events: none; text-shadow: 0 1px 2px #000; }
         .kw-toast {
             position: fixed; left: 50%; top: calc(18px + env(safe-area-inset-top)); z-index: 900; max-width: min(92vw, 420px); padding: 11px 16px;
             border: 2.5px solid var(--ink); border-radius: 14px; background: #0d1a3a; color: var(--text); font-size: 14px; font-weight: 700; text-align: center;
@@ -175,6 +176,7 @@
 </head>
 <body>
 <div class="scrim" id="scrim"></div>
+<div class="build-tag" id="buildTag" aria-hidden="true"></div>
 <div class="kw-toast" id="kwToast" role="status" aria-live="polite"></div>
 
 <div class="stack" id="stack">
@@ -864,7 +866,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     // compares the site's build stamp with the one this page loaded with, and reloads itself if the site has moved on.
     let loadedStamp = null;
     const buildStamp = async () => { try { const r = await fetch('/version.json?_=' + Date.now(), { cache: 'no-store' }); const d = await r.json(); return d.build + '|' + d.builtAt; } catch (e) { return null; } };
-    buildStamp().then((v) => { if (!loadedStamp) loadedStamp = v; });
+    buildStamp().then((v) => { if (!loadedStamp) loadedStamp = v; if (v) $('buildTag').textContent = 'build ' + String(v.split('|')[0]).slice(0, 7); });   // which version of the panel this is
     async function newerSiteExists() {
         const v = await Promise.race([buildStamp(), new Promise((ok) => setTimeout(() => ok(null), 1500))]);
         if (!v) return false;
