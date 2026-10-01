@@ -237,3 +237,12 @@ test('assistant panel voice: failures are shown on screen, the keyboard shrinks 
     assert.doesNotMatch(panel, /translateY\(var\(--kb/);                      // and is no longer pushed up the screen
     assert.match(panel, /function playEnter/); assert.match(panel, /\.stack\.leaving/);
 });
+
+test('assistant panel motion: spring easing, state-aware orb, live waveform, ripples and reduced-motion support', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /linear\(/); assert.match(panel, /--spring/);
+    assert.match(panel, /id="bars"/); assert.match(panel, /data-state="listening"/);
+    assert.match(panel, /\.orb-wrap\.thinking::after/); assert.match(panel, /\.orb-wrap\.speaking/);
+    assert.match(panel, /getComputedStyle\(b\)\.position === 'static'/);        // ripples never override absolutely placed buttons
+    assert.match(panel, /prefers-reduced-motion/);
+});
