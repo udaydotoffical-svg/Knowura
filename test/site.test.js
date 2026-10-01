@@ -246,3 +246,9 @@ test('assistant panel motion: spring easing, state-aware orb, live waveform, rip
     assert.match(panel, /getComputedStyle\(b\)\.position === 'static'/);        // ripples never override absolutely placed buttons
     assert.match(panel, /prefers-reduced-motion/);
 });
+
+test('assistant panel refreshes itself when the site has a newer build (the phone keeps the page loaded between uses)', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /version\.json\?_=/); assert.match(panel, /newerSiteExists/); assert.match(panel, /location\.reload\(\)/);
+    assert.match(panel, /if \(resume\) return;/);   // never mid picker
+});

@@ -860,7 +860,23 @@ function showAlert(message) { window.__note && window.__note(message); }
     requestAnimationFrame(fit);
 
     // hooks the Android assistant window calls
-    window.knowuraShown = (hasMic, resume) => { playEnter(); if (resume) return; /* back from the file picker: stay exactly where we were */ linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true); };
+    // The phone keeps this page loaded between uses, so a new deploy would never show up. Each time the panel opens it
+    // compares the site's build stamp with the one this page loaded with, and reloads itself if the site has moved on.
+    let loadedStamp = null;
+    const buildStamp = async () => { try { const r = await fetch('/version.json?_=' + Date.now(), { cache: 'no-store' }); const d = await r.json(); return d.build + '|' + d.builtAt; } catch (e) { return null; } };
+    buildStamp().then((v) => { if (!loadedStamp) loadedStamp = v; });
+    async function newerSiteExists() {
+        const v = await Promise.race([buildStamp(), new Promise((ok) => setTimeout(() => ok(null), 1500))]);
+        if (!v) return false;
+        if (!loadedStamp) { loadedStamp = v; return false; }
+        return v !== loadedStamp;
+    }
+    window.knowuraShown = async (hasMic, resume) => {
+        playEnter();
+        if (resume) return; /* back from the file picker: stay exactly where we were */
+        if (await newerSiteExists()) { location.reload(); return; }   // the fresh page starts itself (Android calls knowuraShown again when it has loaded)
+        linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true);
+    };
     window.knowuraHidden = () => { endCall(); stopSpeaking(); };
     window.knowuraNeedMic = () => { showMicCard(true); status('Microphone needed'); };
 
