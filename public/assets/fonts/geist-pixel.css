@@ -1,0 +1,9 @@
+/* Geist Pixel (SIL Open Font License 1.1, see LICENSE-OFL.txt), Latin subset, served from our own domain so
+   visitors' browsers never contact Google to load a font. */
+@font-face {
+    font-family: 'Geist Pixel';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url(/assets/fonts/geist-pixel-latin.woff2) format('woff2');
+}

@@ -61,3 +61,18 @@ test('live preview loads pages in a sandboxed /preview page with its own CSP, an
     assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = "default-src 'none'/);
     assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    Content-Security-Policy/);
 });
+
+test('fonts are self-hosted: no page or CSP contacts Google Fonts, and the legal pages carry the required disclosures', () => {
+    for (const f of ['index.html', 'terms.html', 'privacy.html', 'eula.html', 'dmca.html', '404.html']) {
+        assert.doesNotMatch(pub(f), /fonts\.(googleapis|gstatic)\.com/, `${f} must not load Google Fonts`);
+        assert.match(pub(f), /href="\/assets\/fonts\/geist-pixel\.css"|href="assets\/fonts\/geist-pixel\.css"/, `${f} should load the local font`);
+    }
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/fonts/geist-pixel-latin.woff2')));
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/fonts/LICENSE-OFL.txt')));
+    const main = require('../vercel.json').headers[0].headers.find(x => x.key === 'Content-Security-Policy').value;
+    assert.doesNotMatch(main, /fonts\.(googleapis|gstatic)\.com/);
+    const p = pub('privacy.html'), t = pub('terms.html');
+    for (const re of [/legal basis/i, /International transfers/, /grievance officer/i, /Google API Services User Data Policy/, /under 18/i, /within one month/i]) assert.match(p, re, String(re));
+    for (const re of [/not a human/, /under 18/i, /Governing law and courts/, /Severability/]) assert.match(t, re, String(re));
+    assert.match(pub('index.html'), /confirm you are 13 or older/);
+});
