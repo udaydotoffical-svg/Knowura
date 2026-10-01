@@ -193,3 +193,14 @@ test('Vercel stays within the free plan\'s 12 functions, and the merged endpoint
     const rewrites = require('../vercel.json').rewrites.map((r) => `${r.source}>${r.destination}`).join(' ');
     for (const n of ['device-link', 'device-session', 'models']) assert.ok(rewrites.includes(`/.netlify/functions/${n}>/api/misc?op=${n}`), n);
 });
+
+test('assistant panel: permission, copy, share and errors all give visible feedback and the native side recovers', () => {
+    const panel = pub('assistant.html');
+    const java = fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8');
+    const perm = fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/PermissionActivity.java'), 'utf8');
+    assert.match(panel, /id="micCard"/); assert.match(panel, /id="micAllow"/);        // an Allow button instead of a dead end
+    assert.match(panel, /function copyText/); assert.match(panel, /function shareText/); assert.match(panel, /window\.knowuraNote/);
+    assert.match(perm, /KnowuraSession\.permissionDone\(\)/);                          // the panel comes back after the prompt
+    assert.match(java, /static void permissionDone/); assert.match(java, /public boolean copy\(/);
+    assert.match(java, /startAssistantActivity\(intent\)[\s\S]*FLAG_ACTIVITY_NEW_TASK/);   // falls back to a plain start
+});
