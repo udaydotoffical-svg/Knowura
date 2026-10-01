@@ -31,7 +31,7 @@ owner — unlock an uncensored "owner mode" with a hardware security key.
   in the unlock modal to keep it in memory for that tab only
 - **Lofi music player** — a Spotify-inspired panel (now-playing card, seek
   bar, prev/play/next, volume, track queue) that auto-discovers every mp3 in
-  `public/assets/audio/`. Drop a new track in that folder and it just shows
+  `public/assets/audio/` (currently empty: only add music you have the right to host and redistribute). Drop a track in that folder and it just shows
   up — no code changes needed (see [Adding tracks](#adding-tracks))
 - **Live Voice mode** — a hands-free, phone-call-style conversation with
   Knowura. Default is **Seamless**: it auto-detects when you start/stop

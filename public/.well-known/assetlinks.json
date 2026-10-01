@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.knowura.app",
+      "sha256_cert_fingerprints": [
+        "28:4C:47:C0:9B:A9:E4:47:3A:FE:15:CA:4E:5D:E6:0B:A1:31:70:8E:7B:CE:4F:67:F5:B2:6E:44:B5:A9:C5:8A"
+      ]
+    }
+  }
+]

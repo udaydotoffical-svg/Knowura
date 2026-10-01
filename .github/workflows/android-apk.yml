@@ -1,0 +1,43 @@
+name: Build Android APK
+
+# Wraps https://knowura.vercel.app as a Trusted Web Activity app. Run it from the Actions tab
+# (or push a tag like apk-1) and download the APK from the Releases page.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['apk-*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk Knowura.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Knowura-apk
+          path: Knowura.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="apk-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" Knowura.apk --title "Knowura Android APK #${GITHUB_RUN_NUMBER}" \
+            --notes "Sideload build of Knowura AI (opens https://knowura.vercel.app as an app). Download Knowura.apk, allow installs from this source, and open it." \
+            --target "${GITHUB_SHA}"
