@@ -2056,6 +2056,14 @@
     <div id="ownerModal" class="owner-modal" onclick="if (event.target === this) closeOwnerModal()">
     <div class="owner-modal-card">
             <button class="live-close" onclick="closeOwnerModal()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
+            <div id="ownerActivePanel" hidden>
+                <div class="brand-title" style="font-size:16px;">Owner Mode is on</div>
+                <div class="brand-sub" style="margin-bottom:20px;">Limits and the safety check are off for you right now</div>
+                <button id="ownerDisableBtn" class="btn-ui" style="width:100%; justify-content:center;" onclick="disableOwnerMode()">
+                    <svg class="icon"><use href="#icon-lock"/></svg> Disable Owner Mode
+                </button>
+            </div>
+            <div id="ownerUnlockPanel">
             <div class="brand-title" style="font-size:16px;">Unlock Owner Mode</div>
             <div class="brand-sub" style="margin-bottom:20px;">Verify it's really you</div>
 
@@ -2085,6 +2093,8 @@
                 </span>
                 This isn't my PC — don't remember this unlock
             </label>
+
+            </div>
 
             <div id="ownerModalStatus" class="owner-modal-status"></div>
     </div>
@@ -2701,7 +2711,19 @@
         document.getElementById('ownerModalStatus').innerText = '';
         document.getElementById('ownerPasswordInput').value = '';
         document.getElementById('ownerNotMyPc').checked = false;
+        document.getElementById('ownerActivePanel').hidden = !ownerMode;     // already unlocked: offer to switch it off
+        document.getElementById('ownerUnlockPanel').hidden = ownerMode;
         document.getElementById('ownerModal').classList.add('open');
+    }
+
+    // Turns owner mode off again without signing out: forgets the token, then reloads so the app comes back as
+    // whoever was signed in (or as a guest) with normal limits.
+    function disableOwnerMode() {
+        ownerMode = false;
+        ownerToken = null;
+        try { localStorage.removeItem('knowura_owner_token'); } catch (e) { /* ignore */ }
+        closeOwnerModal();
+        location.reload();
     }
 
     function closeOwnerModal() {
@@ -5693,8 +5715,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             last = now;
             if (taps >= 10) {
                 taps = 0;
-                if (typeof ownerMode !== 'undefined' && ownerMode) return; // already unlocked
-                haptic('success');
+                haptic('success');   // already unlocked? the modal then offers "Disable Owner Mode"
                 openOwnerModal();
             } else if (taps >= 4) {
                 haptic('tick'); // a faint hint that something is counting
