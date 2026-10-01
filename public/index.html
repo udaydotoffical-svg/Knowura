@@ -1885,6 +1885,10 @@
             <div class="settings-section" hidden>
                 <button id="ownerBtn" class="menu-item" onclick="openOwnerModal()" title="Unlock owner mode" tabindex="-1" aria-hidden="true"><svg class="icon"><use href="#icon-lock"/></svg> Unlock Owner</button>
             </div>
+            <div class="settings-section" id="installSection" hidden>
+                <button type="button" class="btn-ui" style="width:100%; justify-content:center;" onclick="installApp()"><svg class="icon"><use href="#icon-download"/></svg> Install app</button>
+                <div class="choice-hint" id="installHint" style="margin-top:6px;"></div>
+            </div>
             <div class="settings-section">
                 <button class="btn-ui" style="width:100%; justify-content:center;" onclick="logOut()"><svg class="icon"><use href="#icon-logout"/></svg> Log Out</button>
             </div>
@@ -5389,6 +5393,38 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const banner = document.getElementById('cookieBanner');
         if (banner && !acknowledged) banner.hidden = false;
     })();
+
+    // ─── INSTALL AS AN APP (PWA) ────────────────────────────────────────────
+    // Chrome/Edge/Android hand us an install prompt to trigger from our own button; iPhone/iPad Safari has none,
+    // so there we just explain Share > Add to Home Screen. Hidden once Knowura is already running as an app
+    // (home-screen install, or the Android APK wrapper, which reports an android-app:// referrer).
+    let deferredInstall = null;
+    const runningAsApp = () => !!window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true || String(document.referrer || '').startsWith('android-app://');
+    const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    function refreshInstallUI() {
+        const sec = document.getElementById('installSection'), hint = document.getElementById('installHint');
+        if (!sec) return;
+        const show = !runningAsApp() && (!!deferredInstall || isAppleMobile);
+        sec.hidden = !show;
+        if (hint) hint.textContent = deferredInstall ? 'Adds Knowura to your home screen or desktop.' : 'On iPhone/iPad: tap Share, then Add to Home Screen.';
+    }
+    async function installApp() {
+        if (deferredInstall) {
+            const p = deferredInstall;
+            deferredInstall = null;
+            p.prompt();
+            try { await p.userChoice; } catch (e) { /* dismissed */ }
+            refreshInstallUI();
+        } else {
+            showAlert('Tap the Share button in Safari, then choose "Add to Home Screen".', 'Install Knowura');
+        }
+    }
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; refreshInstallUI(); });
+    window.addEventListener('appinstalled', () => { deferredInstall = null; refreshInstallUI(); });
+    refreshInstallUI();
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        navigator.serviceWorker.register('/sw.js').catch(() => { /* installing as an app is optional */ });
+    }
 
     applyPerfMode();
     loadModels();

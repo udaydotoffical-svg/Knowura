@@ -95,3 +95,16 @@ test('Android wrapper: the APK package, site host and Digital Asset Links file a
     assert.match(fs.readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8'), /applicationId 'com\.knowura\.app'/);
     assert.ok(fs.existsSync(path.join(root, 'android/gradlew')));
 });
+
+test('the site is installable as an app: manifest id, a no-cache service worker, and an Install app button', () => {
+    const m = JSON.parse(pub('site.webmanifest'));
+    assert.equal(m.id, '/');
+    assert.equal(m.display, 'standalone');
+    assert.match(pub('sw.js'), /addEventListener\('fetch'/);
+    assert.doesNotMatch(pub('sw.js'), /caches\./); // never caches, so nothing can go stale
+    const h = pub('index.html');
+    assert.match(h, /id="installSection" hidden/);
+    assert.match(h, /addEventListener\('beforeinstallprompt'/);
+    assert.match(h, /serviceWorker\.register\('\/sw\.js'\)/);
+    assert.ok(require('../vercel.json').headers.some(r => r.source === '/sw.js'));
+});
