@@ -61,7 +61,8 @@ const STUDY_TOOLS = [
 // ordinary chat never risks a stray tool call (and the request stays cheap).
 const STUDY_RE = /\b(quiz(zes)?|flash ?cards?|study cards?|revision cards?|test me|drill me|practice (questions|problems|test)|mcq|multiple[- ]choice)\b/i;
 function wantsStudyTools(messages) {
-    return (messages || []).slice(-4).some(m => STUDY_RE.test(m.content || ""));
+    const text = (c) => typeof c === "string" ? c : Array.isArray(c) ? c.map(p => p?.text || "").join(" ") : "";
+    return (messages || []).slice(-4).some(m => STUDY_RE.test(text(m.content).split(/\n\n\[Attached /)[0]));
 }
 
 const clip = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);

@@ -92,6 +92,8 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="assets/vendor/marked/marked.umd.js" defer></script>
     <script src="assets/vendor/dompurify/purify.min.js" defer></script>
+    <link rel="stylesheet" href="assets/attach/attach.css">
+    <script src="assets/attach/attach.js" defer></script>
     <script src="assets/vendor/highlightjs/highlight.min.js" defer></script>
     <script src="assets/vendor/simplewebauthn/index.umd.min.js" defer></script>
 
@@ -766,6 +768,8 @@
         .pb-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pb-pick:hover, .pb-pick[data-on] { background: rgba(255,255,255,0.15); color: var(--text); }
         .pb-pick:active { transform: scale(0.96); }
+        .pb-attach { width: 34px; padding: 0; justify-content: center; }
+        .pb-attach .icon { width: 18px; height: 18px; }
         .pb-pick.max { color: var(--pb-spark); border-color: color-mix(in srgb, var(--pb-spark) 55%, transparent); }
         .pb-pick.max .icon { color: var(--pb-spark); }
 
@@ -1749,9 +1753,11 @@
                     <div id="promptGlow" class="aura-glow prompt-glow" style="--aura-radius:22px; --aura-spread:22px;">
                         <div class="pb-inner">
                             <div class="pb-field" id="pbField">
+                                <div id="attBar" class="att-bar" hidden aria-label="Attachments"></div>
                                 <canvas id="pbSparks" class="pb-sparks" aria-hidden="true"></canvas>
                                 <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt"></textarea>
                                 <div class="pb-bar">
+                                    <button type="button" id="pbAttachBtn" class="pb-pick pb-attach" aria-label="Attach files or pictures" title="Attach files or pictures" onclick="attachPick()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.4 11.1l-9.2 9.2a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg></button>
                                     <button type="button" id="pbModelBtn" class="pb-pick" aria-label="Choose model" onclick="togglePbMenu('model')"><svg class="icon"><use href="#icon-cpu"/></svg><span id="pbModelLabel">Model</span><svg class="icon"><use href="#icon-chevron-down"/></svg></button>
                                     <button type="button" id="pbEffortBtn" class="pb-pick" aria-label="Choose effort" onclick="togglePbMenu('effort')"><svg class="icon"><use href="#icon-bolt"/></svg><span id="pbEffortLabel">Medium</span></button>
                                     <span class="pb-spacer"></span>
@@ -3260,7 +3266,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     async function ask(providedText, opts = {}) {
         const input = document.getElementById('userInput');
         const text = (providedText !== undefined ? providedText : input.value).trim();
-        if (!text) return;
+        const atts = (providedText === undefined && attachCtl) ? attachCtl.ready() : [];
+        if (!text && !atts.length) return;
+        if (providedText === undefined && attachCtl?.busy()) { window.KnowuraAttach?.toast('Still reading your files, one moment...'); return; }
 
         // Typed wake word (only meaningful when it's set to work in chat too, and only for typed messages)
         if (providedText === undefined && settings.wakeWord === 'both' && /hey knowura/i.test(text)) {
@@ -3278,15 +3286,15 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (limitBlocked('message')) { showLimit(limitState); return; } // still counting down: don't send a doomed request
         finishTyping();
         if (performance.now() - lastSendHaptic > 400) haptic('send'); // Enter key / suggestion chips (the send button already buzzed on touch)
-        addBubble(userBubbleHTML(text), 'user', true);
-        if (providedText === undefined) { input.value = ''; updateSendBtnUI(); }
+        addBubble((atts.length ? KnowuraAttach.bubbleHTML(atts) : '') + userBubbleHTML(text), 'user', true);
+        if (providedText === undefined) { input.value = ''; attachCtl?.take(); updateSendBtnUI(); }
         // Captured now (not later) so a background chat-title generation always
         // targets the chat this message actually landed in, even if the user
         // switches chats before the AI reply comes back.
         const chatIdForTitle = chatStore.activeChatId;
 
         // Add to rolling conversation window (last 10 for groq context)
-        conversationMessages.push({ role: "user", content: text });
+        conversationMessages.push({ role: "user", content: atts.length ? KnowuraAttach.build(text, atts).content : text });
         if (conversationMessages.length > 10) conversationMessages.shift();
 
         const willSearch = looksSearchWorthy(text);
@@ -3325,7 +3333,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    messages: conversationMessages,
+                    messages: messagesForServer(),
                     memory: getMemory(),
                     ownerToken: ownerToken,
                     token: userToken,
@@ -3404,7 +3412,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 const ch = getActiveChat();
                 if (ch?.messages.length && ch.messages[ch.messages.length - 1].type === 'user') { ch.messages.pop(); saveChatStore(); }
                 conversationMessages.pop();
-                if (providedText === undefined) { input.value = text; updateSendBtnUI(); }
+                if (providedText === undefined) { input.value = text; attachCtl?.restore(atts); updateSendBtnUI(); }
                 showLimit(e.limit);
                 if (opts.fromVoice) endCall();
                 return;
@@ -3925,7 +3933,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const div = document.createElement('div');
         div.className = `msg ${c}`;
         div.innerHTML = t;
-        if (c === 'user') {
+        if (c === 'user' && !/att-row/.test(t)) {
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'msg-edit'; b.title = 'Edit message'; b.setAttribute('aria-label', 'Edit message');
             b.innerHTML = '<svg class="icon"><use href="#icon-edit"/></svg>';
@@ -4094,7 +4102,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         } else {
             chat.messages.forEach(m => addBubble(safeHtml(m.text), m.type, false));
             chat.messages.slice(-10).forEach(m => {
-                conversationMessages.push({ role: m.type === 'user' ? 'user' : 'assistant', content: htmlToText(m.text) });
+                let content = htmlToText(m.text);
+                if (m.type === 'user' && window.KnowuraAttach && /att-row/.test(m.text)) { const d = document.createElement('div'); d.innerHTML = safeHtml(m.text); content = KnowuraAttach.contextText(d); }
+                conversationMessages.push({ role: m.type === 'user' ? 'user' : 'assistant', content });
             });
         }
         updateBadge();
@@ -4139,7 +4149,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (chat.messages.length > 60) chat.messages = chat.messages.slice(-60);
         chat.updatedAt = Date.now();
         if (type === 'user' && chat.title === 'New Chat') {
-            const plain = htmlToText(text).trim();
+            const plain = bubblePlain(text) || (/att-chip[^>]*data-n="([^"]+)"/.exec(text)?.[1] || '');
             chat.title = plain.length > 42 ? plain.slice(0, 42).trim() + '…' : (plain || 'New Chat');
         }
         saveChatStore();
@@ -5206,7 +5216,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function updateSendBtnUI() {
         const input = document.getElementById('userInput');
         const btn = document.getElementById('sendBtn');
-        const hasText = input.value.trim().length > 0;
+        const hasText = input.value.trim().length > 0 || !!(attachCtl && attachCtl.count() > 0);
         const wasMic = btn.classList.contains('mic-mode');
         const micNow = !hasText && !pbBusy;
 
@@ -5218,10 +5228,55 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         autosizePrompt();
     }
 
+    // ─── ATTACHMENTS (pictures, text/code, PDF, Word/Excel/PowerPoint, zip, audio) ─────
+    // The reading itself lives in assets/attach/attach.js; this wires it to the prompt bar and the message flow.
+    var attachCtl = null;
+    function initAttachments() {
+        if (attachCtl || !window.KnowuraAttach) return;
+        attachCtl = KnowuraAttach.mount({
+            input: document.getElementById('userInput'),
+            drop: document.querySelector('.chat-container'),
+            bar: document.getElementById('attBar'),
+            transcribe: transcribeFile,
+            onChange: () => updateSendBtnUI()
+        });
+    }
+    document.addEventListener('DOMContentLoaded', initAttachments);
+    function attachPick() { initAttachments(); attachCtl?.pick(); }
+    async function transcribeFile(file) {
+        const res = await fetch('/.netlify/functions/transcribe', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: await blobToBase64(file), mimeType: file.type || 'audio/mpeg', ownerToken: ownerToken, token: userToken })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.limitReached) { showLimit(data); throw Object.assign(new Error('You\'ve used your voice allowance for now.'), { friendly: true }); }
+        if (!res.ok) throw Object.assign(new Error(data.error || 'Couldn\'t transcribe that audio.'), { friendly: true });
+        return data.text || '';
+    }
+    // Only the newest 3 pictures go to the server (it keeps 3 as well); older ones become a note.
+    function messagesForServer() {
+        let seen = 0;
+        const out = conversationMessages.slice();
+        for (let i = out.length - 1; i >= 0; i--) {
+            const c = out[i].content;
+            if (!Array.isArray(c)) continue;
+            const kept = c.filter(p => p.type !== 'image_url' || ++seen <= 3);
+            if (kept.length !== c.length) out[i] = { ...out[i], content: kept.some(p => p.type === 'image_url') ? kept : kept.map(p => p.text || '').join('\n') + '\n[an earlier picture was left out]' };
+        }
+        return out;
+    }
+    // The typed text of a saved bubble without the attachment chips (for titles).
+    function bubblePlain(html) {
+        const d = document.createElement('div');
+        d.innerHTML = String(html || '').replace(/<br\s*\/?>/gi, '\n');
+        d.querySelectorAll('.att-row').forEach(n => n.remove());
+        return (d.textContent || '').trim();
+    }
+
     function handleSendClick() {
         if (pbBusy) { abortAsk(); return; }
         const input = document.getElementById('userInput');
-        if (input.value.trim().length > 0) {
+        if (input.value.trim().length > 0 || (attachCtl && attachCtl.count() > 0)) {
             ask();
         } else {
             openLivePanel();

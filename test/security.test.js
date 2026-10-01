@@ -106,7 +106,7 @@ test('message caps per 5-hour window: guest, signed-in user, and owner is exempt
 test('ask-ai handler: rejects bad payloads and enforces the cap before touching the API', async () => {
     limits.setStoreForTests(fakeStore());
     assert.equal((await askAi.handler(ev('not json'))).statusCode, 400);
-    assert.equal((await askAi.handler(ev('x'.repeat(400 * 1024)))).statusCode, 413);
+    assert.equal((await askAi.handler(ev('x'.repeat(4 * 1024 * 1024)))).statusCode, 413);
     assert.equal((await askAi.handler(ev({ messages: 'hi' }))).statusCode, 400);
     assert.equal((await askAi.handler({ httpMethod: 'GET', headers: {} })).statusCode, 405);
 
@@ -331,4 +331,42 @@ test('device link: the app links an install to an account and prefs; the panel g
     assert.equal(r.linked, false);
     // ids that aren't long random strings are refused, and nothing is stored in plain text
     assert.equal((await deviceSession.handler(body({ installId: 'short' }))).statusCode, 400);
+});
+
+
+test('ask-ai attachments: only small data-URL images from users, newest 3 kept, file text allowed, search ignores attached text', () => {
+    const { sanitizeMessages, textOf, isVision, pickVisionModel, needsSearch } = askAi._test;
+    const img = (n = 10) => ({ type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + 'A'.repeat(n) } });
+    // good image parts survive; a missing text part is added
+    let out = sanitizeMessages([{ role: 'user', content: [{ type: 'text', text: 'what is this?' }, img()] }]);
+    assert.equal(out[0].content.length, 2);
+    out = sanitizeMessages([{ role: 'user', content: [img()] }]);
+    assert.equal(out[0].content[0].type, 'text');
+    // anything a model could fetch, odd types, huge images and assistant-supplied parts are dropped
+    const evil = [
+        { type: 'text', text: 'hi' },
+        { type: 'image_url', image_url: { url: 'https://evil.example/x.png' } },
+        { type: 'image_url', image_url: { url: 'data:image/svg+xml;base64,AAAA' } },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,' + 'A'.repeat(1500000) } },
+        { type: 'image_url', image_url: { url: 'file:///etc/passwd' } }
+    ];
+    assert.equal(sanitizeMessages([{ role: 'user', content: evil }])[0].content.length, 1);
+    assert.equal(sanitizeMessages([{ role: 'assistant', content: [img()] }]), null);
+    // at most the newest 3 images are kept across the conversation
+    const many = [1, 2, 3, 4, 5].map(i => ({ role: 'user', content: [{ type: 'text', text: 'q' + i }, img(10 + i)] }));
+    const kept = sanitizeMessages(many);
+    const count = kept.reduce((n, m) => n + (Array.isArray(m.content) ? m.content.filter(p => p.type === 'image_url').length : 0), 0);
+    assert.equal(count, 3);
+    assert.match(textOf(kept[0].content), /left out/);
+    // user turns may carry long file text; assistant turns stay capped
+    assert.equal(sanitizeMessages([{ role: 'user', content: 'x'.repeat(60000) }])[0].content.length, 60000);
+    assert.ok(sanitizeMessages([{ role: 'assistant', content: 'x'.repeat(60000) }])[0].content.length <= 16000);
+    // attached text must not trigger a web search; the question itself still can
+    assert.equal(needsSearch(('summarize this' + '\n\n[Attached file: a.txt]\nthe latest news today').split(/\n\n\[Attached /)[0]), false);
+    // vision routing
+    const avail = [{ id: 'openai/gpt-oss-20b' }, { id: 'meta-llama/llama-4-scout-17b-16e-instruct' }, { id: 'qwen/qwen3.6-27b' }];
+    assert.equal(isVision('openai/gpt-oss-20b'), false);
+    assert.equal(pickVisionModel(avail, 'openai/gpt-oss-20b'), 'qwen/qwen3.6-27b');
+    assert.equal(pickVisionModel(avail, 'meta-llama/llama-4-scout-17b-16e-instruct'), 'meta-llama/llama-4-scout-17b-16e-instruct');
+    assert.equal(pickVisionModel([{ id: 'openai/gpt-oss-20b' }], 'openai/gpt-oss-20b'), null);
 });
