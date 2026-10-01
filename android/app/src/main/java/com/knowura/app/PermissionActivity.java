@@ -12,6 +12,7 @@ public class PermissionActivity extends Activity {
         super.onCreate(savedInstanceState);
         String permission = Manifest.permission.RECORD_AUDIO;
         if (checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) {
+            KnowuraSession.permissionDone();
             finish();
         } else {
             requestPermissions(new String[]{permission}, 1);
@@ -21,6 +22,7 @@ public class PermissionActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        KnowuraSession.permissionDone();   // bring the panel back, as listening if it was allowed
         finish();
     }
 }

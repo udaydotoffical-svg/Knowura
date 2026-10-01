@@ -17,43 +17,64 @@
         body:not(.native) { background: radial-gradient(120% 90% at 50% 0%, #0f2a80 0%, #05070f 60%); }
         [hidden] { display: none !important; }
 
-        .scrim { position: fixed; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.6) 100%); }
+        .scrim { position: fixed; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 25%, rgba(0,0,0,0.72) 100%); animation: kwFade .28s ease both; }
         .stack {
             position: fixed; left: 0; right: 0; bottom: 0; max-width: 640px; margin: 0 auto;
             display: flex; flex-direction: column; gap: 10px; transform: translateY(var(--kb, 0px));
             padding: 12px 12px calc(14px + env(safe-area-inset-bottom));
         }
+        .stack > * { animation: kwRise .42s cubic-bezier(.2,.9,.25,1.1) both; }
+        .stack > *:nth-child(2) { animation-delay: .04s; } .stack > *:nth-child(3) { animation-delay: .08s; }
+        @keyframes kwRise { from { opacity: 0; transform: translateY(46px) scale(.97); } to { opacity: 1; transform: none; } }
+        @keyframes kwFade { from { opacity: 0; } to { opacity: 1; } }
         .chip {
             align-self: flex-end; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer;
-            border: 2.5px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text);
+            border: 2.5px solid var(--ink); border-radius: 999px; color: var(--text);
             font-size: 14px; font-weight: 700; box-shadow: var(--shadow-sm); backdrop-filter: none;
-            background: rgba(16, 30, 62, 0.95);
+            background: #0d1a3a;
         }
         .chip svg { width: 16px; height: 16px; }
         .chip:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
 
-        /* ── voice mode: the app's live-voice card, sized as a bottom panel ── */
+        /* ── voice mode: solid, deep panel with a neon edge; the orb breathes with your voice ── */
         #voiceView.live-panel {
-            position: relative; inset: auto; z-index: 1; height: min(68vh, 560px); padding: 16px;
-            border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg); backdrop-filter: none;
-            background: linear-gradient(180deg, rgba(3,6,16,0.86), rgba(3,6,16,0.95)), url('/assets/images/background.jpg') center / cover no-repeat;
+            position: relative; inset: auto; z-index: 1; height: min(68vh, 560px); padding: 16px; overflow: hidden;
+            border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg), 0 0 0 1px rgba(34,229,255,.18), 0 0 46px -8px rgba(34,229,255,.35);
+            backdrop-filter: none; -webkit-backdrop-filter: none;
+            background: radial-gradient(80% 55% at 50% 38%, rgba(34,229,255,.16), transparent 70%), linear-gradient(180deg, #060b1c, #03060f);
         }
-        #voiceView .orb-gif { width: min(54vw, 30vh, 250px); height: min(54vw, 30vh, 250px); }
+        #voiceView.live-panel::before { /* slow aurora behind the orb */
+            content: ''; position: absolute; inset: -40%; background: conic-gradient(from 0deg at 50% 45%, rgba(34,229,255,.0), rgba(77,119,255,.22), rgba(255,48,87,.10), rgba(34,229,255,.0) 70%);
+            animation: kwSpin 14s linear infinite; pointer-events: none; opacity: .8;
+        }
+        @keyframes kwSpin { to { transform: rotate(360deg); } }
+        #voiceView > :not(.live-close):not(.acct-voice) { position: relative; }
+        #voiceView .orb-gif { width: min(54vw, 30vh, 250px); height: min(54vw, 30vh, 250px); transform: scale(calc(1 + var(--lvl, 0) * .22)); transition: transform .08s linear; }
+        #voiceView .orb-wrap.listening .ring { transform: scale(calc(1 + var(--lvl, 0) * .35)); }
         #voiceView .call-controls { gap: 16px; }
         #voiceView .live-transcript { max-width: 92%; max-height: 4.5em; overflow: hidden; }
         #voiceView .live-close { top: 14px; right: 14px; display: grid; place-items: center; }
         #voiceView .live-close svg { width: 18px; height: 18px; }
         .acct-voice { position: absolute; top: 14px; left: 14px; }
+        .mic-card {
+            position: relative; z-index: 2; display: grid; gap: 10px; justify-items: center; text-align: center; max-width: 92%;
+            padding: 14px 16px; border: 2.5px solid var(--cyan); border-radius: 18px; background: #08142f; box-shadow: 0 0 28px -6px rgba(34,229,255,.55);
+        }
+        .mic-card p { font-size: 13px; line-height: 1.5; color: var(--text-dim); }
+        .mic-card .btn-ui { justify-content: center; }
+        .suggest { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .suggest button { border: 2px solid var(--ink); border-radius: 999px; background: #0d1a3a; color: var(--text); font-size: 13px; font-weight: 700; padding: 7px 12px; cursor: pointer; box-shadow: var(--shadow-sm); }
+        .suggest button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
 
-        /* ── text chat: a sheet holding the app's own message bubbles ── */
+        /* ── text chat: a solid sheet holding the app's own message bubbles ── */
         .sheet {
-            background: rgba(10, 18, 40, 0.95); border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg);
+            background: linear-gradient(180deg, #0b1633, #070d22); border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg), 0 0 40px -10px rgba(77,119,255,.4);
             display: flex; flex-direction: column; max-height: 60vh; overflow: hidden; touch-action: pan-y;
         }
         .sheet-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 10px 0; flex: none; }
         .sheet-head .left { justify-self: start; } .sheet-head .right { justify-self: end; }
         .grab-zone { padding: 10px 28px 12px; cursor: grab; touch-action: none; }
-        .grab { width: 54px; height: 6px; border-radius: 99px; background: rgba(143,166,204,0.55); }
+        .grab { width: 54px; height: 6px; border-radius: 99px; background: linear-gradient(90deg, #22e5ff, #4d77ff); opacity: .8; }
         .sheet .btn-ui { padding: 6px 10px; font-size: 11px; }
         .sheet .btn-ui svg { width: 16px; height: 16px; }
         .acct-img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink); object-fit: cover; }
@@ -62,22 +83,35 @@
         .greet small { display: block; margin-top: 8px; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
         .msg.err { color: #ff8da1; }
         .msg-actions { display: flex; gap: 4px; margin: -4px 0 0 34px; }
-        .msg-actions button { width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text-dim); border-radius: 12px; cursor: pointer; }
+        .msg-actions button { width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text-dim); border-radius: 12px; cursor: pointer; }
         .msg-actions button svg { width: 20px; height: 20px; }
         .msg-actions button:active, .msg-actions button.on { background: rgba(34,229,255,0.16); color: var(--cyan); }
         .cta { margin-top: 10px; }
 
         .input-area { padding: 0; background: none; }
+        /* the app's prompt bar is liquid glass; in the panel it is a solid, slightly tinted bar so text stays crisp over any app */
+        .prompt-glow { background: linear-gradient(135deg, #12224a, #0a1330) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+        .pb-input::placeholder { color: #8fa6cc; opacity: 1; }
         .acct-pop {
             position: absolute; right: 8px; top: 52px; z-index: 5; min-width: 200px; padding: 12px; border: 2.5px solid var(--ink);
-            border-radius: 14px; background: rgba(16,30,62,0.98); box-shadow: var(--shadow-md); display: grid; gap: 8px; font-size: 13px;
+            border-radius: 14px; background: #0d1a3a; box-shadow: var(--shadow-md); display: grid; gap: 8px; font-size: 13px;
         }
         .acct-pop b { display: block; } .acct-pop span { color: var(--text-dim); word-break: break-all; }
+
+        /* a quick message that tells you what just happened (copied, shared, couldn't open...) */
+        .kw-toast {
+            position: fixed; left: 50%; top: calc(18px + env(safe-area-inset-top)); z-index: 900; max-width: min(92vw, 420px); padding: 11px 16px;
+            border: 2.5px solid var(--ink); border-radius: 14px; background: #0d1a3a; color: var(--text); font-size: 14px; font-weight: 700; text-align: center;
+            box-shadow: var(--shadow-sm), 0 0 26px -6px rgba(34,229,255,.55); transform: translate(-50%, -140%); transition: transform .32s cubic-bezier(.2,.9,.25,1.2); pointer-events: none;
+        }
+        .kw-toast.show { transform: translate(-50%, 0); }
+        .kw-toast.bad { border-color: #ff3057; box-shadow: var(--shadow-sm), 0 0 26px -6px rgba(255,48,87,.6); }
         @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; } }
     </style>
 </head>
 <body>
 <div class="scrim" id="scrim"></div>
+<div class="kw-toast" id="kwToast" role="status" aria-live="polite"></div>
 
 <div class="stack" id="stack">
     <button type="button" class="chip" id="minBtn" hidden><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg> Minimize</button>
@@ -90,6 +124,11 @@
             <div class="ring ring1"></div>
             <div class="ring ring2"></div>
             <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
+        </div>
+        <div id="micCard" class="mic-card" hidden>
+            <b id="micTitle">Knowura needs your microphone</b>
+            <p id="micText">Allow it once and you can just talk. Nothing is recorded until you speak.</p>
+            <button type="button" class="btn-ui" id="micAllow"><svg class="icon"><use href="#icon-mic"/></svg> <span id="micBtnText">Allow microphone</span></button>
         </div>
         <div id="liveStatus" class="live-status">Connecting…</div>
         <div id="liveTranscript" class="live-transcript"></div>
@@ -179,9 +218,17 @@ function showAlert(message) { window.__note && window.__note(message); }
     const ORB_INTRO = '/assets/images/bloub-circle-starting-ai.gif';
     const VAD = { rms: 0.025, silenceMs: 900, maxMs: 20000, minBytes: 3000 };
     const GREETING = '<p>Hello! How can I help you today?</p><small>Knowura isn\'t human. It can make mistakes, so double check it.</small>';
+    const SUGGEST = ['Explain something simply', 'Quiz me', 'Summarize this', 'Help me with code'];
+    const suggestHTML = () => '<div class="suggest">' + SUGGEST.map((q) => '<button type="button" data-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>').join('') + '</div>';
 
     let view = 'voice', msgs = [], chat = null, busy = false, ctrl = null, call = null, captionsOn = true, speakingAudio = null, lastReplyText = '';
     window.__note = (m) => addBubble('<p>' + escapeHtml(String(m)) + '</p>', 'ai', { err: true });
+    let toastTimer = null;
+    function toast(message, bad) {
+        const t = $('kwToast'); t.textContent = String(message); t.classList.toggle('bad', !!bad); t.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+    window.knowuraNote = (m) => toast(m, true);   // the Android side reports problems here
 
     // ── small utils ──
     const post = (fn, body, opts = {}) => fetch('/.netlify/functions/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), ...opts });
@@ -218,13 +265,14 @@ function showAlert(message) { window.__note && window.__note(message); }
         const now = Date.now();
         chat = { id: 'a' + now.toString(36) + Math.random().toString(36).slice(2, 7), title: 'Assistant chat', createdAt: now, updatedAt: now, messages: [] };
         $('chat-box').innerHTML = '';
-        addBubble(GREETING, 'ai', { greet: true });
+        addBubble(GREETING + suggestHTML(), 'ai', { greet: true });
         setSend();
     }
     function addBubble(html, type, o = {}) {
         const d = document.createElement('div');
         d.className = 'msg ' + type + (o.err ? ' err' : '') + (o.greet ? ' greet' : '');
         d.innerHTML = html;
+        if (type === 'user') $('chat-box').querySelectorAll('.suggest').forEach((n) => n.remove());
         $('chat-box').appendChild(d);
         scrollChat();
         return d;
@@ -342,14 +390,30 @@ function showAlert(message) { window.__note && window.__note(message); }
         persist(); scrollChat();
         if (study) setTimeout(() => openStudy(study), 900);
     }
+    async function copyText(text, btn) {
+        let ok = false;
+        try { if (bridge && bridge.copy) ok = bridge.copy(String(text)) !== false; } catch (e) { ok = false; }
+        if (!ok && navigator.clipboard) { try { await navigator.clipboard.writeText(String(text)); ok = true; } catch (e) { ok = false; } }
+        if (!ok) { // last resort: a hidden textarea and the old copy command
+            try { const t = document.createElement('textarea'); t.value = String(text); t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e) { ok = false; }
+        }
+        if (btn) { btn.classList.add('on'); setTimeout(() => btn.classList.remove('on'), 1200); }
+        haptic(ok ? 'tick' : 'error'); toast(ok ? 'Copied' : 'Couldn\'t copy that', !ok);
+        return ok;
+    }
+    function shareText(text) {
+        if (bridge && bridge.share) { bridge.share(String(text)); return; }
+        if (navigator.share) navigator.share({ text: String(text) }).catch(() => {});
+        else copyText(text).then((ok) => ok && toast('Sharing isn\'t available here, so it was copied'));
+    }
     function addReplyActions(bubble) {
         $('chat-box').querySelectorAll('.msg-actions').forEach((n) => n.remove());
         const row = document.createElement('div'); row.className = 'msg-actions';
         const mk = (label, svg, fn) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', label); b.title = label; b.innerHTML = svg; b.onclick = () => fn(b); return b; };
         const S = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
         row.append(
-            mk('Copy', S('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'), (b) => { if (bridge) bridge.copy(lastReplyText); else navigator.clipboard && navigator.clipboard.writeText(lastReplyText).catch(() => {}); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 1200); }),
-            mk('Share', S('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2"/>'), () => { if (bridge) bridge.share(lastReplyText); else if (navigator.share) navigator.share({ text: lastReplyText }).catch(() => {}); }),
+            mk('Copy', S('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'), (b) => copyText(lastReplyText, b)),
+            mk('Share', S('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2"/>'), () => shareText(lastReplyText)),
             mk('Read aloud', S('<path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'), (b) => { if (speakingAudio) { stopSpeaking(); b.classList.remove('on'); } else { b.classList.add('on'); speak(lastReplyText).finally(() => b.classList.remove('on')); } })
         );
         bubble.after(row); scrollChat();
@@ -366,6 +430,10 @@ function showAlert(message) { window.__note && window.__note(message); }
         btn.title = label; btn.setAttribute('aria-label', label);
         autosize();
     }
+    $('chat-box').addEventListener('click', (e) => {
+        const q = e.target.closest('.suggest button'); if (!q || busy) return;
+        $('userInput').value = q.dataset.q + ': '; setSend(); $('userInput').focus();
+    });
     $('userInput').addEventListener('input', setSend);
     $('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); } });
     $('sendBtn').addEventListener('click', () => {
@@ -393,13 +461,49 @@ function showAlert(message) { window.__note && window.__note(message); }
         $('orbWrap').classList.toggle('listening', state === 'listening');
     }
     const status = (t) => { $('liveStatus').textContent = t; };
+    // mode 'allow' = the permission is missing; 'busy' = it is granted but the microphone couldn't be opened (another app has it)
+    let micMode = 'allow';
+    function showMicCard(on, mode) {
+        micMode = mode || 'allow';
+        $('micCard').hidden = !on;
+        if (!on) return;
+        $('micTitle').textContent = micMode === 'busy' ? 'Couldn\'t open the microphone' : 'Knowura needs your microphone';
+        $('micText').textContent = micMode === 'busy' ? 'Another app may be using it right now. Close it and try again, or tap X to type instead.' : 'Allow it once and you can just talk. Nothing is recorded until you speak.';
+        $('micBtnText').textContent = micMode === 'busy' ? 'Try again' : 'Allow microphone';
+    }
+    $('micAllow').addEventListener('click', () => {
+        if (micMode === 'busy' || !bridge) { showMicCard(false); startCall(false); return; }
+        bridge.requestMic(); status('Waiting for you to allow it…');
+    });
+    // opening the mic fails now and then when another app (or a call that just ended) still holds it; try a few times before giving up
+    async function openMic() {
+        let last;
+        for (let i = 0; i < 4; i++) {
+            try { return await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+            catch (e) { last = e; if (e && e.name === 'NotAllowedError' && i >= 1) break; await new Promise((ok) => setTimeout(ok, 450 * (i + 1))); }
+        }
+        throw last;
+    }
+    let starting = false;
     async function startCall(auto) {
-        if (call) return;
-        if (bridge && !bridge.hasMic()) { status('Microphone needed'); if (!auto || !load('knowura_mic_asked')) { store('knowura_mic_asked', '1'); bridge.requestMic(); } $('liveTranscript').textContent = 'Allow the microphone on the screen that opens, then open Knowura again.'; orb('idle'); return; }
+        if (call || starting) return;
+        starting = true;
+        try { await startCallNow(auto); } finally { starting = false; }
+    }
+    async function startCallNow(auto) {
+        if (bridge && !bridge.hasMic()) { showMicCard(true); status('Microphone needed'); $('liveTranscript').textContent = ''; orb('idle'); return; }
+        showMicCard(false);
         status('Connecting…'); orb('idle');
         let stream;
-        try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
-        catch (e) { status('Microphone blocked'); $('liveTranscript').textContent = 'Allow the microphone to talk to Knowura, or tap X to type instead.'; return; }
+        try { stream = await openMic(); }
+        catch (e) {
+            if (view !== 'voice') return;
+            const denied = e && e.name === 'NotAllowedError';
+            status(denied ? 'Microphone blocked' : 'Microphone busy'); orb('idle');
+            if (bridge) showMicCard(true, denied ? 'allow' : 'busy');
+            $('liveTranscript').textContent = bridge ? '' : 'Allow the microphone to talk to Knowura, or tap X to type instead.';
+            return;
+        }
         if (view !== 'voice') { stream.getTracks().forEach((t) => t.stop()); return; }
         const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume().catch(() => {});
         const an = ctx.createAnalyser(); an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an);
@@ -414,6 +518,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         c.an.getByteTimeDomainData(c.data);
         let s = 0; for (let i = 0; i < c.data.length; i++) { const v = (c.data[i] - 128) / 128; s += v * v; }
         const rms = Math.sqrt(s / c.data.length), now = performance.now();
+        $('orbWrap').style.setProperty('--lvl', Math.min(1, rms * 6).toFixed(3));
         if (c.state === 'listening') { if (rms > VAD.rms) beginCapture(c); }
         else if (c.state === 'capturing') {
             if (rms > VAD.rms) c.lastLoud = now;
@@ -492,7 +597,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         call = null; c.dead = true; clearInterval(c.timer); clearTimeout(captionTimer);
         try { if (c.rec && c.rec.state !== 'inactive') { c.rec.onstop = null; c.rec.stop(); } } catch (e) { /* ignore */ }
         c.stream.getTracks().forEach((t) => t.stop()); c.ctx.close().catch(() => {});
-        stopSpeaking(); orb('idle'); $('liveTranscript').textContent = '';
+        stopSpeaking(); orb('idle'); $('liveTranscript').textContent = ''; $('orbWrap').style.setProperty('--lvl', 0);
     }
     $('muteBtn').addEventListener('click', () => {
         const c = call; if (!c) { startCall(false); return; }
@@ -586,7 +691,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     // hooks the Android assistant window calls
     window.knowuraShown = (hasMic, resume) => { if (resume) return; /* back from the file picker: stay exactly where we were */ linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true); };
     window.knowuraHidden = () => { endCall(); stopSpeaking(); };
-    window.knowuraNeedMic = () => { status('Microphone needed'); };
+    window.knowuraNeedMic = () => { showMicCard(true); status('Microphone needed'); };
 
     // first paint
     linkReady = refreshLink();

@@ -192,12 +192,44 @@ public class KnowuraSession extends VoiceInteractionSession {
         return getContext().checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
-    private void openExternal(Intent intent) {
+    /** Starts another screen from the panel. Tries the assistant-stack way first, then a plain new task; tells the page if neither works. */
+    private boolean openExternal(Intent intent) {
+        boolean started;
         try {
             startAssistantActivity(intent);
-        } catch (RuntimeException ignored) {
-            // no app can handle it
+            started = true;
+        } catch (RuntimeException first) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+                started = true;
+            } catch (RuntimeException second) {
+                note("Couldn't open that. Try again from the Knowura app.");
+                return false;
+            }
         }
+        return started;
+    }
+
+    /** Shows a short message in the panel (a toast), from any thread. */
+    private void note(final String message) {
+        main.post(() -> {
+            if (web != null) web.evaluateJavascript("window.knowuraNote&&window.knowuraNote(" + org.json.JSONObject.quote(message) + ")", null);
+        });
+    }
+
+    /** Called when the microphone prompt closes: bring the panel back and let the page start listening. */
+    static void permissionDone() {
+        final KnowuraSession s = current.get();
+        if (s == null) return;
+        s.main.post(() -> {
+            s.resuming = false;
+            try {
+                s.show(null, 0);
+            } catch (RuntimeException ignored) {
+                // the panel was closed meanwhile
+            }
+        });
     }
 
     /** Methods the page can call. They arrive on a WebView thread, so everything hops to the main thread. */
@@ -228,24 +260,37 @@ public class KnowuraSession extends VoiceInteractionSession {
             main.post(() -> {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://" + HOST + safe));
                 i.setPackage(getContext().getPackageName());
-                openExternal(i);
-                hide();
+                if (openExternal(i)) hide();
             });
         }
 
         @JavascriptInterface
-        public void copy(final String text) {
-            main.post(() -> {
+        public boolean copy(final String text) {
+            try {
                 ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Knowura", text));
-            });
+                if (cm == null || text == null) return false;
+                cm.setPrimaryClip(ClipData.newPlainText("Knowura", text));
+                return true;
+            } catch (RuntimeException e) {
+                return false;
+            }
         }
 
         @JavascriptInterface
         public void share(final String text) {
             main.post(() -> {
-                Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text);
-                openExternal(Intent.createChooser(send, null));
+                Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text == null ? "" : text);
+                if (openExternal(Intent.createChooser(send, "Share Knowura's answer"))) {
+                    // only the share sheet needs this: the panel's window sits above it, so step aside
+                    // or the sheet opens hidden behind the panel
+                    main.postDelayed(() -> {
+                        try {
+                            hide();
+                        } catch (RuntimeException ignored) {
+                            // already hidden
+                        }
+                    }, 150);
+                }
             });
         }
     }
