@@ -239,6 +239,8 @@
         .legal-line { margin-top: 14px; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
         .legal-line a { color: var(--cyan); }
 
+        html:not(.is-mobile) .wake-mobile-note { display: none; }
+        .wake-mobile-note { margin: 0 0 8px; }
         /* ─── COOKIE NOTICE ─────────────────────────────────────────────── */
         .cookie-banner {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 400;
@@ -1981,6 +1983,7 @@
             </div>
             <div class="settings-section">
                 <div class="settings-label">Wake Word — "Hey Knowura"</div>
+                <div class="choice-hint wake-mobile-note">Desktop browsers only for now. Phones play a system beep every time a browser listens for a wake word, so on a phone just tap the mic or talk during a call.</div>
                 <button class="choice-pill" data-group="wakeWord" data-value="voice" onclick="setWakeWord('voice')">
                     <span class="choice-row"><span class="choice-dot"></span>Voice Mode Only</span>
                     <span class="choice-hint">Default — say it mid-call to grab its attention</span>
