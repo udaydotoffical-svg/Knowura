@@ -126,9 +126,9 @@
             <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
         </div>
         <div id="micCard" class="mic-card" hidden>
-            <b>Knowura needs your microphone</b>
-            <p>Allow it once and you can just talk. Nothing is recorded until you speak.</p>
-            <button type="button" class="btn-ui" id="micAllow"><svg class="icon"><use href="#icon-mic"/></svg> Allow microphone</button>
+            <b id="micTitle">Knowura needs your microphone</b>
+            <p id="micText">Allow it once and you can just talk. Nothing is recorded until you speak.</p>
+            <button type="button" class="btn-ui" id="micAllow"><svg class="icon"><use href="#icon-mic"/></svg> <span id="micBtnText">Allow microphone</span></button>
         </div>
         <div id="liveStatus" class="live-status">Connecting…</div>
         <div id="liveTranscript" class="live-transcript"></div>
@@ -461,16 +461,49 @@ function showAlert(message) { window.__note && window.__note(message); }
         $('orbWrap').classList.toggle('listening', state === 'listening');
     }
     const status = (t) => { $('liveStatus').textContent = t; };
-    function showMicCard(on) { $('micCard').hidden = !on; }
-    $('micAllow').addEventListener('click', () => { if (bridge) { bridge.requestMic(); status('Waiting for you to allow it…'); } else startCall(false); });
+    // mode 'allow' = the permission is missing; 'busy' = it is granted but the microphone couldn't be opened (another app has it)
+    let micMode = 'allow';
+    function showMicCard(on, mode) {
+        micMode = mode || 'allow';
+        $('micCard').hidden = !on;
+        if (!on) return;
+        $('micTitle').textContent = micMode === 'busy' ? 'Couldn\'t open the microphone' : 'Knowura needs your microphone';
+        $('micText').textContent = micMode === 'busy' ? 'Another app may be using it right now. Close it and try again, or tap X to type instead.' : 'Allow it once and you can just talk. Nothing is recorded until you speak.';
+        $('micBtnText').textContent = micMode === 'busy' ? 'Try again' : 'Allow microphone';
+    }
+    $('micAllow').addEventListener('click', () => {
+        if (micMode === 'busy' || !bridge) { showMicCard(false); startCall(false); return; }
+        bridge.requestMic(); status('Waiting for you to allow it…');
+    });
+    // opening the mic fails now and then when another app (or a call that just ended) still holds it; try a few times before giving up
+    async function openMic() {
+        let last;
+        for (let i = 0; i < 4; i++) {
+            try { return await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+            catch (e) { last = e; if (e && e.name === 'NotAllowedError' && i >= 1) break; await new Promise((ok) => setTimeout(ok, 450 * (i + 1))); }
+        }
+        throw last;
+    }
+    let starting = false;
     async function startCall(auto) {
-        if (call) return;
+        if (call || starting) return;
+        starting = true;
+        try { await startCallNow(auto); } finally { starting = false; }
+    }
+    async function startCallNow(auto) {
         if (bridge && !bridge.hasMic()) { showMicCard(true); status('Microphone needed'); $('liveTranscript').textContent = ''; orb('idle'); return; }
         showMicCard(false);
         status('Connecting…'); orb('idle');
         let stream;
-        try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
-        catch (e) { status('Microphone blocked'); showMicCard(!!bridge); $('liveTranscript').textContent = bridge ? '' : 'Allow the microphone to talk to Knowura, or tap X to type instead.'; return; }
+        try { stream = await openMic(); }
+        catch (e) {
+            if (view !== 'voice') return;
+            const denied = e && e.name === 'NotAllowedError';
+            status(denied ? 'Microphone blocked' : 'Microphone busy'); orb('idle');
+            if (bridge) showMicCard(true, denied ? 'allow' : 'busy');
+            $('liveTranscript').textContent = bridge ? '' : 'Allow the microphone to talk to Knowura, or tap X to type instead.';
+            return;
+        }
         if (view !== 'voice') { stream.getTracks().forEach((t) => t.stop()); return; }
         const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume().catch(() => {});
         const an = ctx.createAnalyser(); an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an);
