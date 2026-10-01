@@ -48,13 +48,7 @@
     <meta name="twitter:title" content="Knowura AI: learn anything, your way">
     <meta name="twitter:description" content="An education AI by Uday Singh.">
     <meta name="twitter:image" content="https://knowura.vercel.app/og-image.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Non-render-blocking font load: fetch it as a low-priority background request (media="print"
-         only matches print-preview/actual printing, so no browser applies it on load), then swap it
-         to "all" once it lands. First paint uses the system-font fallback instead of waiting on this. -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap"></noscript>
+    <link rel="stylesheet" href="/assets/fonts/geist-pixel.css">
     <script>
         // Performance tier (full / balanced / lite) is decided before first paint so a weak
         // device never renders the heavy version. Auto = by memory/cores, stepped down by the
@@ -245,6 +239,8 @@
         .legal-line { margin-top: 14px; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
         .legal-line a { color: var(--cyan); }
 
+        html:not(.is-mobile) .wake-mobile-note { display: none; }
+        .wake-mobile-note { margin: 0 0 8px; }
         /* ─── COOKIE NOTICE ─────────────────────────────────────────────── */
         .cookie-banner {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 400;
@@ -1681,7 +1677,7 @@
                 </span>
                 Stay signed in on this device
             </label>
-            <div class="legal-line">By continuing you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/eula" target="_blank" rel="noopener">EULA</a>.</div>
+            <div class="legal-line">By continuing you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/eula" target="_blank" rel="noopener">EULA</a>, and confirm you are 13 or older (under 18 needs a parent or guardian's OK). Knowura is an AI, not a human.</div>
     </div>
     </div>
 
@@ -1987,6 +1983,7 @@
             </div>
             <div class="settings-section">
                 <div class="settings-label">Wake Word — "Hey Knowura"</div>
+                <div class="choice-hint wake-mobile-note">On phones, "Chat &amp; Voice" keeps the mic on while Knowura is open and sends short speech clips for transcription to catch "Hey Knowura". Nothing is kept.</div>
                 <button class="choice-pill" data-group="wakeWord" data-value="voice" onclick="setWakeWord('voice')">
                     <span class="choice-row"><span class="choice-dot"></span>Voice Mode Only</span>
                     <span class="choice-hint">Default — say it mid-call to grab its attention</span>
@@ -2486,9 +2483,12 @@
         if (settings.wakeWord === 'off') return;
         const panelOpen = document.getElementById('livePanel').classList.contains('open');
         // Mobile browsers play the system "listening" beep every time Web Speech starts (and it
-        // restarts constantly), and its mic stream fights the call's getUserMedia/VAD stream.
-        // So the browser recognizer never runs on mobile.
-        if (isMobileUA) return;
+        // restarts constantly), so phones use their own mic-stream listener instead (see below).
+        // During a call the call's own always-on listening does the job, so it stays off then.
+        if (isMobileUA) {
+            if (settings.wakeWord === 'both' && !panelOpen && !document.hidden) startMobileWake();
+            return;
+        }
         if (settings.wakeWord === 'both' || (settings.wakeWord === 'voice' && panelOpen)) {
             startWakeListener();
         }
@@ -2527,6 +2527,7 @@
     }
 
     function stopWakeListener() {
+        stopMobileWake();
         wakeListenerActive = false;
         if (wakeRecognition) {
             wakeRecognition.onend = null;
@@ -2535,6 +2536,88 @@
             wakeRecognition = null;
         }
     }
+
+    // ─── WAKE WORD ON PHONES ────────────────────────────────────────────────
+    // Same silent mic path the call uses (getUserMedia + a volume check, so no system beep): a short burst of
+    // speech is recorded and the server transcribes it just to spot "Hey Knowura". Only runs while the page is
+    // visible, only in "Chat & Voice" mode, and the clip is not kept.
+    const WAKE_RMS = 0.03, WAKE_SILENCE_MS = 600, WAKE_MIN_MS = 350, WAKE_MAX_MS = 3000, WAKE_GAP_MS = 7000;
+    const WAKE_RE = /\b(?:hey|hay|hi|ok|okay)[,.!\s]+(?:k?no+w?u?r+[aeo]h?|nou?r+[aeo]h?|k[ae]nu?r+[aeo]h?|know\s?ra)\b|knowura|nowura/i;
+    let mWake = null;
+
+    function startMobileWake() {
+        if (mWake || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return;
+        const w = mWake = { stream: null, ctx: null, timer: null, rec: null, lastUpload: 0 };
+        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(stream => {
+            if (mWake !== w) { stream.getTracks().forEach(t => t.stop()); return; }
+            w.stream = stream;
+            w.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (w.ctx.state === 'suspended') {
+                const wake = () => { w.ctx?.resume(); document.removeEventListener('pointerdown', wake); };
+                w.ctx.resume().catch(() => {});
+                document.addEventListener('pointerdown', wake, { passive: true });
+            }
+            const analyser = w.ctx.createAnalyser();
+            analyser.fftSize = 512;
+            w.ctx.createMediaStreamSource(stream).connect(analyser);
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            let burstStart = 0, lastLoud = 0;
+            w.timer = setInterval(() => {
+                analyser.getByteTimeDomainData(data);
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+                const rms = Math.sqrt(sum / data.length), now = performance.now();
+                if (!w.rec) {
+                    if (rms > WAKE_RMS && now - w.lastUpload > WAKE_GAP_MS) {
+                        const chunks = [];
+                        const rec = w.rec = new MediaRecorder(stream);
+                        burstStart = lastLoud = now;
+                        rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+                        rec.onstop = () => {
+                            const ms = lastLoud - burstStart;
+                            const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+                            if (ms >= WAKE_MIN_MS && ms < WAKE_MAX_MS - 100 && blob.size >= 3000) { w.lastUpload = performance.now(); checkWakeClip(blob, w); }
+                        };
+                        rec.start();
+                    }
+                } else if (rms > WAKE_RMS) {
+                    lastLoud = now;
+                } else if (now - lastLoud > WAKE_SILENCE_MS || now - burstStart > WAKE_MAX_MS) {
+                    const rec = w.rec; w.rec = null;
+                    try { rec.stop(); } catch (e) { /* already stopped */ }
+                }
+            }, 60);
+        }).catch(() => { if (mWake === w) mWake = null; }); // mic denied: just stay off
+    }
+
+    function stopMobileWake() {
+        const w = mWake;
+        if (!w) return;
+        mWake = null;
+        clearInterval(w.timer);
+        try { if (w.rec && w.rec.state !== 'inactive') { w.rec.onstop = null; w.rec.stop(); } } catch (e) { /* ignore */ }
+        w.stream?.getTracks().forEach(t => t.stop());
+        w.ctx?.close().catch(() => {});
+    }
+
+    async function checkWakeClip(blob, w) {
+        try {
+            const res = await fetch("/.netlify/functions/transcribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ audio: await blobToBase64(blob), mimeType: blob.type, wake: true, ownerToken: ownerToken, token: userToken })
+            });
+            if (res.status === 429) { stopMobileWake(); return; } // hit the wake allowance: stay quiet until the next refresh
+            if (!res.ok || mWake !== w) return;
+            const { text } = await res.json();
+            if (WAKE_RE.test(text || '') && mWake === w) onWakeWordDetected();
+        } catch (e) { /* offline or blip: try again on the next burst */ }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!isMobileUA) return;
+        if (document.hidden) stopMobileWake(); else applyWakeWordSetting();
+    });
 
     function onWakeWordDetected() {
         const panelOpen = document.getElementById('livePanel').classList.contains('open');
@@ -2546,6 +2629,7 @@
             }
             if (callActive) { setLiveStatus('Yes?'); enterListeningState(); }
         } else {
+            stopMobileWake(); // hand the mic over to the call
             openLivePanel();
         }
     }

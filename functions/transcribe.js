@@ -17,11 +17,13 @@ exports.handler = async (event) => {
         if (error) return error;
 
         const ident = whoIs(body, event);
-        const gate = await usageGate(event, ident, 'voice');
+        const isWake = body.wake === true; // short clip checked only for the "Hey Knowura" phrase
+        const gate = await usageGate(event, ident, isWake ? 'wake' : 'voice');
         if (gate.response) return gate.response;
 
         const audio = cleanStr(body.audio, MAX_BODY_BYTES, 16);
         if (audio === null || !/^[A-Za-z0-9+/]+={0,2}$/.test(audio)) return json(400, { error: "No valid audio provided" });
+        if (isWake && audio.length > 400 * 1024) return json(413, { error: "Clip too long" });
         const mimeType = typeof body.mimeType === "string" && AUDIO_TYPES.test(body.mimeType) ? body.mimeType.split(";")[0] : "audio/webm";
 
         const buffer = Buffer.from(audio, "base64");
@@ -31,6 +33,7 @@ exports.handler = async (event) => {
         form.append("file", blob, "voice.webm");
         form.append("model", "whisper-large-v3-turbo");
         form.append("response_format", "json");
+        if (isWake) form.append("prompt", "Hey Knowura."); // spelling hint for the made-up name
 
         const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
             method: "POST",
