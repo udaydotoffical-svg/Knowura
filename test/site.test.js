@@ -228,3 +228,9 @@ test('assistant panel listens through Android (AudioRecord) and falls back to th
     assert.match(panel, /typeof bridge\.micStart === 'function'/);   // old installs without the native mic still use the browser path
     assert.match(panel, /window\.knowuraClip/);
 });
+
+test('assistant panel voice: every stage is visible (clip, transcribe, answer) and failures are shown on screen', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /id="dbg"/); assert.match(panel, /function trace\(/);
+    assert.match(panel, /Didn\\'t catch that/); assert.match(panel, /trace\('transcribe '/);
+});

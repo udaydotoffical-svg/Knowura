@@ -23,7 +23,8 @@ final class NativeMic {
     private static final int FRAME = 320;                 // 20 ms
     private static final int PRE_ROLL_FRAMES = 15;        // keep 300 ms from before the voice started
     private static final long SILENCE_MS = 900, MAX_MS = 20000;
-    private static final int MIN_LOUD_FRAMES = 12;        // about 240 ms of actual speech
+    private static final int MIN_LOUD_FRAMES = 8;         // about 160 ms of actual speech
+    private static final int GAIN = 3;                    // phone microphones are quiet at arm's length
 
     private volatile boolean running;
     private volatile boolean armed;
@@ -100,12 +101,16 @@ final class NativeMic {
         boolean capturing = false;
         long startedAt = 0, lastLoud = 0, lastLevel = 0;
         int loudFrames = 0;
-        double noise = 0.006;
+        double noise = 0.008;
         while (running && r != null) {
             int n = r.read(frame, 0, FRAME);
             if (n <= 0) {
                 if (n < 0) break;   // the device went away
                 continue;
+            }
+            for (int i = 0; i < n; i++) {
+                int boosted = frame[i] * GAIN;
+                frame[i] = (short) Math.max(-32768, Math.min(32767, boosted));
             }
             double sum = 0;
             for (int i = 0; i < n; i++) {
@@ -126,7 +131,7 @@ final class NativeMic {
                 continue;
             }
             // follows the room's background noise so a quiet voice still counts and a loud room doesn't
-            double threshold = Math.max(0.012, noise * 3.0);
+            double threshold = Math.max(0.02, noise * 2.6);
             boolean loud = rms > threshold;
             if (!capturing) {
                 if (!loud) noise = noise * 0.95 + rms * 0.05;

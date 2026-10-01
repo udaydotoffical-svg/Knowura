@@ -56,6 +56,7 @@
         #voiceView .live-close { top: 14px; right: 14px; display: grid; place-items: center; }
         #voiceView .live-close svg { width: 18px; height: 18px; }
         .acct-voice { position: absolute; top: 14px; left: 14px; }
+        .dbg { position: relative; z-index: 1; max-width: 94%; font: 600 11px/1.5 ui-monospace, monospace; color: #6f86b5; text-align: center; min-height: 3.2em; }
         .mic-card {
             position: relative; z-index: 2; display: grid; gap: 10px; justify-items: center; text-align: center; max-width: 92%;
             padding: 14px 16px; border: 2.5px solid var(--cyan); border-radius: 18px; background: #08142f; box-shadow: 0 0 28px -6px rgba(34,229,255,.55);
@@ -132,6 +133,7 @@
         </div>
         <div id="liveStatus" class="live-status">Connecting…</div>
         <div id="liveTranscript" class="live-transcript"></div>
+        <div id="dbg" class="dbg" aria-hidden="true"></div>
         <div class="call-controls">
             <button id="ccBtn" type="button" class="mic-btn cc-btn active" title="Toggle captions">CC</button>
             <button id="muteBtn" type="button" class="mic-btn secondary" title="Mute / unmute microphone"><svg class="icon"><use href="#icon-mic"/></svg></button>
@@ -512,14 +514,21 @@ function showAlert(message) { window.__note && window.__note(message); }
         status('Listening…');
         return true;
     }
-    window.knowuraLevel = (rms) => { if (call && call.native && call.state === 'listening') $('orbWrap').style.setProperty('--lvl', Math.min(1, rms * 8).toFixed(3)); };
+    // a tiny status trail under the orb (what the phone heard and what each step answered), so a stall is visible instead of silent
+    const trail = []; let lastLevelShown = 0;
+    function trace(msg) { trail.push(msg); while (trail.length > 3) trail.shift(); $('dbg').innerHTML = trail.map(escapeHtml).join('<br>'); }
+    window.knowuraLevel = (rms) => {
+        if (!call || !call.native) return;
+        if (call.state === 'listening') $('orbWrap').style.setProperty('--lvl', Math.min(1, rms * 8).toFixed(3));
+        const now = Date.now(); if (now - lastLevelShown > 400) { lastLevelShown = now; $('dbg').dataset.level = rms.toFixed(3); $('dbg').innerHTML = trail.map(escapeHtml).concat(['mic level ' + rms.toFixed(3)]).join('<br>'); }
+    };
     window.knowuraClip = (b64) => {
         const c = call;
         if (!c || !c.native || c.dead || c.muted || c.state !== 'listening') return;
         let blob;
         try { const bin = atob(b64), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); blob = new Blob([bytes], { type: 'audio/wav' }); }
         catch (e) { backToListening(c); return; }
-        c.state = 'processing'; orb('thinking'); status('Thinking…');
+        c.state = 'processing'; orb('thinking'); status('Heard you…'); trace('clip ' + Math.round(blob.size / 1024) + ' KB from Android');
         onCaptured(c, null, blob);
     };
 
@@ -580,20 +589,23 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (blob.size < VAD.minBytes || c.muted) { backToListening(c); return; }
         c.state = 'processing'; status('Thinking…'); orb('thinking');
         try {
+            status('Understanding…');
             const r = await post('transcribe', { audio: await blobToB64(blob), mimeType: blob.type, ownerToken, token: tok() });
             const d = await r.json().catch(() => ({}));
             if (c.dead) return;
+            trace('transcribe ' + r.status + (d.error ? ': ' + String(d.error).slice(0, 70) : ''));
             if (!r.ok) { const e = new Error(d.error || 'Could not transcribe that.'); e.limit = !!d.limitReached; e.audience = d.audience; throw e; }
             const text = (d.text || '').trim();
-            if (!text) { backToListening(c); return; }
+            if (!text) { $('liveTranscript').textContent = 'Didn\'t catch that. Try again.'; trace('transcribe: no words found'); setTimeout(() => { if (!c.dead) $('liveTranscript').textContent = ''; }, 2500); backToListening(c); return; }
+            $('liveTranscript').textContent = '\u201c' + text.slice(0, 120) + '\u201d'; status('Thinking…');
             addBubble(userHTML(text), 'user'); chat.messages.push({ text: userHTML(text), type: 'user' });
             if (chat.messages.length === 1) chat.title = text.slice(0, 40);
-            $('liveTranscript').textContent = '';
             const { reply, study } = await askModel(text, { voice: true });
+            trace('answer ok (' + reply.length + ' chars)');
             finishReply(addBubble('', 'ai'), reply, study);
             if (c.dead) return;
             await speakInCall(c, reply);
-        } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); setTimeout(() => backToListening(c), 1800); return; }
+        } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); $('liveTranscript').textContent = String(e.message || 'Something went wrong.').slice(0, 140); trace('error: ' + String(e.message || e).slice(0, 80)); setTimeout(() => { if (!c.dead) $('liveTranscript').textContent = ''; backToListening(c); }, 4500); return; }
         backToListening(c);
     }
     function backToListening(c) { if (c.dead || call !== c) return; c.state = 'listening'; if (c.native) { try { bridge.micArm(!c.muted); } catch (e) { /* gone */ } } status(c.muted ? 'Muted' : 'Listening…'); orb('listening'); }
