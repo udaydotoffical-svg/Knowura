@@ -208,15 +208,6 @@ public class KnowuraSession extends VoiceInteractionSession {
                 return false;
             }
         }
-        // the panel's window sits above every other screen, so it must step aside or the new screen
-        // (share sheet, file picker, permission prompt) would open hidden behind it
-        main.postDelayed(() -> {
-            try {
-                hide();
-            } catch (RuntimeException ignored) {
-                // already hidden
-            }
-        }, 120);
         return started;
     }
 
@@ -269,7 +260,7 @@ public class KnowuraSession extends VoiceInteractionSession {
             main.post(() -> {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://" + HOST + safe));
                 i.setPackage(getContext().getPackageName());
-                openExternal(i);
+                if (openExternal(i)) hide();
             });
         }
 
@@ -289,7 +280,17 @@ public class KnowuraSession extends VoiceInteractionSession {
         public void share(final String text) {
             main.post(() -> {
                 Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text == null ? "" : text);
-                openExternal(Intent.createChooser(send, "Share Knowura's answer"));
+                if (openExternal(Intent.createChooser(send, "Share Knowura's answer"))) {
+                    // only the share sheet needs this: the panel's window sits above it, so step aside
+                    // or the sheet opens hidden behind the panel
+                    main.postDelayed(() -> {
+                        try {
+                            hide();
+                        } catch (RuntimeException ignored) {
+                            // already hidden
+                        }
+                    }, 150);
+                }
             });
         }
     }
