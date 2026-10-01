@@ -30,7 +30,7 @@ exports.handler = async (event) => {
         const blob = new Blob([buffer], { type: mimeType });
 
         const form = new FormData();
-        form.append("file", blob, "voice.webm");
+        form.append("file", blob, "voice." + ({ "audio/wav": "wav", "audio/x-wav": "wav", "audio/ogg": "ogg", "audio/mp4": "mp4", "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/aac": "aac", "audio/x-m4a": "m4a", "audio/m4a": "m4a" }[mimeType.toLowerCase()] || "webm"));
         form.append("model", "whisper-large-v3-turbo");
         form.append("response_format", "json");
         if (isWake) form.append("prompt", "Hey Knowura."); // spelling hint for the made-up name
