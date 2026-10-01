@@ -229,8 +229,11 @@ test('assistant panel listens through Android (AudioRecord) and falls back to th
     assert.match(panel, /window\.knowuraClip/);
 });
 
-test('assistant panel voice: every stage is visible (clip, transcribe, answer) and failures are shown on screen', () => {
+test('assistant panel voice: failures are shown on screen, the keyboard shrinks the panel, and it animates in and out', () => {
     const panel = pub('assistant.html');
-    assert.match(panel, /id="dbg"/); assert.match(panel, /function trace\(/);
-    assert.match(panel, /Didn\\'t catch that/); assert.match(panel, /trace\('transcribe '/);
+    assert.doesNotMatch(panel, /id="dbg"/);                                   // no debug trail any more
+    assert.match(panel, /Didn\\'t catch that/);
+    assert.match(panel, /--sheetMax/); assert.match(panel, /function fit\(\)/);    // shrinks to the room above the keyboard
+    assert.doesNotMatch(panel, /translateY\(var\(--kb/);                      // and is no longer pushed up the screen
+    assert.match(panel, /function playEnter/); assert.match(panel, /\.stack\.leaving/);
 });
