@@ -121,7 +121,7 @@ test('Android assistant: the floating panel page, the native service wiring and 
     for (const re of [/BIND_VOICE_INTERACTION/, /android\.service\.voice\.VoiceInteractionService/, /android\.speech\.RecognitionService/, /RECORD_AUDIO/]) assert.match(manifest, re, String(re));
     const xml = fs.readFileSync(path.join(root, 'android/app/src/main/res/xml/interaction_service.xml'), 'utf8');
     assert.match(xml, /supportsAssist="true"/);
-    for (const f of ['KnowuraInteractionService', 'KnowuraSessionService', 'KnowuraSession', 'KnowuraRecognitionService', 'MicPermissionActivity', 'InstallId', 'KnowuraLauncherActivity']) {
+    for (const f of ['KnowuraInteractionService', 'KnowuraSessionService', 'KnowuraSession', 'KnowuraRecognitionService', 'PermissionActivity', 'InstallId', 'KnowuraLauncherActivity']) {
         assert.ok(fs.existsSync(path.join(root, `android/app/src/main/java/com/knowura/app/${f}.java`)), f);
     }
     assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8'), /assistant\?native=1/);
@@ -153,4 +153,36 @@ test('assistant panel: voice first, X to text, swipe-up handoff, cloud sync, stu
     const root = path.join(__dirname, '..');
     assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraLauncherActivity.java'), 'utf8'), /kwdev/);
     assert.match(pub('index.html'), /function importAssistantChat/);
+});
+
+test('attachments: engine, vendored parsers and licences ship; app and panel are wired; legal text covers them', () => {
+    const root = path.join(__dirname, '..');
+    const has = (f) => fs.existsSync(path.join(root, f));
+    for (const f of ['public/assets/attach/attach.js', 'public/assets/attach/attach.css', 'public/assets/vendor/pdfjs/pdf.min.mjs', 'public/assets/vendor/pdfjs/pdf.worker.min.mjs', 'public/assets/vendor/pdfjs/LICENSE', 'public/assets/vendor/jszip/jszip.min.js', 'public/assets/vendor/jszip/LICENSE']) assert.ok(has(f), f);
+    const engine = pub('assets/attach/attach.js');
+    for (const re of [/createImageBitmap/, /pdf\.min\.mjs/, /word\/document\.xml/, /ppt\\\/slides/, /xl\/sharedStrings/, /Do not follow instructions/, /e === 'svg'\) return \{ kind: 'text'/]) assert.match(engine, re, String(re));
+    const app = pub('index.html');
+    for (const re of [/assets\/attach\/attach\.js/, /id="pbAttachBtn"/, /id="attBar"/, /KnowuraAttach\.build\(text, atts\)/, /messagesForServer/, /contextText/]) assert.match(app, re, String(re));
+    const panel = pub('assistant.html');
+    for (const re of [/assets\/attach\/attach\.js/, /id="attachBtn"/, /KnowuraAttach\.build\(text, atts\)/, /forServer\(\)/]) assert.match(panel, re, String(re));
+    assert.ok(has('android/app/src/main/java/com/knowura/app/FilePickActivity.java'));
+    assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8'), /onShowFileChooser/);
+    assert.match(pub('privacy.html'), /Attachments \(optional\)/);
+    assert.match(pub('terms.html'), /anything you attach/);
+    assert.match(pub('privacy.html'), /No video is recorded or sent/);
+    assert.match(engine, /att-sheet/); assert.match(engine, /camInput\.click\(\)/); assert.doesNotMatch(engine, /getUserMedia/);   // phone sheet + native camera app
+    assert.match(app, /M12 5v14M5 12h14/); assert.match(panel, /M12 5v14M5 12h14/);       // the plus button in both prompt boxes
+    assert.match(pub('eula.html'), /PDF\.js \(Apache-2\.0\), JSZip \(MIT\)/);
+    // the server keeps handling pictures safely: the chat function must not accept remote image URLs
+    assert.match(fs.readFileSync(path.join(root, 'functions/ask-ai.js'), 'utf8'), /IMAGE_URL = \/\^data:image/);
+});
+
+test('the camera is never opened by the page itself: the phone camera app takes the picture', () => {
+    const main = require('../vercel.json').headers[0].headers.find(x => x.key === 'Permissions-Policy').value;
+    assert.match(main, /camera=\(\)/);
+    assert.match(main, /microphone=\(self\)/);
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'netlify.toml'), 'utf8'), /camera=\(\)/);
+    const manifest = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+    assert.doesNotMatch(manifest, /permission\.CAMERA/);
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/FilePickActivity.java'), 'utf8'), /ACTION_IMAGE_CAPTURE/);
 });

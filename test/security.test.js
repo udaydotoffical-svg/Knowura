@@ -106,7 +106,7 @@ test('message caps per 5-hour window: guest, signed-in user, and owner is exempt
 test('ask-ai handler: rejects bad payloads and enforces the cap before touching the API', async () => {
     limits.setStoreForTests(fakeStore());
     assert.equal((await askAi.handler(ev('not json'))).statusCode, 400);
-    assert.equal((await askAi.handler(ev('x'.repeat(400 * 1024)))).statusCode, 413);
+    assert.equal((await askAi.handler(ev('x'.repeat(4 * 1024 * 1024)))).statusCode, 413);
     assert.equal((await askAi.handler(ev({ messages: 'hi' }))).statusCode, 400);
     assert.equal((await askAi.handler({ httpMethod: 'GET', headers: {} })).statusCode, 405);
 
@@ -331,4 +331,89 @@ test('device link: the app links an install to an account and prefs; the panel g
     assert.equal(r.linked, false);
     // ids that aren't long random strings are refused, and nothing is stored in plain text
     assert.equal((await deviceSession.handler(body({ installId: 'short' }))).statusCode, 400);
+});
+
+
+test('ask-ai attachments: only small data-URL images from users, newest 3 kept, file text allowed, search ignores attached text', () => {
+    const { sanitizeMessages, textOf, isVision, pickVisionModel, needsSearch } = askAi._test;
+    const img = (n = 10) => ({ type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + 'A'.repeat(n) } });
+    // good image parts survive; a missing text part is added
+    let out = sanitizeMessages([{ role: 'user', content: [{ type: 'text', text: 'what is this?' }, img()] }]);
+    assert.equal(out[0].content.length, 2);
+    out = sanitizeMessages([{ role: 'user', content: [img()] }]);
+    assert.equal(out[0].content[0].type, 'text');
+    // anything a model could fetch, odd types, huge images and assistant-supplied parts are dropped
+    const evil = [
+        { type: 'text', text: 'hi' },
+        { type: 'image_url', image_url: { url: 'https://evil.example/x.png' } },
+        { type: 'image_url', image_url: { url: 'data:image/svg+xml;base64,AAAA' } },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,' + 'A'.repeat(1500000) } },
+        { type: 'image_url', image_url: { url: 'file:///etc/passwd' } }
+    ];
+    assert.equal(sanitizeMessages([{ role: 'user', content: evil }])[0].content.length, 1);
+    assert.equal(sanitizeMessages([{ role: 'assistant', content: [img()] }]), null);
+    // at most the newest 3 images are kept across the conversation
+    const many = [1, 2, 3, 4, 5].map(i => ({ role: 'user', content: [{ type: 'text', text: 'q' + i }, img(10 + i)] }));
+    const kept = sanitizeMessages(many);
+    const count = kept.reduce((n, m) => n + (Array.isArray(m.content) ? m.content.filter(p => p.type === 'image_url').length : 0), 0);
+    assert.equal(count, 3);
+    assert.match(textOf(kept[0].content), /left out/);
+    // user turns may carry long file text; assistant turns stay capped
+    assert.equal(sanitizeMessages([{ role: 'user', content: 'x'.repeat(60000) }])[0].content.length, 60000);
+    assert.ok(sanitizeMessages([{ role: 'assistant', content: 'x'.repeat(60000) }])[0].content.length <= 16000);
+    // attached text must not trigger a web search; the question itself still can
+    assert.equal(needsSearch(('summarize this' + '\n\n[Attached file: a.txt]\nthe latest news today').split(/\n\n\[Attached /)[0]), false);
+    // vision routing
+    const avail = [{ id: 'openai/gpt-oss-20b' }, { id: 'meta-llama/llama-4-scout-17b-16e-instruct' }, { id: 'qwen/qwen3.6-27b' }];
+    assert.equal(isVision('openai/gpt-oss-20b'), false);
+    assert.equal(pickVisionModel(avail, 'openai/gpt-oss-20b'), 'qwen/qwen3.6-27b');
+    assert.equal(pickVisionModel(avail, 'meta-llama/llama-4-scout-17b-16e-instruct'), 'meta-llama/llama-4-scout-17b-16e-instruct');
+    assert.equal(pickVisionModel([{ id: 'openai/gpt-oss-20b' }], 'openai/gpt-oss-20b'), null);
+});
+
+test('safety check: Llama Guard blocks unsafe pictures and text, self-harm gets care, failures fail safe', async () => {
+    const safety = require('../functions/_safety');
+    const realFetch = global.fetch;
+    const reply = (text) => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: text } }] }) });
+    const img = { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } };
+    const picMsg = [{ role: 'user', content: [{ type: 'text', text: 'what is this' }, img] }];
+    const txtMsg = [{ role: 'user', content: 'how do plants grow' }];
+    let calls = [];
+    try {
+        // unsafe picture -> blocked, and the picture really was sent to the image-capable guard
+        global.fetch = async (url, o) => { calls.push(JSON.parse(o.body)); return reply('unsafe\nS12'); };
+        let r = await safety.moderate({ messages: picMsg, guards: ['meta-llama/llama-guard-4-12b', 'openai/gpt-oss-safeguard-20b'] });
+        assert.equal(r.blocked, true); assert.equal(r.onPicture, true);
+        assert.equal(calls[0].model, 'meta-llama/llama-guard-4-12b');
+        assert.equal(calls[0].messages[0].content[1].type, 'image_url');
+        // safe picture and safe text pass
+        global.fetch = async () => reply('safe');
+        assert.equal((await safety.moderate({ messages: picMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        // blocked categories vs categories that are only answered with care or not blocked at all
+        global.fetch = async () => reply('unsafe\nS4');
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, true);
+        global.fetch = async () => reply('unsafe\nS11');
+        r = await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] });
+        assert.equal(r.blocked, false); assert.equal(r.care, true);
+        global.fetch = async () => reply('unsafe\nS6');                 // specialized advice: not blocked in a study app
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        // no image-capable guard -> a vision chat model classifies the picture instead (JSON answer)
+        calls = [];
+        global.fetch = async (url, o) => { calls.push(JSON.parse(o.body)); return reply('{"unsafe":true,"categories":["S12"]}'); };
+        r = await safety.moderate({ messages: picMsg, guards: ['openai/gpt-oss-safeguard-20b'], visionChat: 'qwen/qwen3.6-27b' });
+        assert.equal(r.blocked, true); assert.equal(calls[0].model, 'qwen/qwen3.6-27b');
+        // gpt-oss-safeguard for text carries the policy as the system message
+        calls = [];
+        global.fetch = async (url, o) => { calls.push(JSON.parse(o.body)); return reply('{"unsafe":false,"categories":[]}'); };
+        await safety.moderate({ messages: txtMsg, guards: ['openai/gpt-oss-safeguard-20b'] });
+        assert.equal(calls[0].messages[0].role, 'system');
+        // failing safe: text goes through if the guard is down, a picture that can't be checked is refused
+        global.fetch = async () => { throw new Error('network down'); };
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        r = await safety.moderate({ messages: picMsg, guards: ['meta-llama/llama-guard-4-12b'], visionChat: 'qwen/qwen3.6-27b' });
+        assert.equal(r.blocked, true); assert.equal(r.unchecked, true);
+        assert.equal((await safety.moderate({ messages: picMsg, guards: [] })).unchecked, true);
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: [] })).blocked, false);
+    } finally { global.fetch = realFetch; }
 });

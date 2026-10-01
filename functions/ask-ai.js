@@ -1,14 +1,43 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const { getChatModels, DEFAULT_MODEL } = require('./_models');
+const { getChatModels, getGuardModels, DEFAULT_MODEL } = require('./_models');
+const safety = require('./_safety');
 const { json, guard, readJson } = require('./_util');
 const { whoIs, usageGate } = require('./_limits');
 const { STUDY_TOOLS, STUDY_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_study');
 
 const MAX_MESSAGES = 60;
-const MAX_MESSAGE_CHARS = 16000;
-const MAX_TOTAL_CHARS = 120000;
+const MAX_MESSAGE_CHARS = 16000;      // assistant turns
+const MAX_USER_CHARS = 70000;         // a user turn can carry the text of attached files
+const MAX_TOTAL_CHARS = 150000;
 const MAX_MEMORY_FACTS = 100;
 const MAX_MEMORY_CHARS = 4000;
+const MAX_IMAGES = 3;                 // images kept per request (the newest ones)
+const MAX_IMAGE_CHARS = 1400000;      // one data URL, about 1 MB of image
+const MAX_BODY_BYTES = 3.6 * 1024 * 1024; // under Vercel's 4.5 MB request cap
+const IMAGE_URL = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+\/]+={0,2}$/;
+const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+// The plain text of a message, whether its content is a string or a list of parts.
+function textOf(content) {
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) return content.filter(p => p && p.type === "text").map(p => p.text).join("\n");
+    return "";
+}
+
+// Strings stay strings. Only user turns may be a list of parts: text, plus images that must be small
+// base64 data URLs of a known image type (nothing a model could fetch from the network).
+function cleanContent(content, role) {
+    if (typeof content === "string") return content.replace(CONTROL, "").slice(0, role === "user" ? MAX_USER_CHARS : MAX_MESSAGE_CHARS);
+    if (role !== "user" || !Array.isArray(content)) return null;
+    const parts = [];
+    for (const p of content.slice(0, 12)) {
+        if (p && p.type === "text" && typeof p.text === "string") parts.push({ type: "text", text: p.text.replace(CONTROL, "").slice(0, MAX_USER_CHARS) });
+        else if (p && p.type === "image_url" && typeof p.image_url?.url === "string" && p.image_url.url.length <= MAX_IMAGE_CHARS && IMAGE_URL.test(p.image_url.url)) parts.push({ type: "image_url", image_url: { url: p.image_url.url } });
+    }
+    if (!parts.some(p => p.type === "image_url" || p.text)) return null;
+    if (!parts.some(p => p.type === "text")) parts.unshift({ type: "text", text: "(picture attached)" });
+    return parts;
+}
 
 // Only plain user/assistant turns are accepted from the client. A client-supplied
 // "system" (or tool) message would sit next to Knowura's own system prompt and could
@@ -19,12 +48,21 @@ function sanitizeMessages(messages) {
     const clean = [];
     let total = 0;
     for (const m of messages.slice(-MAX_MESSAGES)) {
-        if (!m || (m.role !== "user" && m.role !== "assistant") || typeof m.content !== "string") continue;
-        const content = m.content.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").slice(0, MAX_MESSAGE_CHARS);
-        total += content.length;
+        if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
+        const content = cleanContent(m.content, m.role);
+        if (content === null) continue;
+        total += textOf(content).length;
         clean.push({ role: m.role, content });
     }
-    while (total > MAX_TOTAL_CHARS && clean.length > 1) total -= clean.shift().content.length;
+    while (total > MAX_TOTAL_CHARS && clean.length > 1) total -= textOf(clean.shift().content).length;
+    // keep only the newest MAX_IMAGES images; older ones are replaced by a note
+    let seen = 0;
+    for (let i = clean.length - 1; i >= 0; i--) {
+        const c = clean[i].content;
+        if (!Array.isArray(c)) continue;
+        const kept = c.filter(p => p.type !== "image_url" || ++seen <= MAX_IMAGES);
+        if (kept.length !== c.length) clean[i].content = kept.some(p => p.type === "image_url") ? kept : textOf(kept) + "\n[an earlier picture was left out]";
+    }
     return clean.length ? clean : null;
 }
 
@@ -36,6 +74,32 @@ function sanitizeMemory(memory) {
             ? memory.facts.filter(f => typeof f === "string").slice(0, MAX_MEMORY_FACTS).map(f => f.slice(0, 300))
             : []
     };
+}
+
+// Models that accept images (the Qwen 27B family, Llama 4, and anything that says vision / VL).
+const VISION_RE = /qwen\/qwen3\.\d+-27b|llama-4-(?:scout|maverick)|vision|[-_]vl\b|pixtral|gemma-3/i;
+const isVision = (id) => VISION_RE.test(String(id || ""));
+function pickVisionModel(available, preferred) {
+    if (isVision(preferred) && available.some(m => m.id === preferred)) return preferred;
+    for (const re of [/qwen/i, /scout/i, /maverick/i]) {
+        const m = available.find(x => isVision(x.id) && re.test(x.id));
+        if (m) return m.id;
+    }
+    return available.find(x => isVision(x.id))?.id || null;
+}
+
+// Safety check (Llama Guard and friends) on the person's latest message and pictures. Never throws:
+// text that couldn't be checked goes through, a picture that couldn't be checked does not.
+async function runSafety(messages) {
+    const t = safety.target(messages);
+    const withPictures = !!(t && t.images.length);   // only the picture(s) just sent are checked; older ones were checked when sent
+    try {
+        const [guards, chat] = await Promise.all([getGuardModels(), getChatModels()]);
+        return await safety.moderate({ messages, guards, visionChat: withPictures ? pickVisionModel(chat, DEFAULT_MODEL) : null });
+    } catch (e) {
+        console.warn("safety: could not start the check:", e.message);
+        return withPictures ? { blocked: true, unchecked: true, onPicture: true } : { blocked: false };
+    }
 }
 
 async function webSearch(query) {
@@ -91,7 +155,10 @@ function buildMessages(systemPrompt, memoryNote, messages, searchBlock) {
     return [
         { role: "system", content: systemPrompt },
         ...(memoryNote ? [{ role: "user", content: memoryNote }] : []),
-        ...messages.map((m, i) => (searchBlock && i === messages.length - 1 && m.role === "user") ? { ...m, content: m.content + searchBlock } : m)
+        ...messages.map((m, i) => {
+            if (!(searchBlock && i === messages.length - 1 && m.role === "user")) return m;
+            return { ...m, content: Array.isArray(m.content) ? [...m.content, { type: "text", text: searchBlock }] : m.content + searchBlock };
+        })
     ];
 }
 
@@ -99,7 +166,7 @@ exports.handler = async (event, context) => {
     const early = guard(event);
     if (early) return early;
     try {
-        const { body, error } = readJson(event, 300 * 1024, { allowEmpty: false });
+        const { body, error } = readJson(event, MAX_BODY_BYTES, { allowEmpty: false });
         if (error) return error;
 
         // Strict field validation — anything unexpected is dropped, not passed along.
@@ -117,8 +184,12 @@ exports.handler = async (event, context) => {
         const ident = whoIs(body, event);
         const isOwner = ident.owner;
         const isUltra = !isAux && body.ultraThink === true;
-        const gate = await usageGate(event, ident, isAux ? "aux" : "chat", isUltra ? 3 : 1);
+        const hasImages = messages.some(m => Array.isArray(m.content) && m.content.some(p => p.type === "image_url"));
+        const gate = await usageGate(event, ident, isAux ? "aux" : "chat", (isUltra ? 3 : 1) + (hasImages ? 1 : 0));
         if (gate.response) return gate.response;
+
+        // Safety check on what was just sent. Skipped for the verified owner and the app's background helper calls.
+        const modPromise = (!isAux && !isOwner && process.env.SAFETY_GUARD !== "off") ? runSafety(messages) : Promise.resolve(null);
 
         // Saved memory notes come from the client, so they go in as an ordinary user turn (never in
         // the system prompt) — they can inform the answer but carry no more authority than the user's own words.
@@ -127,19 +198,26 @@ exports.handler = async (event, context) => {
         if (memory?.facts?.length) memoryNote += `${memoryNote ? "\n" : ""}About me: ${memory.facts.join("; ")}`;
 
         // Check the latest user message for search-worthy content
-        const lastUserMsg = [...messages].reverse().find(m => m.role === "user")?.content || "";
+        const lastUserFull = textOf([...messages].reverse().find(m => m.role === "user")?.content);
+        // only what the person typed decides whether to search, never the text of an attached file
+        const lastUserMsg = lastUserFull.split(/\n\n\[Attached /)[0];
         let searchBlock = "";
         if (!isAux && needsSearch(lastUserMsg)) {
             // A bare follow-up like "search it" / "look that up" has no topic of its own —
             // fold in the previous user message so the search query means something.
             const userTurns = messages.filter(m => m.role === "user");
             const query = lastUserMsg.trim().length < 25 && userTurns.length > 1
-                ? `${userTurns[userTurns.length - 2].content.slice(0, 200)} ${lastUserMsg}`.trim()
+                ? `${textOf(userTurns[userTurns.length - 2].content).split(/\n\n\[Attached /)[0].slice(0, 200)} ${lastUserMsg}`.trim()
                 : lastUserMsg;
             const results = await webSearch(query.slice(0, 380));
             searchBlock = results
                 ? `\n\n[Web results, use them and name the source:]\n${results}`
                 : `\n\n[A web search found nothing useful, so answer from what you know and say it may be out of date.]`;
+        }
+
+        const mod = await modPromise;
+        if (mod && mod.blocked) {
+            return json(422, { error: mod.unchecked ? safety.UNCHECKED_MESSAGE : mod.onPicture ? safety.BLOCK_PICTURE_MESSAGE : safety.BLOCK_MESSAGE, blocked: true });
         }
 
         // Kept deliberately short and plain: this model tends to echo whatever it's given in its visible
@@ -151,7 +229,7 @@ exports.handler = async (event, context) => {
         const ultraPrompt = `\n\nTake your time: break the problem into parts, check your own logic, then give a well-justified answer.`;
 
         const offerStudy = !isAux && wantsStudyTools(messages);
-        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (isUltra ? ultraPrompt : "");
+        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
 
         // The picker sends a real Groq model id (from the live /models list). Only
         // ids Groq currently offers for chat are accepted; anything else — including
@@ -160,6 +238,13 @@ exports.handler = async (event, context) => {
         let chosen = available.find(m => m.id === model)?.id;
         if (!chosen && model === "qwen") chosen = available.find(m => /qwen/i.test(m.id))?.id;
         chosen = chosen || (available.some(m => m.id === DEFAULT_MODEL) ? DEFAULT_MODEL : available[0].id);
+
+        // Pictures need a model that can see: keep the chosen one if it can, else use the best one available.
+        if (hasImages) {
+            const seeing = pickVisionModel(available, chosen);
+            if (!seeing) return json(400, { error: "None of the available models can read pictures right now. Try again later, or send the question without the picture." });
+            chosen = seeing;
+        }
 
         // Ultra Think: gpt-oss-20b steps up to 120b; gpt-oss models get high
         // reasoning effort; Qwen toggles its native reasoning on/off; every other
@@ -245,4 +330,4 @@ exports.handler = async (event, context) => {
     }
 };
 
-exports._test = { sanitizeMessages, sanitizeMemory, needsSearch, wantsStudyTools, sanitizeStudy, buildMessages };
+exports._test = { sanitizeMessages, sanitizeMemory, needsSearch, wantsStudyTools, sanitizeStudy, buildMessages, textOf, isVision, pickVisionModel };

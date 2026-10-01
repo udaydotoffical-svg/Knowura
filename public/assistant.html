@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/assets/fonts/geist-pixel.css">
     <!-- the real app UI (colours, bubbles, prompt bar, voice orb, quiz/flashcards), generated from index.html -->
     <link rel="stylesheet" href="/assets/ui/app-ui.css">
+    <link rel="stylesheet" href="/assets/attach/attach.css">
     <style>
         html, body { height: 100%; background: transparent; color: var(--text); overflow: hidden; -webkit-tap-highlight-color: transparent; }
         /* in a normal browser tab (no phone screen behind it) give the page its own backdrop */
@@ -115,8 +116,10 @@
             <div id="promptGlow" class="aura-glow prompt-glow" style="--aura-radius:22px; --aura-spread:22px;">
                 <div class="pb-inner">
                     <div class="pb-field" id="pbField">
+                        <div id="attBar" class="att-bar" hidden aria-label="Attachments"></div>
                         <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt" enterkeyhint="send"></textarea>
                         <div class="pb-bar">
+                            <button type="button" id="attachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
                             <span class="pb-spacer"></span>
                             <button type="button" id="sendBtn" class="pb-send mic-mode" title="Talk to Knowura live" aria-label="Talk to Knowura live">
                                 <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path id="pbGlyphPath" d="M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z"/></svg>
@@ -154,6 +157,7 @@ function haptic(kind) { try { navigator.vibrate && navigator.vibrate(kind === 'e
 function showAlert(message) { window.__note && window.__note(message); }
 </script>
 <script src="/assets/ui/app-ui.js"></script>
+<script src="/assets/attach/attach.js"></script>
 <script>
 (function () {
     'use strict';
@@ -237,7 +241,12 @@ function showAlert(message) { window.__note && window.__note(message); }
             chat = saved; msgs = [];
             $('chat-box').innerHTML = '';
             addBubble(GREETING, 'ai', { greet: true });
-            for (const m of chat.messages) { addBubble(safeHtml(m.text), m.type === 'user' ? 'user' : 'ai'); msgs.push({ role: m.type === 'user' ? 'user' : 'assistant', content: toText(m.text) }); }
+            for (const m of chat.messages) {
+                addBubble(safeHtml(m.text), m.type === 'user' ? 'user' : 'ai');
+                let content = toText(m.text);
+                if (m.type === 'user' && /att-row/.test(m.text)) { const d = document.createElement('div'); d.innerHTML = safeHtml(m.text); content = KnowuraAttach.contextText(d); }
+                msgs.push({ role: m.type === 'user' ? 'user' : 'assistant', content });
+            }
         } else newChat();
     }
 
@@ -264,20 +273,30 @@ function showAlert(message) { window.__note && window.__note(message); }
     }
 
     // ── asking the model (shared by text and voice) ──
-    async function askModel(text, { voice = false } = {}) {
+    async function askModel(text, { voice = false, content } = {}) {
         await Promise.race([linkReady, new Promise((ok) => setTimeout(ok, 3000))]); // pick up the app's sign-in + model first
-        msgs.push({ role: 'user', content: text });
+        msgs.push({ role: 'user', content: content || text });
         if (msgs.length > 10) msgs.shift();
         ctrl = new AbortController();
         try {
-            const res = await post('ask-ai', { messages: msgs, memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel }, { signal: ctrl.signal });
+            const res = await post('ask-ai', { messages: forServer(), memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel }, { signal: ctrl.signal });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; throw e; }
+            if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; e.blocked = !!data.blocked; e.unchecked = !!data.unchecked; throw e; }
             let reply = String(data.choices[0].message && data.choices[0].message.content || '');
             reply = reply.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i, '').trim() || 'I came back empty. Could you ask that again?';
             msgs.push({ role: 'assistant', content: reply });
             return { reply, study: data.study || null };
         } catch (e) { msgs.pop(); throw e; } finally { ctrl = null; }
+    }
+    // only the newest 3 pictures go to the server; older ones become a note
+    function forServer() {
+        let seen = 0; const out = msgs.slice();
+        for (let i = out.length - 1; i >= 0; i--) {
+            const c = out[i].content; if (!Array.isArray(c)) continue;
+            const kept = c.filter((p) => p.type !== 'image_url' || ++seen <= 3);
+            if (kept.length !== c.length) out[i] = { ...out[i], content: kept.some((p) => p.type === 'image_url') ? kept : kept.map((p) => p.text || '').join('\n') + '\n[an earlier picture was left out]' };
+        }
+        return out;
     }
     function showError(e) {
         if (e.name === 'AbortError') return;
@@ -292,17 +311,25 @@ function showAlert(message) { window.__note && window.__note(message); }
     // ── text turn ──
     async function sendText() {
         const el = $('userInput'), text = el.value.trim();
-        if (!text || busy) return;
+        const atts = attachCtl ? attachCtl.ready() : [];
+        if ((!text && !atts.length) || busy) return;
+        if (attachCtl && attachCtl.busy()) { KnowuraAttach.toast('Still reading your files, one moment...'); return; }
         stopSpeaking();
-        el.value = ''; autosize(); busy = true; setSend();
-        addBubble(userHTML(text), 'user');
-        chat.messages.push({ text: userHTML(text), type: 'user' });
-        if (chat.messages.length === 1) chat.title = text.slice(0, 40);
+        const html = (atts.length ? KnowuraAttach.bubbleHTML(atts) : '') + userHTML(text);
+        el.value = ''; if (attachCtl) attachCtl.take(); autosize(); busy = true; setSend();
+        addBubble(html, 'user');
+        chat.messages.push({ text: html, type: 'user' });
+        if (chat.messages.length === 1) chat.title = (text || (atts[0] && atts[0].name) || 'Assistant chat').slice(0, 40);
         const think = addBubble('<span class="typing"><span class="dots"><i></i><i></i><i></i></span> Thinking</span>', 'ai');
         try {
-            const { reply, study } = await askModel(text);
+            const { reply, study } = await askModel(text, { content: atts.length ? KnowuraAttach.build(text, atts).content : undefined });
             finishReply(think, reply, study);
-        } catch (e) { think.remove(); chat.messages.pop(); showError(e); }
+        } catch (e) {
+            think.remove(); chat.messages.pop();
+            if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } // a refused message is not kept
+            if (attachCtl && (!e.blocked || e.unchecked)) attachCtl.restore(atts);
+            showError(e);
+        }
         finally { busy = false; setSend(); }
     }
     function finishReply(bubble, reply, study) {
@@ -332,7 +359,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     const ARROW = 'M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z', SQUARE = 'M12 6L18 6L18 12L18 18L6 18L6 12L6 6Z';
     function autosize() { const el = $('userInput'); el.style.height = '0px'; const max = 22 * 5; el.style.height = Math.min(el.scrollHeight, max) + 'px'; el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden'; }
     function setSend() {
-        const btn = $('sendBtn'), has = $('userInput').value.trim().length > 0;
+        const btn = $('sendBtn'), has = $('userInput').value.trim().length > 0 || !!(attachCtl && attachCtl.count() > 0);
         btn.classList.toggle('mic-mode', !has && !busy);
         $('pbGlyphPath').setAttribute('d', busy ? SQUARE : ARROW);
         const label = busy ? 'Stop generating' : has ? 'Send message' : 'Talk to Knowura live';
@@ -343,8 +370,21 @@ function showAlert(message) { window.__note && window.__note(message); }
     $('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); } });
     $('sendBtn').addEventListener('click', () => {
         if (busy) { if (ctrl) ctrl.abort(); return; }
-        if ($('userInput').value.trim()) sendText(); else { showVoice(); startCall(false); }
+        if ($('userInput').value.trim() || (attachCtl && attachCtl.count() > 0)) sendText(); else { showVoice(); startCall(false); }
     });
+
+    // ── attachments (same engine as the app) ──
+    let attachCtl = null;
+    async function transcribeFile(file) {
+        const r = await post('transcribe', { audio: await blobToB64(file), mimeType: file.type || 'audio/mpeg', ownerToken, token: tok() });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw Object.assign(new Error(d.error || 'Couldn\'t transcribe that audio.'), { friendly: true });
+        return d.text || '';
+    }
+    attachCtl = KnowuraAttach.mount({
+        input: $('userInput'), drop: $('textView'), bar: $('attBar'), transcribe: transcribeFile, onChange: () => setSend()
+    });
+    $('attachBtn').addEventListener('click', () => { if ($('textView').hidden) { $('textView').hidden = false; $('minBtn').hidden = false; } attachCtl.pick(); });
 
     // ── voice mode: the app's hands-free call loop (listen → transcribe → answer → speak) ──
     function orb(state) {
@@ -407,7 +447,7 @@ function showAlert(message) { window.__note && window.__note(message); }
             finishReply(addBubble('', 'ai'), reply, study);
             if (c.dead) return;
             await speakInCall(c, reply);
-        } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); setTimeout(() => backToListening(c), 1800); return; }
+        } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); setTimeout(() => backToListening(c), 1800); return; }
         backToListening(c);
     }
     function backToListening(c) { if (c.dead || call !== c) return; c.state = 'listening'; status(c.muted ? 'Muted' : 'Listening…'); orb('listening'); }
@@ -544,7 +584,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     }
 
     // hooks the Android assistant window calls
-    window.knowuraShown = (hasMic) => { linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true); };
+    window.knowuraShown = (hasMic, resume) => { if (resume) return; /* back from the file picker: stay exactly where we were */ linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true); };
     window.knowuraHidden = () => { endCall(); stopSpeaking(); };
     window.knowuraNeedMic = () => { status('Microphone needed'); };
 

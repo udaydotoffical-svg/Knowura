@@ -1,0 +1,55 @@
+/* Attachment chips, drop overlay and notices. Uses the app's colour tokens. */
+.att-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+.att-img img { display: block; width: 76px; height: 76px; object-fit: cover; border-radius: 10px; border: 2.5px solid var(--ink); box-shadow: var(--shadow-sm); }
+.att-chip {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 6px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    border: 2.5px solid var(--ink); border-radius: 10px; background: rgba(34, 229, 255, 0.12); box-shadow: var(--shadow-sm); font-size: 12.5px; font-weight: 700;
+}
+.att-chip small, .att-name small { color: var(--text-dim); font-weight: 600; }
+
+.att-bar { display: flex; gap: 10px; overflow-x: auto; padding: 10px 10px 4px; -webkit-overflow-scrolling: touch; }
+.att-bar[hidden] { display: none; }
+.att-pend {
+    position: relative; flex: none; display: flex; align-items: center; gap: 8px; max-width: 230px; padding: 6px 12px 6px 6px;
+    border: 2.5px solid var(--ink); border-radius: 12px; background: var(--panel-strong); box-shadow: var(--shadow-sm);
+}
+.att-pend img { width: 46px; height: 46px; object-fit: cover; border-radius: 8px; }
+.att-ico { width: 46px; height: 46px; display: grid; place-items: center; font-size: 22px; border-radius: 8px; background: rgba(255, 255, 255, 0.07); }
+.att-name { display: flex; flex-direction: column; min-width: 0; font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-name small { font-size: 11px; }
+.att-x {
+    position: absolute; top: -9px; right: -9px; width: 24px; height: 24px; padding: 0; border: 2px solid var(--ink); border-radius: 50%;
+    background: var(--owner); color: #fff; font-size: 16px; line-height: 1; cursor: pointer;
+}
+.att-spin { width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.2); border-top-color: var(--cyan); animation: attSpin 0.8s linear infinite; }
+@keyframes attSpin { to { transform: rotate(360deg); } }
+
+.att-dragging::after {
+    content: 'Drop files to attach'; position: fixed; inset: 12px; z-index: 300; display: grid; place-items: center; pointer-events: none;
+    background: rgba(5, 7, 15, 0.85); border: 3px dashed var(--cyan); border-radius: 18px; color: var(--cyan); font-size: 18px; font-weight: 800;
+}
+.att-toast {
+    position: fixed; left: 50%; bottom: 120px; z-index: 400; max-width: min(92vw, 460px); padding: 12px 16px; transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
+    border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(60, 10, 24, 0.97); color: #ffd6de; font-size: 13.5px; font-weight: 700; box-shadow: var(--shadow-md);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.att-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.pb-attach { flex: none; }
+
+/* phone sheet: Photos / Camera / Files */
+.att-sheet { position: fixed; inset: 0; z-index: 500; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.55); }
+.att-sheet-card {
+    width: 100%; max-width: 560px; padding: 10px 14px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 10px;
+    background: rgba(10, 18, 40, 0.98); border: 3px solid var(--ink); border-bottom: 0; border-radius: 26px 26px 0 0; box-shadow: var(--shadow-lg); animation: attUp 0.18s ease-out;
+}
+@keyframes attUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.att-sheet-grab { width: 48px; height: 5px; margin: 2px auto 4px; border-radius: 99px; background: rgba(143, 166, 204, 0.5); }
+.att-sheet-card button {
+    display: grid; grid-template-columns: 52px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left; padding: 12px 14px; cursor: pointer;
+    border: 2.5px solid var(--ink); border-radius: 14px; background: var(--panel-strong); color: var(--text); font-size: 16px; font-weight: 800; box-shadow: var(--shadow-sm);
+}
+.att-sheet-card button span { grid-row: 1 / 3; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: linear-gradient(135deg, var(--cyan), var(--blue)); color: #001018; }
+.att-sheet-card button span svg { width: 26px; height: 26px; }
+.att-sheet-card button small { color: var(--text-dim); font-size: 12.5px; font-weight: 600; }
+.att-sheet-card button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.att-sheet-card .att-sheet-cancel { display: block; text-align: center; font-size: 15px; color: var(--text-dim); }

@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -24,6 +25,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
 /**
  * The floating assistant panel. It shows https://knowura.vercel.app/assistant (Knowura's own UI) in a
@@ -33,10 +37,14 @@ public class KnowuraSession extends VoiceInteractionSession {
     private static final String HOST = "knowura.vercel.app";
     private static final String ASSISTANT_URL = "https://" + HOST + "/assistant?native=1";
 
+    private static WeakReference<KnowuraSession> current = new WeakReference<>(null);
+    private static ValueCallback<Uri[]> pendingFiles;
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private WebView web;
     private boolean pageFailed;
     private boolean showing;
+    private boolean resuming;
 
     public KnowuraSession(Context context) {
         super(context);
@@ -89,14 +97,34 @@ public class KnowuraSession extends VoiceInteractionSession {
         });
         web.setWebChromeClient(new WebChromeClient() {
             @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (pendingFiles != null) pendingFiles.onReceiveValue(null);
+                pendingFiles = callback;
+                Intent pick = new Intent(getContext(), FilePickActivity.class);
+                pick.putExtra("multiple", params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+                String[] types = params.getAcceptTypes();
+                boolean imagesOnly = types != null && types.length > 0;
+                if (types != null) for (String t : types) if (t == null || !t.startsWith("image/")) imagesOnly = false;
+                pick.putExtra("images", imagesOnly);
+                pick.putExtra("capture", params.isCaptureEnabled());   // <input capture>: open the phone's camera app
+                openExternal(pick);
+                return true;
+            }
+
+            @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                boolean wantsMic = false;
-                for (String r : request.getResources()) if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) wantsMic = true;
-                if (wantsMic && hasMic() && HOST.equals(request.getOrigin().getHost())) {
-                    request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-                } else {
+                ArrayList<String> allowed = new ArrayList<>();
+                boolean missing = false;
+                for (String r : request.getResources()) {
+                    if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) {
+                        if (hasMic()) allowed.add(r); else missing = true;
+                    }
+                }
+                if (allowed.isEmpty() || !HOST.equals(request.getOrigin().getHost())) {
                     request.deny();
-                    web.evaluateJavascript("window.knowuraNeedMic&&window.knowuraNeedMic()", null);
+                    if (missing) web.evaluateJavascript("window.knowuraNeedMic&&window.knowuraNeedMic()", null);
+                } else {
+                    request.grant(allowed.toArray(new String[0]));
                 }
             }
         });
@@ -110,6 +138,7 @@ public class KnowuraSession extends VoiceInteractionSession {
     public void onShow(Bundle args, int showFlags) {
         super.onShow(args, showFlags);
         showing = true;
+        current = new WeakReference<>(this);
         if (web == null) return;
         if (pageFailed) {
             pageFailed = false;
@@ -120,7 +149,26 @@ public class KnowuraSession extends VoiceInteractionSession {
     }
 
     private void callShown() {
-        if (web != null) web.evaluateJavascript("window.knowuraShown&&window.knowuraShown(" + hasMic() + ")", null);
+        boolean again = resuming;
+        resuming = false;
+        if (web != null) web.evaluateJavascript("window.knowuraShown&&window.knowuraShown(" + hasMic() + "," + again + ")", null);
+    }
+
+    /** Result of the file picker: hand the files to the page and bring the panel back (as it was, not reset). */
+    static void deliverFiles(Uri[] uris) {
+        ValueCallback<Uri[]> cb = pendingFiles;
+        pendingFiles = null;
+        if (cb != null) cb.onReceiveValue(uris);
+        final KnowuraSession s = current.get();
+        if (s == null) return;
+        s.main.post(() -> {
+            s.resuming = true;
+            try {
+                s.show(null, 0);
+            } catch (RuntimeException ignored) {
+                s.resuming = false;
+            }
+        });
     }
 
     @Override
@@ -166,7 +214,7 @@ public class KnowuraSession extends VoiceInteractionSession {
 
         @JavascriptInterface
         public void requestMic() {
-            main.post(() -> openExternal(new Intent(getContext(), MicPermissionActivity.class)));
+            main.post(() -> openExternal(new Intent(getContext(), PermissionActivity.class).putExtra("perm", "mic")));
         }
 
         @JavascriptInterface
