@@ -106,10 +106,9 @@ public class KnowuraSession extends VoiceInteractionSession {
                 boolean imagesOnly = types != null && types.length > 0;
                 if (types != null) for (String t : types) if (t == null || !t.startsWith("image/")) imagesOnly = false;
                 pick.putExtra("images", imagesOnly);
-                final boolean camera = params.isCaptureEnabled();
-                pick.putExtra("capture", camera);   // <input capture>: open the phone's camera app
-                if (openExternal(pick) && camera) {
-                    // the panel's window sits above the camera app, so step aside; deliverFiles() brings it back with the picture
+                pick.putExtra("capture", params.isCaptureEnabled());   // <input capture>: open the phone's camera app
+                if (openExternal(pick)) {
+                    // the panel's window sits above the camera app, gallery and file manager, so step aside; deliverFiles() brings it back (with the files, or as it was if cancelled)
                     main.postDelayed(() -> {
                         try {
                             hide();
