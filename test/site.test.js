@@ -95,3 +95,62 @@ test('Android wrapper: the APK package, site host and Digital Asset Links file a
     assert.match(fs.readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8'), /applicationId 'com\.knowura\.app'/);
     assert.ok(fs.existsSync(path.join(root, 'android/gradlew')));
 });
+
+test('the site is installable as an app: manifest id, a no-cache service worker, and an Install app button', () => {
+    const m = JSON.parse(pub('site.webmanifest'));
+    assert.equal(m.id, '/');
+    assert.equal(m.display, 'standalone');
+    assert.match(pub('sw.js'), /addEventListener\('fetch'/);
+    assert.doesNotMatch(pub('sw.js'), /caches\./); // never caches, so nothing can go stale
+    const h = pub('index.html');
+    assert.match(h, /id="installSection" hidden/);
+    assert.match(h, /addEventListener\('beforeinstallprompt'/);
+    assert.match(h, /serviceWorker\.register\('\/sw\.js'\)/);
+    assert.ok(require('../vercel.json').headers.some(r => r.source === '/sw.js'));
+});
+
+test('Android assistant: the floating panel page, the native service wiring and the legal text all exist', () => {
+    const root = path.join(__dirname, '..');
+    const page = pub('assistant.html');
+    assert.match(page, /Knowura isn\\?'t human\. It can make mistakes, so double check it\./);
+    assert.match(page, /id="minBtn"/);
+    assert.match(page, /window\.knowuraShown/);
+    assert.match(page, /\.netlify\/functions\//);
+    assert.match(page, /post\('ask-ai'/);
+    const manifest = fs.readFileSync(path.join(root, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+    for (const re of [/BIND_VOICE_INTERACTION/, /android\.service\.voice\.VoiceInteractionService/, /android\.speech\.RecognitionService/, /RECORD_AUDIO/]) assert.match(manifest, re, String(re));
+    const xml = fs.readFileSync(path.join(root, 'android/app/src/main/res/xml/interaction_service.xml'), 'utf8');
+    assert.match(xml, /supportsAssist="true"/);
+    for (const f of ['KnowuraInteractionService', 'KnowuraSessionService', 'KnowuraSession', 'KnowuraRecognitionService', 'MicPermissionActivity', 'InstallId', 'KnowuraLauncherActivity']) {
+        assert.ok(fs.existsSync(path.join(root, `android/app/src/main/java/com/knowura/app/${f}.java`)), f);
+    }
+    assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8'), /assistant\?native=1/);
+    assert.match(pub('privacy.html'), /does <strong>not<\/strong> read your screen/);
+    assert.match(pub('index.html'), /voiceLaunchPending/);
+    assert.match(fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8'), /for = "\/assistant"/);
+});
+
+test('the assistant panel reuses the real app UI: generated files match index.html and cover the key components', () => {
+    const generated = require('../scripts/build-shared-ui').build();
+    for (const [name, text] of Object.entries(generated)) {
+        assert.equal(fs.readFileSync(path.join(__dirname, '..', 'public/assets/ui', name), 'utf8'), text, `${name} is stale: run node scripts/build-shared-ui.js`);
+    }
+    for (const sel of ['.prompt-bar', '.pb-send', '.msg {', '.live-panel', '.orb-gif', '.study-overlay', '.fc-inner', '.btn-ui']) assert.ok(generated['app-ui.css'].includes(sel), sel);
+    for (const fn of ['function openStudy', 'function renderQuizQ', 'function renderCard']) assert.ok(generated['app-ui.js'].includes(fn), fn);
+    assert.match(generated['app-ui.js'], /icon-mic/);
+});
+
+test('assistant panel: voice first, X to text, swipe-up handoff, cloud sync, study tools and native sign-in are all wired', () => {
+    const page = pub('assistant.html');
+    assert.match(page, /id="voiceView" class="live-panel open"/);       // opens in voice mode
+    assert.match(page, /\$\('voiceX'\)\.addEventListener\('click', \(\) => showText/); // the cross goes to text chat
+    assert.match(page, /#kwimport=/);                                    // swipe-up handoff
+    assert.match(page, /pointerup/);
+    assert.match(page, /chat-save/); assert.match(page, /chat-load/);   // cloud sync
+    assert.match(page, /studyChipHTML/); assert.match(page, /openStudy/); // quizzes + flashcards
+    assert.match(page, /device-session/);                                  // signs in via the app's link
+    assert.doesNotMatch(page, /knowuraSignedIn/);
+    const root = path.join(__dirname, '..');
+    assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraLauncherActivity.java'), 'utf8'), /kwdev/);
+    assert.match(pub('index.html'), /function importAssistantChat/);
+});

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Knowura Assistant</title>
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#05070f">
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/fonts/geist-pixel.css">
+    <!-- the real app UI (colours, bubbles, prompt bar, voice orb, quiz/flashcards), generated from index.html -->
+    <link rel="stylesheet" href="/assets/ui/app-ui.css">
+    <style>
+        html, body { height: 100%; background: transparent; color: var(--text); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+        /* in a normal browser tab (no phone screen behind it) give the page its own backdrop */
+        body:not(.native) { background: radial-gradient(120% 90% at 50% 0%, #0f2a80 0%, #05070f 60%); }
+        [hidden] { display: none !important; }
+
+        .scrim { position: fixed; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.6) 100%); }
+        .stack {
+            position: fixed; left: 0; right: 0; bottom: 0; max-width: 640px; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 10px; transform: translateY(var(--kb, 0px));
+            padding: 12px 12px calc(14px + env(safe-area-inset-bottom));
+        }
+        .chip {
+            align-self: flex-end; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer;
+            border: 2.5px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text);
+            font-size: 14px; font-weight: 700; box-shadow: var(--shadow-sm); backdrop-filter: none;
+            background: rgba(16, 30, 62, 0.95);
+        }
+        .chip svg { width: 16px; height: 16px; }
+        .chip:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+        /* ── voice mode: the app's live-voice card, sized as a bottom panel ── */
+        #voiceView.live-panel {
+            position: relative; inset: auto; z-index: 1; height: min(68vh, 560px); padding: 16px;
+            border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg); backdrop-filter: none;
+            background: linear-gradient(180deg, rgba(3,6,16,0.86), rgba(3,6,16,0.95)), url('/assets/images/background.jpg') center / cover no-repeat;
+        }
+        #voiceView .orb-gif { width: min(54vw, 30vh, 250px); height: min(54vw, 30vh, 250px); }
+        #voiceView .call-controls { gap: 16px; }
+        #voiceView .live-transcript { max-width: 92%; max-height: 4.5em; overflow: hidden; }
+        #voiceView .live-close { top: 14px; right: 14px; display: grid; place-items: center; }
+        #voiceView .live-close svg { width: 18px; height: 18px; }
+        .acct-voice { position: absolute; top: 14px; left: 14px; }
+
+        /* ── text chat: a sheet holding the app's own message bubbles ── */
+        .sheet {
+            background: rgba(10, 18, 40, 0.95); border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg);
+            display: flex; flex-direction: column; max-height: 60vh; overflow: hidden; touch-action: pan-y;
+        }
+        .sheet-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 10px 0; flex: none; }
+        .sheet-head .left { justify-self: start; } .sheet-head .right { justify-self: end; }
+        .grab-zone { padding: 10px 28px 12px; cursor: grab; touch-action: none; }
+        .grab { width: 54px; height: 6px; border-radius: 99px; background: rgba(143,166,204,0.55); }
+        .sheet .btn-ui { padding: 6px 10px; font-size: 11px; }
+        .sheet .btn-ui svg { width: 16px; height: 16px; }
+        .acct-img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink); object-fit: cover; }
+        #chat-box { flex: 1; min-height: 0; padding: 6px 14px 12px; gap: 12px; padding-top: 6px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .msg { font-size: 15px; }
+        .greet small { display: block; margin-top: 8px; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+        .msg.err { color: #ff8da1; }
+        .msg-actions { display: flex; gap: 4px; margin: -4px 0 0 34px; }
+        .msg-actions button { width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text-dim); border-radius: 12px; cursor: pointer; }
+        .msg-actions button svg { width: 20px; height: 20px; }
+        .msg-actions button:active, .msg-actions button.on { background: rgba(34,229,255,0.16); color: var(--cyan); }
+        .cta { margin-top: 10px; }
+
+        .input-area { padding: 0; background: none; }
+        .acct-pop {
+            position: absolute; right: 8px; top: 52px; z-index: 5; min-width: 200px; padding: 12px; border: 2.5px solid var(--ink);
+            border-radius: 14px; background: rgba(16,30,62,0.98); box-shadow: var(--shadow-md); display: grid; gap: 8px; font-size: 13px;
+        }
+        .acct-pop b { display: block; } .acct-pop span { color: var(--text-dim); word-break: break-all; }
+        @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; } }
+    </style>
+</head>
+<body>
+<div class="scrim" id="scrim"></div>
+
+<div class="stack" id="stack">
+    <button type="button" class="chip" id="minBtn" hidden><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg> Minimize</button>
+
+    <!-- VOICE MODE (opens first) -->
+    <section id="voiceView" class="live-panel open" aria-label="Voice mode">
+        <button type="button" class="live-close" id="voiceX" title="Switch to text chat" aria-label="Switch to text chat"><svg class="icon"><use href="#icon-x"/></svg></button>
+        <button type="button" class="btn-ui acct-voice" id="acctVoice" hidden></button>
+        <div id="orbWrap" class="orb-wrap">
+            <div class="ring ring1"></div>
+            <div class="ring ring2"></div>
+            <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
+        </div>
+        <div id="liveStatus" class="live-status">Connecting…</div>
+        <div id="liveTranscript" class="live-transcript"></div>
+        <div class="call-controls">
+            <button id="ccBtn" type="button" class="mic-btn cc-btn active" title="Toggle captions">CC</button>
+            <button id="muteBtn" type="button" class="mic-btn secondary" title="Mute / unmute microphone"><svg class="icon"><use href="#icon-mic"/></svg></button>
+            <button id="endCallBtn" type="button" class="mic-btn end-call" title="End call"><svg class="icon"><use href="#icon-phone"/></svg></button>
+        </div>
+    </section>
+
+    <!-- TEXT CHAT -->
+    <section id="textView" class="sheet" hidden aria-label="Text chat">
+        <div class="sheet-head">
+            <div class="left"><button type="button" class="btn-ui" id="newBtn" title="New chat" aria-label="New chat"><svg class="icon"><use href="#icon-edit"/></svg></button></div>
+            <div class="grab-zone" id="grab" title="Swipe up to open in the app" aria-label="Swipe up to open in the app"><div class="grab"></div></div>
+            <div class="right"><button type="button" class="btn-ui" id="acctBtn">Sign in</button></div>
+        </div>
+        <div id="acctPop" class="acct-pop" hidden></div>
+        <div id="chat-box" role="log" aria-live="polite" aria-label="Conversation"></div>
+    </section>
+
+    <div class="input-area" id="inputArea" hidden>
+        <div class="prompt-bar" id="promptBar">
+            <div id="promptGlow" class="aura-glow prompt-glow" style="--aura-radius:22px; --aura-spread:22px;">
+                <div class="pb-inner">
+                    <div class="pb-field" id="pbField">
+                        <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt" enterkeyhint="send"></textarea>
+                        <div class="pb-bar">
+                            <span class="pb-spacer"></span>
+                            <button type="button" id="sendBtn" class="pb-send mic-mode" title="Talk to Knowura live" aria-label="Talk to Knowura live">
+                                <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path id="pbGlyphPath" d="M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z"/></svg>
+                                <svg class="icon pb-mic" aria-hidden="true"><use href="#icon-mic"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- quiz + flashcard pop-up: same markup as the app -->
+<div id="studyOverlay" class="study-overlay" role="dialog" aria-modal="true" aria-labelledby="studyTitle" onclick="if (event.target === this) closeStudy()">
+    <div class="study-card">
+        <div class="study-top">
+            <div>
+                <div id="studyKind" class="study-kind">Quiz</div>
+                <div id="studyTitle" class="study-title"></div>
+            </div>
+            <button type="button" class="study-x" onclick="closeStudy()" aria-label="Close" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
+        </div>
+        <div class="study-progress" aria-hidden="true"><i id="studyBar"></i></div>
+        <div id="studyBody" class="study-body" aria-live="polite"></div>
+    </div>
+</div>
+
+<script src="/assets/vendor/marked/marked.umd.js"></script>
+<script src="/assets/vendor/dompurify/purify.min.js"></script>
+<script>
+// helpers the shared study module expects from its host page (same names as in the app)
+function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+function haptic(kind) { try { navigator.vibrate && navigator.vibrate(kind === 'error' ? [20, 40, 20] : 12); } catch (e) { /* not supported */ } }
+function showAlert(message) { window.__note && window.__note(message); }
+</script>
+<script src="/assets/ui/app-ui.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const native = /KnowuraAssistant/.test(navigator.userAgent) || location.search.includes('native=1');
+    const bridge = native && window.KnowuraNative ? window.KnowuraNative : null;
+    if (native) document.body.classList.add('native');
+
+    // ── identity: the same stored sign-in the app uses (shared in a browser; the phone panel has its own) ──
+    const load = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+    const store = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { /* storage blocked */ } };
+    let session = load('knowura_session') || {};
+    const settings = load('knowura_settings') || {};
+    let ownerToken; try { ownerToken = localStorage.getItem('knowura_owner_token') || undefined; } catch (e) { /* storage blocked */ }
+    const tok = () => session.sessionToken || undefined;
+    const signedIn = () => !!(session.sessionToken && session.sub);
+
+    const ORB = { idle: '/assets/images/bloub-cercle-neutre-bleu.gif', listening: '/assets/images/bloub-cercle-attentif-bleu.gif', thinking: '/assets/images/bloub-normal-thinking.gif', speaking: '/assets/images/bloub-cercle-attentif-bleu.gif' };
+    const ORB_INTRO = '/assets/images/bloub-circle-starting-ai.gif';
+    const VAD = { rms: 0.025, silenceMs: 900, maxMs: 20000, minBytes: 3000 };
+    const GREETING = '<p>Hello! How can I help you today?</p><small>Knowura isn\'t human. It can make mistakes, so double check it.</small>';
+
+    let view = 'voice', msgs = [], chat = null, busy = false, ctrl = null, call = null, captionsOn = true, speakingAudio = null, lastReplyText = '';
+    window.__note = (m) => addBubble('<p>' + escapeHtml(String(m)) + '</p>', 'ai', { err: true });
+
+    // ── small utils ──
+    const post = (fn, body, opts = {}) => fetch('/.netlify/functions/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), ...opts });
+    const blobToB64 = (b) => new Promise((ok, no) => { const r = new FileReader(); r.onloadend = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(b); });
+    const toText = (html) => new DOMParser().parseFromString(String(html || ''), 'text/html').body.textContent || '';
+    const userHTML = (t) => escapeHtml(t).replace(/\n/g, '<br>');
+    function renderMd(md) {
+        const html = window.DOMPurify && window.marked ? DOMPurify.sanitize(marked.parse(md)) : '<p>' + escapeHtml(md) + '</p>';
+        return html.replace(/<table>/g, '<div class="table-scroll"><table>').replace(/<\/table>/g, '</table></div>');
+    }
+    if (window.DOMPurify) DOMPurify.addHook('afterSanitizeAttributes', (n) => { if (n.tagName === 'A') { n.setAttribute('target', '_blank'); n.setAttribute('rel', 'noopener noreferrer'); } });
+    const safeHtml = (h) => window.DOMPurify ? DOMPurify.sanitize(String(h || ''), { ADD_TAGS: ['use'], ADD_ATTR: ['data-study', 'href'] }) : escapeHtml(toText(h));
+
+    // ── views ──
+    function showVoice() {
+        view = 'voice';
+        $('voiceView').classList.add('open'); $('textView').hidden = true; $('inputArea').hidden = true; $('minBtn').hidden = true;
+    }
+    function showText(focus) {
+        endCall();
+        view = 'text';
+        $('voiceView').classList.remove('open'); $('textView').hidden = false; $('inputArea').hidden = false; $('minBtn').hidden = false;
+        scrollChat();
+        requestAnimationFrame(autosize); // it was sized while hidden (0px), so re-measure now it's visible
+        if (focus) $('userInput').focus();
+    }
+    function closePanel() { endCall(); stopSpeaking(); if (bridge) bridge.hide(); else history.length > 1 ? history.back() : window.close(); }
+    function scrollChat() { const c = $('chat-box'); c.scrollTop = c.scrollHeight; }
+
+    // ── chat model (same shape the app saves: HTML messages) ──
+    function newChat() {
+        stopSpeaking(); if (ctrl) ctrl.abort();
+        msgs = []; busy = false; lastReplyText = '';
+        const now = Date.now();
+        chat = { id: 'a' + now.toString(36) + Math.random().toString(36).slice(2, 7), title: 'Assistant chat', createdAt: now, updatedAt: now, messages: [] };
+        $('chat-box').innerHTML = '';
+        addBubble(GREETING, 'ai', { greet: true });
+        setSend();
+    }
+    function addBubble(html, type, o = {}) {
+        const d = document.createElement('div');
+        d.className = 'msg ' + type + (o.err ? ' err' : '') + (o.greet ? ' greet' : '');
+        d.innerHTML = html;
+        $('chat-box').appendChild(d);
+        scrollChat();
+        return d;
+    }
+    function persist() {
+        if (!chat || !chat.messages.length) return;
+        chat.updatedAt = Date.now();
+        store('knowura_assistant_chat', chat);
+        scheduleCloud();
+    }
+    function restore() {
+        const saved = load('knowura_assistant_chat');
+        if (saved && Array.isArray(saved.messages) && saved.messages.length && Date.now() - (saved.updatedAt || 0) < 10 * 60 * 1000) {
+            chat = saved; msgs = [];
+            $('chat-box').innerHTML = '';
+            addBubble(GREETING, 'ai', { greet: true });
+            for (const m of chat.messages) { addBubble(safeHtml(m.text), m.type === 'user' ? 'user' : 'ai'); msgs.push({ role: m.type === 'user' ? 'user' : 'assistant', content: toText(m.text) }); }
+        } else newChat();
+    }
+
+    // ── cloud sync (signed in): same document the app reads, only ever written after a successful read ──
+    let cloudTimer = null, cloudBusy = null;
+    function scheduleCloud() { if (!signedIn()) return; clearTimeout(cloudTimer); cloudTimer = setTimeout(() => { cloudBusy = cloudUpsert().catch(() => {}); }, 1200); }
+    async function cloudUpsert() {
+        if (!signedIn() || !chat || !chat.messages.length) return;
+        const r = await post('chat-load', { token: tok() });
+        if (!r.ok) return; // a read blip must never lead to an overwrite
+        const loaded = await r.json();
+        let doc = loaded.found && loaded.doc ? loaded.doc : { version: 1, profile: { sub: session.sub, given_name: session.user, email: session.email, picture: session.picture }, chats: [], activeChatId: null, memory: { summary: '', facts: [] } };
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const mine = { id: chat.id, title: chat.title, createdAt: chat.createdAt, updatedAt: chat.updatedAt, messages: chat.messages };
+            const i = doc.chats.findIndex((c) => c.id === mine.id);
+            if (i >= 0) doc.chats[i] = mine; else doc.chats.unshift(mine);
+            const s = await post('chat-save', { token: tok(), doc, baseUpdatedAt: doc.updatedAt || 0 });
+            if (s.ok) return;
+            if (s.status !== 409) return;
+            const c = await s.json().catch(() => null);
+            if (!c || !c.doc) return;
+            doc = c.doc;
+        }
+    }
+
+    // ── asking the model (shared by text and voice) ──
+    async function askModel(text, { voice = false } = {}) {
+        await Promise.race([linkReady, new Promise((ok) => setTimeout(ok, 3000))]); // pick up the app's sign-in + model first
+        msgs.push({ role: 'user', content: text });
+        if (msgs.length > 10) msgs.shift();
+        ctrl = new AbortController();
+        try {
+            const res = await post('ask-ai', { messages: msgs, memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel }, { signal: ctrl.signal });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; throw e; }
+            let reply = String(data.choices[0].message && data.choices[0].message.content || '');
+            reply = reply.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i, '').trim() || 'I came back empty. Could you ask that again?';
+            msgs.push({ role: 'assistant', content: reply });
+            return { reply, study: data.study || null };
+        } catch (e) { msgs.pop(); throw e; } finally { ctrl = null; }
+    }
+    function showError(e) {
+        if (e.name === 'AbortError') return;
+        const b = addBubble('<p>' + escapeHtml(e.message || 'Something went wrong.') + '</p>', 'ai', { err: true });
+        if (e.limit && e.audience === 'guest' && !signedIn()) addSignInCta(b);
+    }
+    function addSignInCta(bubble) {
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-ui cta'; btn.textContent = 'Sign in on the Knowura app';
+        btn.onclick = signIn; bubble.appendChild(btn);
+    }
+
+    // ── text turn ──
+    async function sendText() {
+        const el = $('userInput'), text = el.value.trim();
+        if (!text || busy) return;
+        stopSpeaking();
+        el.value = ''; autosize(); busy = true; setSend();
+        addBubble(userHTML(text), 'user');
+        chat.messages.push({ text: userHTML(text), type: 'user' });
+        if (chat.messages.length === 1) chat.title = text.slice(0, 40);
+        const think = addBubble('<span class="typing"><span class="dots"><i></i><i></i><i></i></span> Thinking</span>', 'ai');
+        try {
+            const { reply, study } = await askModel(text);
+            finishReply(think, reply, study);
+        } catch (e) { think.remove(); chat.messages.pop(); showError(e); }
+        finally { busy = false; setSend(); }
+    }
+    function finishReply(bubble, reply, study) {
+        lastReplyText = reply;
+        let html = renderMd(reply);
+        if (study) html += studyChipHTML(study);
+        bubble.innerHTML = html;
+        chat.messages.push({ text: html, type: 'ai' });
+        addReplyActions(bubble);
+        persist(); scrollChat();
+        if (study) setTimeout(() => openStudy(study), 900);
+    }
+    function addReplyActions(bubble) {
+        $('chat-box').querySelectorAll('.msg-actions').forEach((n) => n.remove());
+        const row = document.createElement('div'); row.className = 'msg-actions';
+        const mk = (label, svg, fn) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', label); b.title = label; b.innerHTML = svg; b.onclick = () => fn(b); return b; };
+        const S = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+        row.append(
+            mk('Copy', S('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'), (b) => { if (bridge) bridge.copy(lastReplyText); else navigator.clipboard && navigator.clipboard.writeText(lastReplyText).catch(() => {}); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 1200); }),
+            mk('Share', S('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2"/>'), () => { if (bridge) bridge.share(lastReplyText); else if (navigator.share) navigator.share({ text: lastReplyText }).catch(() => {}); }),
+            mk('Read aloud', S('<path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'), (b) => { if (speakingAudio) { stopSpeaking(); b.classList.remove('on'); } else { b.classList.add('on'); speak(lastReplyText).finally(() => b.classList.remove('on')); } })
+        );
+        bubble.after(row); scrollChat();
+    }
+
+    // ── prompt box behaviour (same morphing send/mic button as the app) ──
+    const ARROW = 'M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z', SQUARE = 'M12 6L18 6L18 12L18 18L6 18L6 12L6 6Z';
+    function autosize() { const el = $('userInput'); el.style.height = '0px'; const max = 22 * 5; el.style.height = Math.min(el.scrollHeight, max) + 'px'; el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden'; }
+    function setSend() {
+        const btn = $('sendBtn'), has = $('userInput').value.trim().length > 0;
+        btn.classList.toggle('mic-mode', !has && !busy);
+        $('pbGlyphPath').setAttribute('d', busy ? SQUARE : ARROW);
+        const label = busy ? 'Stop generating' : has ? 'Send message' : 'Talk to Knowura live';
+        btn.title = label; btn.setAttribute('aria-label', label);
+        autosize();
+    }
+    $('userInput').addEventListener('input', setSend);
+    $('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); } });
+    $('sendBtn').addEventListener('click', () => {
+        if (busy) { if (ctrl) ctrl.abort(); return; }
+        if ($('userInput').value.trim()) sendText(); else { showVoice(); startCall(false); }
+    });
+
+    // ── voice mode: the app's hands-free call loop (listen → transcribe → answer → speak) ──
+    function orb(state) {
+        const o = $('liveOrb'); const src = ORB[state] || ORB.idle;
+        if (!o.src.endsWith(src)) o.src = src;
+        $('orbWrap').classList.toggle('listening', state === 'listening');
+    }
+    const status = (t) => { $('liveStatus').textContent = t; };
+    async function startCall(auto) {
+        if (call) return;
+        if (bridge && !bridge.hasMic()) { status('Microphone needed'); if (!auto || !load('knowura_mic_asked')) { store('knowura_mic_asked', '1'); bridge.requestMic(); } $('liveTranscript').textContent = 'Allow the microphone on the screen that opens, then open Knowura again.'; orb('idle'); return; }
+        status('Connecting…'); orb('idle');
+        let stream;
+        try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+        catch (e) { status('Microphone blocked'); $('liveTranscript').textContent = 'Allow the microphone to talk to Knowura, or tap X to type instead.'; return; }
+        if (view !== 'voice') { stream.getTracks().forEach((t) => t.stop()); return; }
+        const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume().catch(() => {});
+        const an = ctx.createAnalyser(); an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an);
+        const c = call = { stream, ctx, an, data: new Uint8Array(an.frequencyBinCount), state: 'listening', muted: false, rec: null, chunks: [], lastLoud: 0, t0: 0, dead: false };
+        $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>'; $('muteBtn').classList.remove('muted');
+        $('orbWrap').querySelector('img').src = ORB_INTRO; setTimeout(() => { if (call === c && c.state === 'listening') orb('listening'); }, 1400);
+        status('Listening…');
+        c.timer = setInterval(() => tick(c), 50);
+    }
+    function tick(c) {
+        if (c.dead || c.muted || c.state === 'processing' || c.state === 'speaking') return;
+        c.an.getByteTimeDomainData(c.data);
+        let s = 0; for (let i = 0; i < c.data.length; i++) { const v = (c.data[i] - 128) / 128; s += v * v; }
+        const rms = Math.sqrt(s / c.data.length), now = performance.now();
+        if (c.state === 'listening') { if (rms > VAD.rms) beginCapture(c); }
+        else if (c.state === 'capturing') {
+            if (rms > VAD.rms) c.lastLoud = now;
+            if (now - c.lastLoud > VAD.silenceMs || now - c.t0 > VAD.maxMs) endCapture(c);
+        }
+    }
+    function beginCapture(c) {
+        c.chunks = []; c.t0 = c.lastLoud = performance.now(); c.state = 'capturing'; orb('listening');
+        const rec = c.rec = new MediaRecorder(c.stream);
+        rec.ondataavailable = (e) => { if (e.data.size) c.chunks.push(e.data); };
+        rec.onstop = () => onCaptured(c, rec);
+        rec.start();
+    }
+    function endCapture(c) { try { c.rec.stop(); } catch (e) { /* already stopped */ } }
+    async function onCaptured(c, rec) {
+        if (c.dead) return;
+        const blob = new Blob(c.chunks, { type: rec.mimeType || 'audio/webm' });
+        if (blob.size < VAD.minBytes || c.muted) { backToListening(c); return; }
+        c.state = 'processing'; status('Thinking…'); orb('thinking');
+        try {
+            const r = await post('transcribe', { audio: await blobToB64(blob), mimeType: blob.type, ownerToken, token: tok() });
+            const d = await r.json().catch(() => ({}));
+            if (c.dead) return;
+            if (!r.ok) { const e = new Error(d.error || 'Could not transcribe that.'); e.limit = !!d.limitReached; e.audience = d.audience; throw e; }
+            const text = (d.text || '').trim();
+            if (!text) { backToListening(c); return; }
+            addBubble(userHTML(text), 'user'); chat.messages.push({ text: userHTML(text), type: 'user' });
+            if (chat.messages.length === 1) chat.title = text.slice(0, 40);
+            $('liveTranscript').textContent = '';
+            const { reply, study } = await askModel(text, { voice: true });
+            finishReply(addBubble('', 'ai'), reply, study);
+            if (c.dead) return;
+            await speakInCall(c, reply);
+        } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); setTimeout(() => backToListening(c), 1800); return; }
+        backToListening(c);
+    }
+    function backToListening(c) { if (c.dead || call !== c) return; c.state = 'listening'; status(c.muted ? 'Muted' : 'Listening…'); orb('listening'); }
+
+    // ── speech out (also used by "read aloud") ──
+    function stopSpeaking() { if (speakingAudio) { try { speakingAudio.pause(); } catch (e) { /* gone */ } speakingAudio = null; } $('orbWrap').querySelector('img').style.transform = ''; }
+    async function speak(text) {
+        try {
+            const res = await post('speak', { text, ownerToken, token: tok() });
+            const d = await res.json().catch(() => ({}));
+            if (!d.audio) throw new Error(d.error || 'No audio returned.');
+            const audio = speakingAudio = new Audio('data:' + (d.mimeType || 'audio/wav') + ';base64,' + d.audio);
+            await new Promise((ok) => { audio.onended = ok; audio.onerror = ok; audio.play().catch(ok); });
+            return audio;
+        } catch (e) { return null; } finally { speakingAudio = null; }
+    }
+    async function speakInCall(c, text) {
+        c.state = 'speaking'; status('Generating voice…'); orb('thinking');
+        const clean = text.replace(/[*_`#>]/g, '').trim();
+        const res = await post('speak', { text: clean, ownerToken, token: tok() }).catch(() => null);
+        const d = res ? await res.json().catch(() => ({})) : {};
+        if (c.dead) return;
+        if (!d.audio) { $('liveTranscript').textContent = clean.slice(0, 160); status('Showing text'); orb('idle'); await new Promise((ok) => setTimeout(ok, 1800)); return; }
+        const audio = speakingAudio = new Audio('data:' + (d.mimeType || 'audio/wav') + ';base64,' + d.audio);
+        status('Speaking…'); orb('speaking');
+        if (captionsOn) playCaptions(clean, audio);
+        await new Promise((ok) => { audio.onended = ok; audio.onerror = ok; audio.play().catch(ok); });
+        speakingAudio = null; clearTimeout(captionTimer); $('liveTranscript').textContent = '';
+    }
+    let captionTimer = null;
+    function playCaptions(text, audio) {
+        clearTimeout(captionTimer);
+        const lines = text.split(/(?<=[.!?])\s+/).filter(Boolean), el = $('liveTranscript');
+        if (!lines.length) return;
+        const words = (s) => s.split(/\s+/).length, total = lines.reduce((n, l) => n + words(l), 0) || 1;
+        const ms = () => audio.duration && isFinite(audio.duration) ? audio.duration * 1000 : (total / 2.5) * 1000;
+        const show = (i) => { if (i >= lines.length) return; el.textContent = lines[i]; captionTimer = setTimeout(() => show(i + 1), Math.max(900, words(lines[i]) / total * ms())); };
+        show(0);
+    }
+    function endCall() {
+        const c = call; if (!c) return;
+        call = null; c.dead = true; clearInterval(c.timer); clearTimeout(captionTimer);
+        try { if (c.rec && c.rec.state !== 'inactive') { c.rec.onstop = null; c.rec.stop(); } } catch (e) { /* ignore */ }
+        c.stream.getTracks().forEach((t) => t.stop()); c.ctx.close().catch(() => {});
+        stopSpeaking(); orb('idle'); $('liveTranscript').textContent = '';
+    }
+    $('muteBtn').addEventListener('click', () => {
+        const c = call; if (!c) { startCall(false); return; }
+        c.muted = !c.muted; c.stream.getAudioTracks().forEach((t) => { t.enabled = !c.muted; });
+        $('muteBtn').classList.toggle('muted', c.muted);
+        $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-' + (c.muted ? 'mic-off' : 'mic') + '"/></svg>';
+        if (c.muted && c.state === 'capturing') endCapture(c);
+        status(c.muted ? 'Muted' : c.state === 'listening' ? 'Listening…' : $('liveStatus').textContent);
+    });
+    $('ccBtn').addEventListener('click', () => { captionsOn = !captionsOn; $('ccBtn').classList.toggle('active', captionsOn); if (!captionsOn) $('liveTranscript').textContent = ''; });
+    $('endCallBtn').addEventListener('click', closePanel);
+    $('voiceX').addEventListener('click', () => showText(false)); // the cross: leave voice, stay in the assistant as a text chat
+
+    // ── sign in: done once in the Knowura app; this panel picks it up from the server by install id ──
+    const installId = bridge && bridge.installId ? bridge.installId() : '';
+    let prefs = { assistantModel: '' };
+    async function refreshLink() {
+        if (!installId) return;
+        try {
+            const r = await post('device-session', { installId });
+            if (!r.ok) return;
+            const d = await r.json();
+            prefs = d.prefs || prefs;
+            if (d.linked && d.token) {
+                session = { user: d.profile.given_name, savedAt: Date.now(), sub: d.profile.sub, email: d.profile.email, picture: d.profile.picture, sessionToken: d.token };
+                store('knowura_session', session);
+            } else { session = {}; store('knowura_session', null); } // signed out in the app -> signed out here
+            renderAcct();
+        } catch (e) { /* offline: keep what we have */ }
+    }
+    let linkReady = Promise.resolve();
+    function signIn() {
+        showText(false);
+        const b = addBubble('<p>Sign in on the Knowura app and it shows up here automatically, with your chats.</p>', 'ai');
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-ui cta'; btn.textContent = 'Open Knowura'; btn.onclick = () => openApp('/'); b.appendChild(btn);
+    }
+    function renderAcct() {
+        const label = signedIn() ? (session.picture ? '<img class="acct-img" alt="" src="' + escapeHtml(session.picture) + '" referrerpolicy="no-referrer"> ' : '') + escapeHtml((session.user || 'Account').slice(0, 10)) : 'Sign in';
+        for (const b of [$('acctBtn'), $('acctVoice')]) { b.innerHTML = label; b.hidden = false; }
+        $('acctPop').hidden = true;
+    }
+    function acctClick() {
+        if (!signedIn()) { signIn(); return; }
+        const p = $('acctPop');
+        if (!p.hidden) { p.hidden = true; return; }
+        p.innerHTML = '<div><b>' + escapeHtml(session.user || 'Signed in') + '</b><span>' + escapeHtml(session.email || '') + '</span></div><span>' + (bridge ? 'Signed in through the Knowura app. Sign out there to sign out here.' : 'Chats here sync to your Knowura account.') + '</span>' + (bridge ? '' : '<button type="button" class="btn-ui" id="signOutBtn">Sign out</button>');
+        p.hidden = false;
+        if ($('signOutBtn')) $('signOutBtn').onclick = () => { session = {}; store('knowura_session', null); store('knowura_owner_token', null); ownerToken = undefined; renderAcct(); };
+    }
+    $('acctBtn').addEventListener('click', acctClick);
+    $('acctVoice').addEventListener('click', () => { if (!signedIn()) { signIn(); } else { showText(false); acctClick(); } });
+
+    // ── handing the chat over to the full app ──
+    function exportChat() {
+        if (!chat || !chat.messages.length) return '';
+        let list = chat.messages.slice();
+        const enc = () => { const j = JSON.stringify({ id: chat.id, title: chat.title, createdAt: chat.createdAt, updatedAt: chat.updatedAt, messages: list }); return btoa(unescape(encodeURIComponent(j))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+        let out = enc();
+        while (out.length > 120000 && list.length > 2) { list = list.slice(2); out = enc(); }
+        return out;
+    }
+    async function openAppWithChat() {
+        stopSpeaking(); endCall();
+        persist();
+        if (signedIn()) { try { await Promise.race([cloudUpsert(), new Promise((ok) => setTimeout(ok, 2500))]); } catch (e) { /* the hash below carries the chat anyway */ } }
+        const data = exportChat();
+        openApp('/' + (data ? '#kwimport=' + data : ''));
+    }
+    function openApp(path) { if (bridge) bridge.openApp(path); else location.assign(path); }
+
+    // swiping the handle up opens the app with this chat; swiping down minimizes the sheet
+    (function () {
+        const grab = $('grab'), sheet = $('textView'); let y0 = null, dy = 0;
+        grab.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; try { grab.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } });
+        grab.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = e.clientY - y0; sheet.style.transform = 'translateY(' + Math.max(-70, Math.min(dy, 90)) + 'px)'; });
+        const end = () => { if (y0 == null) return; const d = dy; y0 = null; sheet.style.transform = ''; if (d < -55) openAppWithChat(); else if (d > 70) minimize(); };
+        grab.addEventListener('pointerup', end); grab.addEventListener('pointercancel', end);
+    })();
+    function minimize() { stopSpeaking(); $('textView').hidden = true; $('minBtn').hidden = true; }
+    $('minBtn').addEventListener('click', minimize);
+    $('newBtn').addEventListener('click', () => { newChat(); $('userInput').focus(); });
+    $('scrim').addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('studyOverlay').classList.contains('open')) closePanel(); });
+    $('userInput').addEventListener('focus', () => { if ($('textView').hidden) { $('textView').hidden = false; $('minBtn').hidden = false; } });
+
+    if (window.visualViewport) {
+        const fit = () => { const v = window.visualViewport; $('stack').style.setProperty('--kb', -Math.max(0, window.innerHeight - v.height - v.offsetTop) + 'px'); };
+        visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit);
+    }
+
+    // hooks the Android assistant window calls
+    window.knowuraShown = (hasMic) => { linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true); };
+    window.knowuraHidden = () => { endCall(); stopSpeaking(); };
+    window.knowuraNeedMic = () => { status('Microphone needed'); };
+
+    // first paint
+    linkReady = refreshLink();
+    restore(); renderAcct(); orb('idle');
+    if (!bridge) startCall(true); // in a normal browser tab, begin listening right away
+    window.__kw = { showText, showVoice, openAppWithChat, exportChat, get chat() { return chat; } }; // for tests
+})();
+</script>
+</body>
+</html>

@@ -32,5 +32,10 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "id": "/",
+  "lang": "en",
+  "categories": [
+    "education"
   ]
 }

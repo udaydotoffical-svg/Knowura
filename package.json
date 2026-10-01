@@ -2,7 +2,7 @@
   "name": "knowura-ai",
   "version": "1.1.0",
   "scripts": {
-    "build": "node scripts/generate-audio-manifest.js && node scripts/write-version.js",
+    "build": "node scripts/generate-audio-manifest.js && node scripts/write-version.js && node scripts/build-shared-ui.js",
     "generate:audio": "node scripts/generate-audio-manifest.js",
     "check:init": "node scripts/check-init.js",
     "test": "node --test test/*.test.js",
