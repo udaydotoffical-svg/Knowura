@@ -1,5 +1,6 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const { getChatModels, DEFAULT_MODEL } = require('./_models');
+const { getChatModels, getGuardModels, DEFAULT_MODEL } = require('./_models');
+const safety = require('./_safety');
 const { json, guard, readJson } = require('./_util');
 const { whoIs, usageGate } = require('./_limits');
 const { STUDY_TOOLS, STUDY_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_study');
@@ -85,6 +86,20 @@ function pickVisionModel(available, preferred) {
         if (m) return m.id;
     }
     return available.find(x => isVision(x.id))?.id || null;
+}
+
+// Safety check (Llama Guard and friends) on the person's latest message and pictures. Never throws:
+// text that couldn't be checked goes through, a picture that couldn't be checked does not.
+async function runSafety(messages) {
+    const t = safety.target(messages);
+    const withPictures = !!(t && t.images.length);   // only the picture(s) just sent are checked; older ones were checked when sent
+    try {
+        const [guards, chat] = await Promise.all([getGuardModels(), getChatModels()]);
+        return await safety.moderate({ messages, guards, visionChat: withPictures ? pickVisionModel(chat, DEFAULT_MODEL) : null });
+    } catch (e) {
+        console.warn("safety: could not start the check:", e.message);
+        return withPictures ? { blocked: true, unchecked: true, onPicture: true } : { blocked: false };
+    }
 }
 
 async function webSearch(query) {
@@ -173,6 +188,9 @@ exports.handler = async (event, context) => {
         const gate = await usageGate(event, ident, isAux ? "aux" : "chat", (isUltra ? 3 : 1) + (hasImages ? 1 : 0));
         if (gate.response) return gate.response;
 
+        // Safety check on what was just sent. Skipped for the verified owner and the app's background helper calls.
+        const modPromise = (!isAux && !isOwner && process.env.SAFETY_GUARD !== "off") ? runSafety(messages) : Promise.resolve(null);
+
         // Saved memory notes come from the client, so they go in as an ordinary user turn (never in
         // the system prompt) — they can inform the answer but carry no more authority than the user's own words.
         let memoryNote = "";
@@ -197,6 +215,11 @@ exports.handler = async (event, context) => {
                 : `\n\n[A web search found nothing useful, so answer from what you know and say it may be out of date.]`;
         }
 
+        const mod = await modPromise;
+        if (mod && mod.blocked) {
+            return json(422, { error: mod.unchecked ? safety.UNCHECKED_MESSAGE : mod.onPicture ? safety.BLOCK_PICTURE_MESSAGE : safety.BLOCK_MESSAGE, blocked: true });
+        }
+
         // Kept deliberately short and plain: this model tends to echo whatever it's given in its visible
         // thinking, so there are no rules, warnings or meta talk in here for it to repeat.
         const baseSystemPrompt = `You are Knowura, an AI study helper. Be friendly and clear, and use numbered lists for long answers. If someone asks who made you, say Uday Singh, a student who builds robotics, web apps and AI tools.`;
@@ -206,7 +229,7 @@ exports.handler = async (event, context) => {
         const ultraPrompt = `\n\nTake your time: break the problem into parts, check your own logic, then give a well-justified answer.`;
 
         const offerStudy = !isAux && wantsStudyTools(messages);
-        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (isUltra ? ultraPrompt : "");
+        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
 
         // The picker sends a real Groq model id (from the live /models list). Only
         // ids Groq currently offers for chat are accepted; anything else — including

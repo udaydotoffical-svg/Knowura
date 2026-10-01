@@ -352,7 +352,7 @@
         const fileInput = mk(ACCEPT);              // desktop: the normal file dialog
         const anyInput = mk('*/*');                // phones, "Files": the file manager, no filter
         const photoInput = mk('image/*');          // phones, "Photos": the gallery
-        const camInput = mk('image/*', true);      // fallback when a live camera isn't available
+        const camInput = mk('image/*', true);      // capture=environment: the phone's own camera app
         const say = opts.onError || toast;
 
         function draw() {
@@ -407,62 +407,21 @@
             sheet.className = 'att-sheet';
             sheet.innerHTML = '<div class="att-sheet-card" role="dialog" aria-label="Add attachment"><div class="att-sheet-grab"></div>'
                 + `<button type="button" data-act="photos"><span>${ico.photos}</span>Photos<small>Pick from your gallery</small></button>`
-                + `<button type="button" data-act="camera"><span>${ico.camera}</span>Camera<small>Take a picture now</small></button>`
+                + `<button type="button" data-act="camera"><span>${ico.camera}</span>Camera<small>Opens your camera app</small></button>`
                 + `<button type="button" data-act="files"><span>${ico.files}</span>Files<small>PDF, Word, Excel, code, zip, audio...</small></button>`
                 + '<button type="button" class="att-sheet-cancel" data-act="cancel">Cancel</button></div>';
             sheet.addEventListener('click', (e) => {
                 const b = e.target.closest('button[data-act]');
                 if (!b && e.target !== sheet) return;
                 const act = b && b.dataset.act; closeSheet();
-                if (act === 'photos') photoInput.click(); else if (act === 'files') anyInput.click(); else if (act === 'camera') openCamera();
+                if (act === 'photos') photoInput.click(); else if (act === 'files') anyInput.click(); else if (act === 'camera') camInput.click();   // opens the phone's own camera app
             });
             document.body.appendChild(sheet);
-        }
-
-        // ── live camera: a viewfinder you can shoot several pictures from ──
-        async function openCamera() {
-            if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { camInput.click(); return; }
-            if (opts.beforeCamera && opts.beforeCamera() === false) return;   // e.g. the Android panel must get camera permission first
-            let facing = 'environment', stream = null, shots = 0;
-            const ov = document.createElement('div');
-            ov.className = 'att-cam';
-            ov.innerHTML = '<video playsinline autoplay muted></video><div class="att-cam-flash"></div>'
-                + '<button type="button" class="att-cam-done" data-c="done">Done</button>'
-                + '<div class="att-cam-bar"><button type="button" class="att-cam-flip" data-c="flip" aria-label="Switch camera">&#8635;</button><button type="button" class="att-cam-shutter" data-c="shot" aria-label="Take picture"></button><span class="att-cam-count" aria-live="polite"></span></div>';
-            document.body.appendChild(ov);
-            const video = ov.querySelector('video');
-            const stop = () => { if (stream) stream.getTracks().forEach((t) => t.stop()); stream = null; };
-            const close = () => { stop(); ov.remove(); };
-            async function start() {
-                stop();
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-                    video.srcObject = stream; await video.play().catch(() => {});
-                } catch (e) {
-                    close();
-                    say(e && e.name === 'NotAllowedError' ? 'Camera access is blocked. Allow the camera for this site in your settings, or choose Photos instead.' : 'Couldn\'t open the camera. Choose Photos instead.');
-                }
-            }
-            ov.addEventListener('click', async (e) => {
-                const b = e.target.closest('button[data-c]'); if (!b) return;
-                if (b.dataset.c === 'done') close();
-                else if (b.dataset.c === 'flip') { facing = facing === 'environment' ? 'user' : 'environment'; start(); }
-                else if (b.dataset.c === 'shot' && video.videoWidth) {
-                    const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
-                    c.getContext('2d').drawImage(video, 0, 0);
-                    const flash = ov.querySelector('.att-cam-flash'); flash.classList.add('go'); setTimeout(() => flash.classList.remove('go'), 160);
-                    const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.92));
-                    shots++; ov.querySelector('.att-cam-count').textContent = shots + (shots === 1 ? ' picture' : ' pictures');
-                    add([new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' })]);
-                }
-            });
-            start();
         }
 
         const api = {
             // desktop opens the file dialog straight away; phones and tablets show Photos / Camera / Files
             pick() { if (isTouch()) openSheet(); else fileInput.click(); },
-            openCamera,
             add,
             busy: () => pending.some((p) => p.state === 'working'),
             count: () => pending.length,

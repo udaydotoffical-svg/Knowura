@@ -30,7 +30,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(self), geolocation=(), payment=(), usb=(), microphone=(self)"
+          "value": "camera=(), geolocation=(), payment=(), usb=(), microphone=(self)"
         },
         {
           "key": "Content-Security-Policy",

@@ -370,3 +370,50 @@ test('ask-ai attachments: only small data-URL images from users, newest 3 kept, 
     assert.equal(pickVisionModel(avail, 'meta-llama/llama-4-scout-17b-16e-instruct'), 'meta-llama/llama-4-scout-17b-16e-instruct');
     assert.equal(pickVisionModel([{ id: 'openai/gpt-oss-20b' }], 'openai/gpt-oss-20b'), null);
 });
+
+test('safety check: Llama Guard blocks unsafe pictures and text, self-harm gets care, failures fail safe', async () => {
+    const safety = require('../functions/_safety');
+    const realFetch = global.fetch;
+    const reply = (text) => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: text } }] }) });
+    const img = { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } };
+    const picMsg = [{ role: 'user', content: [{ type: 'text', text: 'what is this' }, img] }];
+    const txtMsg = [{ role: 'user', content: 'how do plants grow' }];
+    let calls = [];
+    try {
+        // unsafe picture -> blocked, and the picture really was sent to the image-capable guard
+        global.fetch = async (url, o) => { calls.push(JSON.parse(o.body)); return reply('unsafe\nS12'); };
+        let r = await safety.moderate({ messages: picMsg, guards: ['meta-llama/llama-guard-4-12b', 'openai/gpt-oss-safeguard-20b'] });
+        assert.equal(r.blocked, true); assert.equal(r.onPicture, true);
+        assert.equal(calls[0].model, 'meta-llama/llama-guard-4-12b');
+        assert.equal(calls[0].messages[0].content[1].type, 'image_url');
+        // safe picture and safe text pass
+        global.fetch = async () => reply('safe');
+        assert.equal((await safety.moderate({ messages: picMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        // blocked categories vs categories that are only answered with care or not blocked at all
+        global.fetch = async () => reply('unsafe\nS4');
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, true);
+        global.fetch = async () => reply('unsafe\nS11');
+        r = await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] });
+        assert.equal(r.blocked, false); assert.equal(r.care, true);
+        global.fetch = async () => reply('unsafe\nS6');                 // specialized advice: not blocked in a study app
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        // no image-capable guard -> a vision chat model classifies the picture instead (JSON answer)
+        calls = [];
+        global.fetch = async (url, o) => { calls.push(JSON.parse(o.body)); return reply('{"unsafe":true,"categories":["S12"]}'); };
+        r = await safety.moderate({ messages: picMsg, guards: ['openai/gpt-oss-safeguard-20b'], visionChat: 'qwen/qwen3.6-27b' });
+        assert.equal(r.blocked, true); assert.equal(calls[0].model, 'qwen/qwen3.6-27b');
+        // gpt-oss-safeguard for text carries the policy as the system message
+        calls = [];
+        global.fetch = async (url, o) => { calls.push(JSON.parse(o.body)); return reply('{"unsafe":false,"categories":[]}'); };
+        await safety.moderate({ messages: txtMsg, guards: ['openai/gpt-oss-safeguard-20b'] });
+        assert.equal(calls[0].messages[0].role, 'system');
+        // failing safe: text goes through if the guard is down, a picture that can't be checked is refused
+        global.fetch = async () => { throw new Error('network down'); };
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: ['meta-llama/llama-guard-4-12b'] })).blocked, false);
+        r = await safety.moderate({ messages: picMsg, guards: ['meta-llama/llama-guard-4-12b'], visionChat: 'qwen/qwen3.6-27b' });
+        assert.equal(r.blocked, true); assert.equal(r.unchecked, true);
+        assert.equal((await safety.moderate({ messages: picMsg, guards: [] })).unchecked, true);
+        assert.equal((await safety.moderate({ messages: txtMsg, guards: [] })).blocked, false);
+    } finally { global.fetch = realFetch; }
+});

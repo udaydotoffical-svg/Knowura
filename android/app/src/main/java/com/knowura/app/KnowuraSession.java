@@ -106,6 +106,7 @@ public class KnowuraSession extends VoiceInteractionSession {
                 boolean imagesOnly = types != null && types.length > 0;
                 if (types != null) for (String t : types) if (t == null || !t.startsWith("image/")) imagesOnly = false;
                 pick.putExtra("images", imagesOnly);
+                pick.putExtra("capture", params.isCaptureEnabled());   // <input capture>: open the phone's camera app
                 openExternal(pick);
                 return true;
             }
@@ -117,8 +118,6 @@ public class KnowuraSession extends VoiceInteractionSession {
                 for (String r : request.getResources()) {
                     if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) {
                         if (hasMic()) allowed.add(r); else missing = true;
-                    } else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) {
-                        if (hasCamera()) allowed.add(r); else missing = true;
                     }
                 }
                 if (allowed.isEmpty() || !HOST.equals(request.getOrigin().getHost())) {
@@ -193,10 +192,6 @@ public class KnowuraSession extends VoiceInteractionSession {
         return getContext().checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
-    private boolean hasCamera() {
-        return getContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
-    }
-
     private void openExternal(Intent intent) {
         try {
             startAssistantActivity(intent);
@@ -220,16 +215,6 @@ public class KnowuraSession extends VoiceInteractionSession {
         @JavascriptInterface
         public void requestMic() {
             main.post(() -> openExternal(new Intent(getContext(), PermissionActivity.class).putExtra("perm", "mic")));
-        }
-
-        @JavascriptInterface
-        public boolean hasCamera() {
-            return KnowuraSession.this.hasCamera();
-        }
-
-        @JavascriptInterface
-        public void requestCamera() {
-            main.post(() -> openExternal(new Intent(getContext(), PermissionActivity.class).putExtra("perm", "camera")));
         }
 
         @JavascriptInterface

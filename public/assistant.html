@@ -281,7 +281,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         try {
             const res = await post('ask-ai', { messages: forServer(), memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel }, { signal: ctrl.signal });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; throw e; }
+            if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; e.blocked = !!data.blocked; e.unchecked = !!data.unchecked; throw e; }
             let reply = String(data.choices[0].message && data.choices[0].message.content || '');
             reply = reply.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i, '').trim() || 'I came back empty. Could you ask that again?';
             msgs.push({ role: 'assistant', content: reply });
@@ -324,7 +324,12 @@ function showAlert(message) { window.__note && window.__note(message); }
         try {
             const { reply, study } = await askModel(text, { content: atts.length ? KnowuraAttach.build(text, atts).content : undefined });
             finishReply(think, reply, study);
-        } catch (e) { think.remove(); chat.messages.pop(); if (attachCtl) attachCtl.restore(atts); showError(e); }
+        } catch (e) {
+            think.remove(); chat.messages.pop();
+            if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } // a refused message is not kept
+            if (attachCtl && (!e.blocked || e.unchecked)) attachCtl.restore(atts);
+            showError(e);
+        }
         finally { busy = false; setSend(); }
     }
     function finishReply(bubble, reply, study) {
@@ -377,11 +382,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         return d.text || '';
     }
     attachCtl = KnowuraAttach.mount({
-        input: $('userInput'), drop: $('textView'), bar: $('attBar'), transcribe: transcribeFile, onChange: () => setSend(),
-        beforeCamera: () => { // the Android panel has to be granted the camera first
-            if (bridge && bridge.hasCamera && !bridge.hasCamera()) { bridge.requestCamera(); KnowuraAttach.toast('Allow the camera on the screen that opens, then tap Camera again.'); return false; }
-            return true;
-        }
+        input: $('userInput'), drop: $('textView'), bar: $('attBar'), transcribe: transcribeFile, onChange: () => setSend()
     });
     $('attachBtn').addEventListener('click', () => { if ($('textView').hidden) { $('textView').hidden = false; $('minBtn').hidden = false; } attachCtl.pick(); });
 
@@ -446,7 +447,7 @@ function showAlert(message) { window.__note && window.__note(message); }
             finishReply(addBubble('', 'ai'), reply, study);
             if (c.dead) return;
             await speakInCall(c, reply);
-        } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); setTimeout(() => backToListening(c), 1800); return; }
+        } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); setTimeout(() => backToListening(c), 1800); return; }
         backToListening(c);
     }
     function backToListening(c) { if (c.dead || call !== c) return; c.state = 'listening'; status(c.muted ? 'Muted' : 'Listening…'); orb('listening'); }

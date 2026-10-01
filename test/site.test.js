@@ -170,17 +170,19 @@ test('attachments: engine, vendored parsers and licences ship; app and panel are
     assert.match(pub('privacy.html'), /Attachments \(optional\)/);
     assert.match(pub('terms.html'), /anything you attach/);
     assert.match(pub('privacy.html'), /No video is recorded or sent/);
-    assert.match(engine, /att-sheet/); assert.match(engine, /getUserMedia\(\{ video:/);   // phone sheet + live camera
+    assert.match(engine, /att-sheet/); assert.match(engine, /camInput\.click\(\)/); assert.doesNotMatch(engine, /getUserMedia/);   // phone sheet + native camera app
     assert.match(app, /M12 5v14M5 12h14/); assert.match(panel, /M12 5v14M5 12h14/);       // the plus button in both prompt boxes
     assert.match(pub('eula.html'), /PDF\.js \(Apache-2\.0\), JSZip \(MIT\)/);
     // the server keeps handling pictures safely: the chat function must not accept remote image URLs
     assert.match(fs.readFileSync(path.join(root, 'functions/ask-ai.js'), 'utf8'), /IMAGE_URL = \/\^data:image/);
 });
 
-test('security headers let Knowura use the camera (only its own pages) for the live camera attachment', () => {
+test('the camera is never opened by the page itself: the phone camera app takes the picture', () => {
     const main = require('../vercel.json').headers[0].headers.find(x => x.key === 'Permissions-Policy').value;
-    assert.match(main, /camera=\(self\)/);
+    assert.match(main, /camera=\(\)/);
     assert.match(main, /microphone=\(self\)/);
-    assert.doesNotMatch(main, /camera=\(\)/);
-    assert.match(fs.readFileSync(path.join(__dirname, '..', 'netlify.toml'), 'utf8'), /camera=\(self\)/);
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'netlify.toml'), 'utf8'), /camera=\(\)/);
+    const manifest = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+    assert.doesNotMatch(manifest, /permission\.CAMERA/);
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/FilePickActivity.java'), 'utf8'), /ACTION_IMAGE_CAPTURE/);
 });
