@@ -268,3 +268,8 @@ test('the app refreshes itself when it comes back to the screen and the site has
     const headers = require('../vercel.json').headers.filter((h) => h.headers.some((x) => x.key === 'Cache-Control' && x.value === 'no-cache')).map((h) => h.source);
     for (const src of ['/', '/assistant', '/version.json']) assert.ok(headers.includes(src), src);   // always revalidated
 });
+
+test('the Android panel reloads a stale page when it opens, so deploys always show', () => {
+    const java = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8');
+    assert.match(java, /loadedAt/); assert.match(java, /boolean stale = !resuming/); assert.match(java, /pageFailed \|\| stale/);
+});
