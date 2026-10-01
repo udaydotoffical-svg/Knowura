@@ -252,3 +252,11 @@ test('assistant panel refreshes itself when the site has a newer build (the phon
     assert.match(panel, /version\.json\?_=/); assert.match(panel, /newerSiteExists/); assert.match(panel, /location\.reload\(\)/);
     assert.match(panel, /if \(resume\) return;/);   // never mid picker
 });
+
+test('the secret menu offers a password-free owner switch for the owner Google account, and sign-in never turns it on', () => {
+    const app = pub('index.html');
+    assert.match(app, /id="ownerGoogleRow"/); assert.match(app, /function enableOwnerWithGoogle/);
+    assert.doesNotMatch(app, /if \(data\.ownerToken\) setOwnerUnlocked/);        // no automatic owner mode
+    const rewrites = require('../vercel.json').rewrites.map((r) => `${r.source}>${r.destination}`).join(' ');
+    assert.ok(rewrites.includes('/.netlify/functions/owner-enable>/api/misc?op=owner-enable'));
+});
