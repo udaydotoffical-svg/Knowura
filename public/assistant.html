@@ -468,7 +468,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         $('micCard').hidden = !on;
         if (!on) return;
         $('micTitle').textContent = micMode === 'busy' ? 'Couldn\'t start the microphone' : 'Knowura needs your microphone';
-        $('micText').textContent = micMode === 'busy' ? 'Tap Try again. If it keeps happening, tap X to type instead.' + (micWhy ? ' (' + micWhy + ')' : '') : 'Allow it once and you can just talk. Nothing is recorded until you speak.';
+        $('micText').textContent = micMode === 'busy' ? (micWhy === 'NotReadableError' ? 'Something else is using the microphone. If Knowura is open in the background, close it from your recent apps, then tap Try again.' : 'Tap Try again. If it keeps happening, tap X to type instead.') + (micWhy ? ' (' + micWhy + ')' : '') : 'Allow it once and you can just talk. Nothing is recorded until you speak.';
         $('micBtnText').textContent = micMode === 'busy' ? 'Try again' : 'Allow microphone';
     }
     $('micAllow').addEventListener('click', () => {
