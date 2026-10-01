@@ -108,3 +108,23 @@ test('the site is installable as an app: manifest id, a no-cache service worker,
     assert.match(h, /serviceWorker\.register\('\/sw\.js'\)/);
     assert.ok(require('../vercel.json').headers.some(r => r.source === '/sw.js'));
 });
+
+test('Android assistant: the floating panel page, the native service wiring and the legal text all exist', () => {
+    const root = path.join(__dirname, '..');
+    const page = pub('assistant.html');
+    assert.match(page, /Knowura isn't human\. It can make mistakes, so double check it\./);
+    assert.match(page, /id="minBtn"/);
+    assert.match(page, /window\.knowuraShown/);
+    assert.match(page, /\/\.netlify\/functions\/ask-ai/);
+    const manifest = fs.readFileSync(path.join(root, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+    for (const re of [/BIND_VOICE_INTERACTION/, /android\.service\.voice\.VoiceInteractionService/, /android\.speech\.RecognitionService/, /RECORD_AUDIO/]) assert.match(manifest, re, String(re));
+    const xml = fs.readFileSync(path.join(root, 'android/app/src/main/res/xml/interaction_service.xml'), 'utf8');
+    assert.match(xml, /supportsAssist="true"/);
+    for (const f of ['KnowuraInteractionService', 'KnowuraSessionService', 'KnowuraSession', 'KnowuraRecognitionService', 'MicPermissionActivity']) {
+        assert.ok(fs.existsSync(path.join(root, `android/app/src/main/java/com/knowura/app/${f}.java`)), f);
+    }
+    assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8'), /assistant\?native=1/);
+    assert.match(pub('privacy.html'), /does <strong>not<\/strong> read your screen/);
+    assert.match(pub('index.html'), /voiceLaunchPending/);
+    assert.match(fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8'), /for = "\/assistant"/);
+});

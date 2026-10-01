@@ -1,0 +1,185 @@
+package com.knowura.app;
+
+import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.service.voice.VoiceInteractionSession;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+
+/**
+ * The floating assistant panel. It shows https://knowura.vercel.app/assistant (Knowura's own UI) in a
+ * transparent WebView over whatever app is underneath. It never asks for screen contents.
+ */
+public class KnowuraSession extends VoiceInteractionSession {
+    private static final String HOST = "knowura.vercel.app";
+    private static final String ASSISTANT_URL = "https://" + HOST + "/assistant?native=1";
+
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private WebView web;
+    private boolean pageFailed;
+
+    public KnowuraSession(Context context) {
+        super(context);
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        try {
+            // lift the panel above the on-screen keyboard instead of being covered by it
+            getWindow().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        } catch (RuntimeException ignored) {
+            // cosmetic only
+        }
+    }
+
+    @Override
+    public View onCreateContentView() {
+        Context ctx = getContext();
+        FrameLayout root = new FrameLayout(ctx);
+        web = new WebView(ctx);
+        web.setBackgroundColor(Color.TRANSPARENT);
+
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        s.setUserAgentString(s.getUserAgentString() + " KnowuraAssistant/1");
+
+        web.addJavascriptInterface(new Bridge(), "KnowuraNative");
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri u = request.getUrl();
+                if ("https".equals(u.getScheme()) && HOST.equals(u.getHost())) return false;
+                openExternal(new Intent(Intent.ACTION_VIEW, u));
+                return true;
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) pageFailed = true;
+            }
+        });
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                boolean wantsMic = false;
+                for (String r : request.getResources()) if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) wantsMic = true;
+                if (wantsMic && hasMic() && HOST.equals(request.getOrigin().getHost())) {
+                    request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+                } else {
+                    request.deny();
+                    web.evaluateJavascript("window.knowuraNeedMic&&window.knowuraNeedMic()", null);
+                }
+            }
+        });
+
+        root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        web.loadUrl(ASSISTANT_URL);
+        return root;
+    }
+
+    @Override
+    public void onShow(Bundle args, int showFlags) {
+        super.onShow(args, showFlags);
+        if (web == null) return;
+        if (pageFailed) {
+            pageFailed = false;
+            web.loadUrl(ASSISTANT_URL);
+        }
+        web.evaluateJavascript("window.knowuraShown&&window.knowuraShown(" + hasMic() + ")", null);
+    }
+
+    @Override
+    public void onHide() {
+        super.onHide();
+        if (web != null) web.evaluateJavascript("window.knowuraHidden&&window.knowuraHidden()", null);
+    }
+
+    @Override
+    public void onDestroy() {
+        if (web != null) {
+            web.removeJavascriptInterface("KnowuraNative");
+            web.destroy();
+            web = null;
+        }
+        super.onDestroy();
+    }
+
+    private boolean hasMic() {
+        return getContext().checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void openExternal(Intent intent) {
+        try {
+            startAssistantActivity(intent);
+        } catch (RuntimeException ignored) {
+            // no app can handle it
+        }
+    }
+
+    /** Methods the page can call. They arrive on a WebView thread, so everything hops to the main thread. */
+    private class Bridge {
+        @JavascriptInterface
+        public void hide() {
+            main.post(KnowuraSession.this::hide);
+        }
+
+        @JavascriptInterface
+        public boolean hasMic() {
+            return KnowuraSession.this.hasMic();
+        }
+
+        @JavascriptInterface
+        public void requestMic() {
+            main.post(() -> openExternal(new Intent(getContext(), MicPermissionActivity.class)));
+        }
+
+        @JavascriptInterface
+        public void openApp(final String path) {
+            final String safe = path != null && path.startsWith("/") && !path.startsWith("//") ? path : "/";
+            main.post(() -> {
+                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://" + HOST + safe));
+                i.setPackage(getContext().getPackageName());
+                openExternal(i);
+                hide();
+            });
+        }
+
+        @JavascriptInterface
+        public void copy(final String text) {
+            main.post(() -> {
+                ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Knowura", text));
+            });
+        }
+
+        @JavascriptInterface
+        public void share(final String text) {
+            main.post(() -> {
+                Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text);
+                openExternal(Intent.createChooser(send, null));
+            });
+        }
+    }
+}

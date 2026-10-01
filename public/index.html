@@ -241,6 +241,8 @@
 
         html:not(.is-mobile) .wake-mobile-note { display: none; }
         .wake-mobile-note { margin: 0 0 8px; }
+        .voice-launch { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 2147482000; display: inline-flex; align-items: center; gap: 10px; padding: 16px 26px; border-radius: 16px; border: 2px solid var(--ink); background: var(--cyan); color: #001018; font-weight: 800; font-size: 16px; box-shadow: 5px 5px 0 var(--ink); cursor: pointer; }
+        .voice-launch .icon { width: 22px; height: 22px; }
         /* ─── COOKIE NOTICE ─────────────────────────────────────────────── */
         .cookie-banner {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 400;
@@ -3944,6 +3946,23 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
         renderActiveChat();
         renderChatList();
+        maybeOfferVoiceLaunch();
+    }
+
+    // The Android assistant panel's waveform button opens /?voice=1. Browsers only let the mic and audio start
+    // from a tap, so offer one big button rather than auto-starting a call.
+    let voiceLaunchPending = /[?&]voice=1(&|$)/.test(location.search);
+    function maybeOfferVoiceLaunch() {
+        if (!voiceLaunchPending) return;
+        voiceLaunchPending = false;
+        try { history.replaceState(null, '', location.pathname); } catch (e) { /* not essential */ }
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'voice-launch';
+        btn.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-mic"/></svg> Tap to start talking';
+        btn.onclick = () => { btn.remove(); openLivePanel(); };
+        document.body.appendChild(btn);
+        setTimeout(() => btn.remove(), 30000);
     }
 
     // Creates and activates a chat without touching the DOM — used both by the

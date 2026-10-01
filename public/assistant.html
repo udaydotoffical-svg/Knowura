@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Knowura Assistant</title>
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#05070f">
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/fonts/geist-pixel.css">
+    <style>
+        :root {
+            --dark: #05070f; --blue: #2f6bff; --blue-deep: #0f2a80; --cyan: #22e5ff; --ink: #000;
+            --panel: rgba(10, 18, 40, 0.94); --panel-2: rgba(22, 38, 76, 0.9);
+            --text: #eaf6ff; --text-dim: #8fa6cc; --owner: #ff3057;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Geist Pixel', 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; background: transparent; color: var(--text); overflow: hidden; }
+        /* in a normal browser tab (no phone window behind it) give the page its own backdrop */
+        body:not(.native) { background: radial-gradient(120% 90% at 50% 0%, #0f2a80 0%, #05070f 60%); }
+
+        .scrim { position: fixed; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%); }
+        .stack {
+            position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 10px;
+            padding: 12px 12px calc(14px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto;
+            transform: translateY(var(--kb, 0px));
+        }
+
+        .chip {
+            align-self: flex-end; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer;
+            border: 2.5px solid var(--ink); border-radius: 999px; background: var(--panel-2); color: var(--text);
+            font-size: 14px; font-weight: 700; box-shadow: 3px 3px 0 var(--ink);
+        }
+        .chip svg { width: 16px; height: 16px; }
+        .chip:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+        .sheet {
+            background: var(--panel); border: 3px solid var(--ink); border-radius: 26px; padding: 8px 18px 14px;
+            box-shadow: 6px 6px 0 var(--ink), 0 0 0 1px rgba(34,229,255,0.1) inset; max-height: 56vh; display: flex; flex-direction: column;
+        }
+        .grab { width: 44px; height: 5px; border-radius: 99px; background: rgba(143,166,204,0.45); margin: 4px auto 10px; flex: none; }
+        .content { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; padding-bottom: 4px; }
+        .q { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; word-break: break-word; }
+        .q b { color: var(--cyan); letter-spacing: .4px; margin-right: 6px; }
+        .hello { font-size: 22px; line-height: 1.3; font-weight: 700; }
+        .disc { margin-top: 8px; font-size: 14.5px; line-height: 1.5; color: var(--text-dim); }
+        .a { font-size: 16px; line-height: 1.55; word-break: break-word; }
+        .a p { margin: 0 0 10px; } .a p:last-child { margin-bottom: 0; }
+        .a ul, .a ol { margin: 0 0 10px 22px; }
+        .a a { color: var(--cyan); }
+        .a h1, .a h2, .a h3 { font-size: 17px; margin: 10px 0 6px; }
+        .a pre { background: rgba(0,0,0,0.45); border-radius: 12px; padding: 10px 12px; overflow-x: auto; margin: 0 0 10px; font-size: 13px; }
+        .a code { font-family: 'Geist Pixel', 'Courier New', monospace; background: rgba(255,255,255,0.08); border-radius: 6px; padding: 1px 5px; font-size: 13.5px; }
+        .a pre code { background: none; padding: 0; }
+        .a table { border-collapse: collapse; font-size: 14px; } .a td, .a th { border: 1px solid rgba(143,166,204,0.4); padding: 4px 8px; }
+        .err { color: #ff8da1; }
+
+        .thinking { display: inline-flex; gap: 6px; padding: 6px 0; }
+        .thinking i { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); animation: dot 1s infinite ease-in-out; }
+        .thinking i:nth-child(2) { animation-delay: .15s; } .thinking i:nth-child(3) { animation-delay: .3s; }
+        @keyframes dot { 0%, 80%, 100% { transform: scale(.5); opacity: .5; } 40% { transform: scale(1); opacity: 1; } }
+
+        .actions { display: flex; align-items: center; gap: 4px; margin-top: 10px; flex: none; }
+        .actions button { width: 42px; height: 42px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text-dim); border-radius: 12px; cursor: pointer; }
+        .actions button svg { width: 22px; height: 22px; }
+        .actions button:active, .actions button.on { background: rgba(34,229,255,0.16); color: var(--cyan); }
+        .actions .spacer { flex: 1; }
+        .actions .open { width: auto; padding: 0 12px; font-size: 13px; font-weight: 700; gap: 6px; display: inline-flex; align-items: center; color: var(--cyan); }
+
+        .pill {
+            display: flex; align-items: center; gap: 6px; padding: 7px 7px 7px 10px; background: var(--panel);
+            border: 3px solid var(--ink); border-radius: 999px; box-shadow: 5px 5px 0 var(--ink), 0 0 0 1px rgba(34,229,255,0.1) inset;
+        }
+        .pill input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--text); font-size: 17px; padding: 8px 4px; }
+        .pill input::placeholder { color: var(--text-dim); }
+        .round { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text); border-radius: 50%; cursor: pointer; }
+        .round svg { width: 24px; height: 24px; }
+        .round:active { background: rgba(255,255,255,0.1); }
+        .go {
+            flex: none; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; cursor: pointer; color: #001018;
+            border: 2.5px solid var(--ink); border-radius: 15px; background: linear-gradient(135deg, var(--cyan), var(--blue));
+            box-shadow: 3px 3px 0 var(--ink), inset 1px 1px 0 rgba(255,255,255,0.55);
+        }
+        .go svg { width: 24px; height: 24px; }
+        .go:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+        .go .ic-send { display: none; } .pill.typing .go .ic-send { display: block; } .pill.typing .go .ic-wave { display: none; }
+        .pill.listening { border-color: var(--cyan); }
+        .pill.listening #micBtn { color: #001018; background: var(--cyan); animation: pulse .9s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(34,229,255,.55); } 50% { box-shadow: 0 0 0 8px rgba(34,229,255,0); } }
+        [hidden] { display: none !important; }
+        @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; } }
+    </style>
+</head>
+<body>
+<div class="scrim" id="scrim"></div>
+
+<div class="stack" id="stack">
+    <button type="button" class="chip" id="minBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg> Minimize</button>
+
+    <section class="sheet" id="sheet" aria-live="polite">
+        <div class="grab"></div>
+        <div class="content" id="content">
+            <div class="q" id="q" hidden></div>
+            <div class="a" id="a">
+                <h1 class="hello">Hello! How can I help you today?</h1>
+                <p class="disc">Knowura isn't human. It can make mistakes, so double check it.</p>
+            </div>
+        </div>
+        <div class="actions" id="actions" hidden>
+            <button type="button" id="copyBtn" aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+            <button type="button" id="shareBtn" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2"/></svg></button>
+            <button type="button" id="speakBtn" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+            <span class="spacer"></span>
+            <button type="button" class="open" id="openBtn">Open in Knowura</button>
+        </div>
+    </section>
+
+    <form class="pill" id="form" autocomplete="off">
+        <button type="button" class="round" id="newBtn" aria-label="New chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <input id="input" type="text" placeholder="Ask Knowura" enterkeyhint="send" maxlength="4000" aria-label="Ask Knowura">
+        <button type="button" class="round" id="micBtn" aria-label="Speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg></button>
+        <button type="submit" class="go" id="goBtn" aria-label="Live voice">
+            <svg class="ic-wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 8v8M20 11v2"/></svg>
+            <svg class="ic-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+    </form>
+</div>
+
+<script src="/assets/vendor/marked/marked.umd.js"></script>
+<script src="/assets/vendor/dompurify/purify.min.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const native = /KnowuraAssistant/.test(navigator.userAgent) || location.search.includes('native=1');
+    const bridge = native && window.KnowuraNative ? window.KnowuraNative : null;
+    if (native) document.body.classList.add('native');
+
+    // Same sign-in the main app uses, when this page shares its storage (a normal browser/Chrome).
+    // Inside the phone's assistant window there's none, so it runs as a guest.
+    function load(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } }
+    const session = load('knowura_session') || {};
+    const settings = load('knowura_settings') || {};
+    const token = session.sessionToken || undefined;
+    let ownerToken; try { ownerToken = localStorage.getItem('knowura_owner_token') || undefined; } catch (e) { /* storage blocked */ }
+
+    let msgs = [], busy = false, lastReply = '', speaking = null, listening = null, ctrl = null;
+
+    if (window.DOMPurify) DOMPurify.addHook('afterSanitizeAttributes', (n) => { if (n.tagName === 'A') { n.setAttribute('target', '_blank'); n.setAttribute('rel', 'noopener noreferrer'); } });
+    const render = (md) => window.marked && window.DOMPurify ? DOMPurify.sanitize(marked.parse(md)) : '<p>' + md.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</p>';
+    const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    function close() { if (bridge) bridge.hide(); else history.length > 1 ? history.back() : window.close(); }
+    function setInputState() { $('form').classList.toggle('typing', $('input').value.trim().length > 0); }
+    function showReply(html, { err = false } = {}) {
+        const a = $('a'); a.innerHTML = html; a.classList.toggle('err', err);
+        $('content').scrollTop = 0;
+    }
+    function expand(open) { $('sheet').hidden = !open; $('minBtn').hidden = !open; }
+
+    async function ask(text) {
+        text = text.trim();
+        if (!text || busy) return;
+        stopSpeaking();
+        busy = true; lastReply = '';
+        $('input').value = ''; setInputState();
+        $('q').hidden = false; $('q').innerHTML = '<b>YOU</b>' + esc(text);
+        $('actions').hidden = true; expand(true);
+        showReply('<span class="thinking" aria-label="Thinking"><i></i><i></i><i></i></span>');
+        msgs.push({ role: 'user', content: text });
+        if (msgs.length > 10) msgs.shift();
+        ctrl = new AbortController();
+        try {
+            const res = await fetch('/.netlify/functions/ask-ai', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal,
+                body: JSON.stringify({ messages: msgs, memory: {}, ownerToken, token, model: settings.modelChoice, effort: settings.effortLevel })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data?.choices?.[0]) throw new Error(data.error || 'Something went wrong. Please try again.');
+            let reply = String(data.choices[0].message?.content || '');
+            reply = reply.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i, '').trim() || 'I came back empty. Could you ask that again?';
+            if (data.study) reply += '\n\n*Quizzes and flashcards open best in the full app.*';
+            msgs.push({ role: 'assistant', content: reply });
+            lastReply = reply;
+            showReply(render(reply));
+            $('actions').hidden = false;
+        } catch (e) {
+            msgs.pop();
+            if (e.name !== 'AbortError') { showReply(esc(e.message || 'Something went wrong.'), { err: true }); }
+        } finally { busy = false; ctrl = null; }
+    }
+
+    // ── voice in: record, stop on silence, transcribe, then ask ──
+    const blobToB64 = (b) => new Promise((ok, no) => { const r = new FileReader(); r.onloadend = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(b); });
+    async function startListening(auto) {
+        if (listening) { stopListening(false); return; }
+        if (busy) return;
+        if (bridge && !bridge.hasMic()) { if (!auto) { showReply('Allow the microphone on the screen that opens, then tap the mic again.'); bridge.requestMic(); } return; }
+        let stream;
+        try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+        catch (e) { if (!auto) showReply('Microphone access is needed to talk to Knowura.', { err: true }); return; }
+        stopSpeaking();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume().catch(() => {});
+        const an = ctx.createAnalyser(); an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an);
+        const data = new Uint8Array(an.frequencyBinCount), chunks = [];
+        const rec = new MediaRecorder(stream);
+        const L = listening = { stream, ctx, rec, heard: false, cancel: false, t0: performance.now(), lastLoud: 0 };
+        rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+        rec.onstop = async () => {
+            clearInterval(L.timer); stream.getTracks().forEach((t) => t.stop()); ctx.close().catch(() => {});
+            listening = null; $('form').classList.remove('listening'); $('input').placeholder = 'Ask Knowura';
+            const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+            if (L.cancel || !L.heard || blob.size < 3000) return;
+            expand(true); $('actions').hidden = true; $('q').hidden = true;
+            showReply('<span class="thinking" aria-label="Transcribing"><i></i><i></i><i></i></span>');
+            try {
+                const res = await fetch('/.netlify/functions/transcribe', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ audio: await blobToB64(blob), mimeType: blob.type, ownerToken, token })
+                });
+                const d = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(d.error || 'Could not transcribe that.');
+                if (!d.text || !d.text.trim()) { showReply("I didn't catch that. Tap the mic and try again."); return; }
+                ask(d.text);
+            } catch (e) { showReply(esc(e.message), { err: true }); }
+        };
+        rec.start();
+        $('form').classList.add('listening'); $('input').placeholder = 'Listening…';
+        L.timer = setInterval(() => {
+            an.getByteTimeDomainData(data);
+            let s = 0; for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; s += v * v; }
+            const now = performance.now();
+            if (Math.sqrt(s / data.length) > 0.025) { L.heard = true; L.lastLoud = now; }
+            if ((L.heard && now - L.lastLoud > 1100) || now - L.t0 > 15000) stopListening(false);
+            else if (!L.heard && now - L.t0 > 7000) stopListening(true);
+        }, 60);
+    }
+    function stopListening(cancel) { const L = listening; if (!L) return; L.cancel = !!cancel; try { L.rec.stop(); } catch (e) { /* already stopped */ } }
+
+    // ── voice out ──
+    function stopSpeaking() { if (speaking) { speaking.pause(); speaking = null; } $('speakBtn').classList.remove('on'); }
+    async function speak() {
+        if (speaking) { stopSpeaking(); return; }
+        if (!lastReply) return;
+        $('speakBtn').classList.add('on');
+        try {
+            const res = await fetch('/.netlify/functions/speak', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: lastReply, ownerToken, token })
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!d.audio) throw new Error(d.error || 'No audio returned.');
+            if (!$('speakBtn').classList.contains('on')) return; // cancelled while it was loading
+            const audio = speaking = new Audio('data:' + (d.mimeType || 'audio/wav') + ';base64,' + d.audio);
+            audio.onended = stopSpeaking;
+            await audio.play();
+        } catch (e) { stopSpeaking(); }
+    }
+
+    // ── actions ──
+    function copyText() {
+        if (!lastReply) return;
+        if (bridge) bridge.copy(lastReply); else navigator.clipboard?.writeText(lastReply).catch(() => {});
+        const b = $('copyBtn'); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 1200);
+    }
+    function shareText() {
+        if (!lastReply) return;
+        if (bridge) bridge.share(lastReply); else if (navigator.share) navigator.share({ text: lastReply }).catch(() => {}); else copyText();
+    }
+    function openApp(path) { if (bridge) bridge.openApp(path); else location.assign(path); }
+    function newChat() { stopSpeaking(); stopListening(true); if (ctrl) ctrl.abort(); msgs = []; lastReply = ''; busy = false; $('q').hidden = true; $('actions').hidden = true; expand(true); showReply('<h1 class="hello">Hello! How can I help you today?</h1><p class="disc">Knowura isn\'t human. It can make mistakes, so double check it.</p>'); $('input').focus(); }
+
+    $('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if ($('input').value.trim()) ask($('input').value); else openApp('/?voice=1'); // empty box: the wave button hands over to a live voice call
+    });
+    $('input').addEventListener('input', setInputState);
+    $('input').addEventListener('focus', () => expand(true));
+    $('micBtn').addEventListener('click', () => startListening(false));
+    $('newBtn').addEventListener('click', newChat);
+    $('minBtn').addEventListener('click', () => { stopSpeaking(); expand(false); });
+    $('copyBtn').addEventListener('click', copyText);
+    $('shareBtn').addEventListener('click', shareText);
+    $('speakBtn').addEventListener('click', speak);
+    $('openBtn').addEventListener('click', () => openApp('/'));
+    $('scrim').addEventListener('click', close);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+    // keep the pill above the on-screen keyboard where the window doesn't resize for it
+    if (window.visualViewport) {
+        const fit = () => { const v = window.visualViewport; $('stack').style.setProperty('--kb', -Math.max(0, window.innerHeight - v.height - v.offsetTop) + 'px'); };
+        visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit);
+    }
+
+    // hooks the Android assistant window calls
+    window.knowuraShown = (autoListen) => { expand(true); if (autoListen) startListening(true); };
+    window.knowuraHidden = () => { stopSpeaking(); stopListening(true); };
+    window.knowuraNeedMic = () => showReply('Allow the microphone on the screen that opens, then tap the mic again.');
+    if (location.search.includes('mic=1')) startListening(true);
+})();
+</script>
+</body>
+</html>
