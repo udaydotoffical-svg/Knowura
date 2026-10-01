@@ -194,19 +194,30 @@ public class KnowuraSession extends VoiceInteractionSession {
 
     /** Starts another screen from the panel. Tries the assistant-stack way first, then a plain new task; tells the page if neither works. */
     private boolean openExternal(Intent intent) {
+        boolean started;
         try {
             startAssistantActivity(intent);
-            return true;
+            started = true;
         } catch (RuntimeException first) {
             try {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 getContext().startActivity(intent);
-                return true;
+                started = true;
             } catch (RuntimeException second) {
                 note("Couldn't open that. Try again from the Knowura app.");
                 return false;
             }
         }
+        // the panel's window sits above every other screen, so it must step aside or the new screen
+        // (share sheet, file picker, permission prompt) would open hidden behind it
+        main.postDelayed(() -> {
+            try {
+                hide();
+            } catch (RuntimeException ignored) {
+                // already hidden
+            }
+        }, 120);
+        return started;
     }
 
     /** Shows a short message in the panel (a toast), from any thread. */
@@ -258,7 +269,7 @@ public class KnowuraSession extends VoiceInteractionSession {
             main.post(() -> {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://" + HOST + safe));
                 i.setPackage(getContext().getPackageName());
-                if (openExternal(i)) hide();
+                openExternal(i);
             });
         }
 
