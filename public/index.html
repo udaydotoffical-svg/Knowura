@@ -2688,6 +2688,12 @@
         if (!isMobileUA) return;
         if (document.hidden) stopMobileWake(); else applyWakeWordSetting();
     });
+    // The Android assistant panel opens ON TOP of this page without hiding it, so the page still looks "visible"
+    // while the panel needs the microphone. Letting go of the mic whenever this window loses focus (and taking it
+    // back when focus returns) is what stops the panel from failing with "couldn't start the microphone".
+    window.addEventListener('blur', () => { if (isMobileUA) stopMobileWake(); });
+    window.addEventListener('focus', () => { if (isMobileUA && !document.hidden) applyWakeWordSetting(); });
+    window.addEventListener('pagehide', () => { if (isMobileUA) stopMobileWake(); });
 
     function onWakeWordDetected() {
         const panelOpen = document.getElementById('livePanel').classList.contains('open');

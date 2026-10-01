@@ -209,3 +209,10 @@ test('assistant panel: the microphone is retried with plain constraints and repo
     const panel = pub('assistant.html');
     assert.match(panel, /MIC_TRIES/); assert.match(panel, /\{ audio: true \}/); assert.match(panel, /micWhy/);
 });
+
+test('the app lets go of the microphone when the assistant panel takes focus, and the panel explains a busy mic', () => {
+    const app = pub('index.html'), panel = pub('assistant.html');
+    assert.match(app, /window\.addEventListener\('blur', \(\) => \{ if \(isMobileUA\) stopMobileWake\(\); \}\)/);
+    assert.match(app, /window\.addEventListener\('focus'/);
+    assert.match(panel, /NotReadableError/);
+});
