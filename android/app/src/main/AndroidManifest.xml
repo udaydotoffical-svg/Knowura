@@ -78,6 +78,11 @@
             </intent-filter>
         </service>
         <activity
+            android:name=".SignInActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity
             android:name=".MicPermissionActivity"
             android:exported="false"
             android:excludeFromRecents="true"

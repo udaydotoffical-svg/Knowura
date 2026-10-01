@@ -25,6 +25,10 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import org.json.JSONObject;
+
+import java.lang.ref.WeakReference;
+
 /**
  * The floating assistant panel. It shows https://knowura.vercel.app/assistant (Knowura's own UI) in a
  * transparent WebView over whatever app is underneath. It never asks for screen contents.
@@ -33,9 +37,12 @@ public class KnowuraSession extends VoiceInteractionSession {
     private static final String HOST = "knowura.vercel.app";
     private static final String ASSISTANT_URL = "https://" + HOST + "/assistant?native=1";
 
+    private static WeakReference<KnowuraSession> current = new WeakReference<>(null);
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private WebView web;
     private boolean pageFailed;
+    private boolean showing;
 
     public KnowuraSession(Context context) {
         super(context);
@@ -76,6 +83,12 @@ public class KnowuraSession extends VoiceInteractionSession {
             }
 
             @Override
+            public void onPageFinished(WebView view, String url) {
+                // the panel can be opened before the page has loaded; start it as soon as it has
+                if (showing) callShown();
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) pageFailed = true;
             }
@@ -102,17 +115,41 @@ public class KnowuraSession extends VoiceInteractionSession {
     @Override
     public void onShow(Bundle args, int showFlags) {
         super.onShow(args, showFlags);
+        showing = true;
+        current = new WeakReference<>(this);
         if (web == null) return;
         if (pageFailed) {
             pageFailed = false;
             web.loadUrl(ASSISTANT_URL);
+            return; // onPageFinished starts it
         }
-        web.evaluateJavascript("window.knowuraShown&&window.knowuraShown(" + hasMic() + ")", null);
+        callShown();
+    }
+
+    private void callShown() {
+        if (web != null) web.evaluateJavascript("window.knowuraShown&&window.knowuraShown(" + hasMic() + ")", null);
+    }
+
+    /** Called by SignInActivity with a Google ID token (or an error message) for the panel's page. */
+    static void deliverSignIn(final String idToken, final String error) {
+        final KnowuraSession s = current.get();
+        if (s == null) return;
+        s.main.post(() -> {
+            if (s.web == null) return;
+            if (idToken != null) s.web.evaluateJavascript("window.knowuraSignedIn&&window.knowuraSignedIn(" + JSONObject.quote(idToken) + ")", null);
+            else s.web.evaluateJavascript("window.knowuraSignInFailed&&window.knowuraSignInFailed(" + JSONObject.quote(error == null ? "" : error) + ")", null);
+            try {
+                s.show(null, 0); // bring the panel back after the account picker closed it
+            } catch (RuntimeException ignored) {
+                // not essential
+            }
+        });
     }
 
     @Override
     public void onHide() {
         super.onHide();
+        showing = false;
         if (web != null) web.evaluateJavascript("window.knowuraHidden&&window.knowuraHidden()", null);
     }
 
@@ -153,6 +190,11 @@ public class KnowuraSession extends VoiceInteractionSession {
         @JavascriptInterface
         public void requestMic() {
             main.post(() -> openExternal(new Intent(getContext(), MicPermissionActivity.class)));
+        }
+
+        @JavascriptInterface
+        public void signIn() {
+            main.post(() -> openExternal(new Intent(getContext(), SignInActivity.class)));
         }
 
         @JavascriptInterface

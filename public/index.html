@@ -3944,9 +3944,40 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             chatStore.activeChatId = null;
             saveChatStore();
         }
+        importAssistantChat();
         renderActiveChat();
         renderChatList();
         maybeOfferVoiceLaunch();
+    }
+
+    // The Android assistant panel hands its conversation over as #kwimport=<base64url JSON> when you swipe it up
+    // into the app. It becomes (or reuses, by id) a normal chat here and is opened; signed-in users also get it
+    // through the cloud copy the panel saved.
+    function importAssistantChat() {
+        const m = /^#kwimport=([\w-]+)$/.exec(location.hash);
+        if (!m) return;
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* not essential */ }
+        try {
+            const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+            const data = JSON.parse(decodeURIComponent(escape(atob(b64 + '==='.slice((b64.length + 3) % 4)))));
+            if (!data || typeof data.id !== 'string' || !/^[\w-]{1,60}$/.test(data.id) || !Array.isArray(data.messages)) return;
+            const messages = data.messages.slice(-40)
+                .filter(x => x && typeof x.text === 'string' && (x.type === 'user' || x.type === 'ai'))
+                .map(x => ({ text: safeHtml(x.text.slice(0, 100000)), type: x.type }));
+            if (!messages.length) return;
+            if (!chatStore.chats.some(c => c.id === data.id)) {
+                const now = Date.now();
+                chatStore.chats.unshift({
+                    id: data.id,
+                    title: String(data.title || 'Assistant chat').slice(0, 160),
+                    createdAt: Number(data.createdAt) || now,
+                    updatedAt: Number(data.updatedAt) || now,
+                    messages
+                });
+            }
+            chatStore.activeChatId = data.id;
+            saveChatStore();
+        } catch (e) { console.warn('Could not open the assistant chat:', e); }
     }
 
     // The Android assistant panel's waveform button opens /?voice=1. Browsers only let the mic and audio start
