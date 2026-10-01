@@ -260,3 +260,11 @@ test('the secret menu offers a password-free owner switch for the owner Google a
     const rewrites = require('../vercel.json').rewrites.map((r) => `${r.source}>${r.destination}`).join(' ');
     assert.ok(rewrites.includes('/.netlify/functions/owner-enable>/api/misc?op=owner-enable'));
 });
+
+test('the app refreshes itself when it comes back to the screen and the site has a newer build', () => {
+    const app = pub('index.html');
+    assert.match(app, /function staysCurrent|staysCurrent\(\)/); assert.match(app, /version\.json\?_=/);
+    assert.match(app, /New version ready/); assert.match(app, /pageshow/);
+    const headers = require('../vercel.json').headers.filter((h) => h.headers.some((x) => x.key === 'Cache-Control' && x.value === 'no-cache')).map((h) => h.source);
+    for (const src of ['/', '/assistant', '/version.json']) assert.ok(headers.includes(src), src);   // always revalidated
+});

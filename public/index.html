@@ -5750,6 +5750,42 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         });
     })();
 
+    // ─── STAYING CURRENT ──────────────────────────────────────────────────────
+    // An installed app (or a phone tab) resumes its old page from memory instead of fetching the site again, so a new
+    // deploy never shows up. When the app comes back to the screen it compares the site's build stamp (version.json)
+    // with the one this page loaded with: reload right away if nothing is in progress, otherwise offer a Refresh button.
+    (function staysCurrent() {
+        let loaded = null, lastCheck = 0, offered = false;
+        const stamp = async () => { try { const r = await fetch('/version.json?_=' + Date.now(), { cache: 'no-store' }); const d = await r.json(); return d.build + '|' + d.builtAt; } catch (e) { return null; } };
+        stamp().then((v) => { if (!loaded) loaded = v; });
+        const idle = () => !callActive && !(typeof currentAskController !== 'undefined' && currentAskController)
+            && !((document.getElementById('userInput') || {}).value || '').trim() && !/^(TEXTAREA|INPUT)$/.test((document.activeElement || {}).tagName || '');
+        function offer() {
+            if (offered) return; offered = true;
+            const b = document.createElement('button'); b.type = 'button'; b.id = 'kwUpdate';
+            b.style.cssText = 'position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9999;padding:11px 18px;border:2.5px solid var(--ink);border-radius:999px;background:var(--cyan);color:#001018;font:800 14px var(--font, inherit);box-shadow:var(--shadow-sm);cursor:pointer';
+            b.textContent = 'New version ready. Tap to refresh';
+            b.onclick = () => location.reload();
+            document.body.appendChild(b);
+        }
+        async function check(force) {
+            const now = Date.now();
+            if (!force && now - lastCheck < 30000) return;
+            lastCheck = now;
+            const v = await stamp();
+            if (!v) return;
+            if (!loaded) { loaded = v; return; }
+            if (v === loaded) return;
+            if (idle()) location.reload(); else offer();
+        }
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) check(false); });
+        window.addEventListener('focus', () => check(false));
+        window.addEventListener('pageshow', (e) => { if (e.persisted) check(true); });
+        window.addEventListener('online', () => check(true));
+        setInterval(() => { if (!document.hidden) check(false); }, 5 * 60 * 1000);
+        window.__kwCheckUpdate = check;   // for tests
+    })();
+
     window.kwBootDone?.(); // app is wired up — drop the instant loader
 
     // ─── FIRST-VISIT INTRO (plays once per browser, muted, skippable) ─────────
