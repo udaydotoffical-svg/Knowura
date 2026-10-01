@@ -204,3 +204,8 @@ test('assistant panel: permission, copy, share and errors all give visible feedb
     assert.match(java, /static void permissionDone/); assert.match(java, /public boolean copy\(/);
     assert.match(java, /startAssistantActivity\(intent\)[\s\S]*FLAG_ACTIVITY_NEW_TASK/);   // falls back to a plain start
 });
+
+test('assistant panel: the microphone is retried with plain constraints and reports the real reason', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /MIC_TRIES/); assert.match(panel, /\{ audio: true \}/); assert.match(panel, /micWhy/);
+});
