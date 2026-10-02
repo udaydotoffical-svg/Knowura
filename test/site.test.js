@@ -299,8 +299,29 @@ test('Minimize turns the assistant into a floating bubble over other apps (overl
     assert.doesNotMatch(manifest, /BIND_ACCESSIBILITY_SERVICE/);
     const bubble = fs.readFileSync(path.join(dir, 'java/com/knowura/app/BubbleService.java'), 'utf8');
     assert.match(bubble, /TYPE_APPLICATION_OVERLAY/); assert.match(bubble, /snapToEdge/); assert.match(bubble, /dismiss\(\)/);
+    assert.match(bubble, /R\.drawable\.ic_launcher_foreground/); assert.doesNotMatch(bubble, /quadTo/);   // Knowura's own logo, not a generic sparkle
     const session = fs.readFileSync(path.join(dir, 'java/com/knowura/app/KnowuraSession.java'), 'utf8');
     assert.match(session, /public void minimize\(\)/); assert.match(session, /Settings\.canDrawOverlays/); assert.match(session, /BubbleService\.hide\(\)/);
     const panel = pub('assistant.html');
     assert.match(panel, /typeof bridge\.minimize === 'function'/); assert.match(panel, /bridge\.minimize\(\)/);
+});
+
+test('the AI reply reveal animation never leaves a clip on the message (the avatar sits outside the bubble)', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /\.msg\.reveal \{ animation: kwMsgL \.42s var\(--spring\) both, kwReveal \.8s cubic-bezier\(\.2,\.8,\.2,1\) backwards;/);
+});
+
+test('pulling the handle up grows the sheet to the full screen, drops the keyboard, then opens the app', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /async function expandAndOpen/); assert.match(panel, /ae\.blur\(\)/);
+    assert.match(panel, /body\.expanding \.sheet/); assert.match(panel, /sheet\.style\.height = '100vh'/);
+    assert.match(panel, /window\.__resetSheet/);   // a fresh open is back to normal size
+});
+
+test('the call buttons are equal in size and share one shadow direction; no glow halos; build tag hidden by default', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /#voiceView \.call-controls \.mic-btn \{ width: 64px; height: 64px;/);
+    assert.match(panel, /\.mic-btn\.end-call svg \{ transform: rotate\(135deg\); \}/);
+    assert.doesNotMatch(panel, /kwEdge/); assert.doesNotMatch(panel, /0 0 \d+px -\d+px rgba/);
+    assert.match(panel, /\.build-tag \{ display: none;/);
 });
