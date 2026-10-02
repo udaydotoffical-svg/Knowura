@@ -304,3 +304,8 @@ test('Minimize turns the assistant into a floating bubble over other apps (overl
     const panel = pub('assistant.html');
     assert.match(panel, /typeof bridge\.minimize === 'function'/); assert.match(panel, /bridge\.minimize\(\)/);
 });
+
+test('the AI reply reveal animation never leaves a clip on the message (the avatar sits outside the bubble)', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /\.msg\.reveal \{ animation: kwMsgL \.42s var\(--spring\) both, kwReveal \.8s cubic-bezier\(\.2,\.8,\.2,1\) backwards;/);
+});

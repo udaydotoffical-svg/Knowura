@@ -40,8 +40,8 @@
         .msg.user { animation-name: kwMsgR; transform-origin: 100% 100%; }
         @keyframes kwMsgL { from { opacity: 0; transform: translate(-14px, 10px) scale(.94); } to { opacity: 1; transform: none; } }
         @keyframes kwMsgR { from { opacity: 0; transform: translate(14px, 10px) scale(.94); } to { opacity: 1; transform: none; } }
-        .msg.reveal { animation: kwMsgL .42s var(--spring) both, kwReveal .8s cubic-bezier(.2,.8,.2,1) both; }
-        @keyframes kwReveal { from { clip-path: inset(-12px -12px 100% -12px); } to { clip-path: inset(-12px -12px -12px -12px); } }
+        .msg.reveal { animation: kwMsgL .42s var(--spring) both, kwReveal .8s cubic-bezier(.2,.8,.2,1) backwards; }   /* backwards: nothing stays clipped once it has played (the avatar sits outside the bubble) */
+        @keyframes kwReveal { from { clip-path: inset(-24px -90px 100% -90px); } to { clip-path: inset(-24px -90px -90px -90px); } }
 
         /* orb: floats, glows in the colour of what it is doing, and shows listening / thinking / speaking differently */
         #voiceView .orb-wrap { animation: kwFloat 5.5s ease-in-out infinite; --glow: rgba(34,229,255,.5); }
