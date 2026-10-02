@@ -827,10 +827,12 @@ function showAlert(message) { window.__note && window.__note(message); }
         while (out.length > 120000 && list.length > 2) { list = list.slice(2); out = enc(); }
         return out;
     }
-    async function openAppWithChat() {
+    async function openAppWithChat(fast) {
         stopSpeaking(); endCall();
         persist();
-        if (signedIn()) { try { await Promise.race([cloudUpsert(), new Promise((ok) => setTimeout(ok, 2500))]); } catch (e) { /* the hash below carries the chat anyway */ } }
+        // fast (the pull-up): the chat travels in the link itself, so the cloud copy is saved in the background and the
+        // app opens straight away instead of the panel sitting there waiting for the network
+        if (signedIn()) { const save = cloudUpsert().catch(() => {}); if (!fast) { try { await Promise.race([save, new Promise((ok) => setTimeout(ok, 2500))]); } catch (e) { /* the hash below carries the chat anyway */ } } }
         const data = exportChat();
         openApp('/' + (data ? '#kwimport=' + data : ''));
     }
@@ -865,7 +867,7 @@ function showAlert(message) { window.__note && window.__note(message); }
             sheet.style.transition = 'height .5s var(--spring), border-radius .4s ease, box-shadow .3s ease';
             paint(1); sheet.style.height = '100vh';   // tracks the real screen height as the keyboard finishes closing
             await new Promise((ok) => setTimeout(ok, 460));
-            openAppWithChat();
+            openAppWithChat(true);
         }
         grab.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; base = sheet.offsetHeight; sheet.style.transition = 'none'; try { grab.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } });
         grab.addEventListener('pointermove', (e) => {
