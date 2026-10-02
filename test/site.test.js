@@ -332,3 +332,11 @@ test('opening the app from the panel is quick and clean: no cloud wait after the
     const java = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8');
     assert.match(java, /hideAfter\(550\)/); assert.match(java, /private void hideAfter\(long ms\)/);
 });
+
+test('the helper screens (picker, camera, permission prompts) live in their own task, so closing them never pulls the main Knowura app forward behind the panel', () => {
+    const manifest = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+    for (const name of ['FilePickActivity', 'OverlayPermissionActivity', 'PermissionActivity']) {
+        const block = manifest.slice(manifest.indexOf(`android:name=".${name}"`), manifest.indexOf('/>', manifest.indexOf(`android:name=".${name}"`)));
+        assert.match(block, /android:taskAffinity=""/, name);
+    }
+});
