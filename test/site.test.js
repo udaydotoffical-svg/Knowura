@@ -340,3 +340,10 @@ test('the helper screens (picker, camera, permission prompts) live in their own 
         assert.match(block, /android:taskAffinity=""/, name);
     }
 });
+
+test('the Knowura app is opened from the panel through a hop screen, so it never stays parked in the assistant stack', () => {
+    const dir = path.join(__dirname, '..', 'android/app/src/main');
+    assert.match(fs.readFileSync(path.join(dir, 'java/com/knowura/app/OpenAppActivity.java'), 'utf8'), /FLAG_ACTIVITY_NEW_TASK/);
+    assert.match(fs.readFileSync(path.join(dir, 'AndroidManifest.xml'), 'utf8'), /\.OpenAppActivity/);
+    assert.match(fs.readFileSync(path.join(dir, 'java/com/knowura/app/KnowuraSession.java'), 'utf8'), /new Intent\(getContext\(\), OpenAppActivity\.class\)/);
+});
