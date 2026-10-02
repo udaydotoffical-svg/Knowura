@@ -286,7 +286,7 @@ public class BubbleService extends Service {
             c.drawCircle(cx, cy, rad, glow);   // the glow, and the fill if the artwork can't load
             if (art != null) {
                 // the K sits in the middle of the artwork; scale it so the pencil-K fills the circle nicely
-                float scale = (2f * rad * 1.06f) / art.getWidth();
+                float scale = (2f * rad * 1.32f) / art.getWidth();
                 m.reset();
                 m.postScale(scale, scale);
                 m.postTranslate(cx - art.getWidth() * scale / 2f, cy - art.getHeight() * scale / 2f);
