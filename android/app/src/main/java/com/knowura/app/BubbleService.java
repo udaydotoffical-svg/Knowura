@@ -5,10 +5,12 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Shader;
 import android.os.Build;
@@ -21,7 +23,7 @@ import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 
 /**
- * The minimised assistant: a small floating Knowura bubble drawn over other apps (needs "Display over other apps").
+ * The minimised assistant: a small floating bubble with Knowura's logo drawn over other apps (needs "Display over other apps").
  * Drag it anywhere, it snaps to the nearest edge; tap to bring the panel back; drag it onto the X to dismiss it.
  * Everything underneath stays fully usable.
  */
@@ -260,36 +262,38 @@ public class BubbleService extends Service {
         }
     }
 
-    /** A black circle with a four-point gradient sparkle. */
+    /** Knowura's own logo (the pencil K, same artwork as the app icon) in a round bubble with a glowing ring. */
     private static class BubbleView extends View {
-        private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG), star = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path path = new Path();
+        private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG), logo = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Bitmap art;
+        private final Matrix m = new Matrix();
 
         BubbleView(Context c) {
             super(c);
             setLayerType(LAYER_TYPE_SOFTWARE, null);   // needed for the glow
-            bg.setColor(0xFF05070F);
-            bg.setShadowLayer(14f, 0f, 3f, 0xAA22E5FF);
+            art = BitmapFactory.decodeResource(c.getResources(), R.drawable.ic_launcher_foreground);
+            glow.setColor(0xFF0F2A80);
+            glow.setShadowLayer(14f, 0f, 3f, 0xAA22E5FF);
             ring.setStyle(Paint.Style.STROKE);
-            ring.setStrokeWidth(3f);
-            ring.setColor(0x6622E5FF);
+            ring.setStrokeWidth(3.5f);
+            ring.setColor(0xCC22E5FF);
+            if (art != null) logo.setShader(new BitmapShader(art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
         }
 
         @Override
         protected void onDraw(Canvas c) {
             float w = getWidth(), h = getHeight(), cx = w / 2f, cy = h / 2f, rad = Math.min(w, h) / 2f - 8f;
-            c.drawCircle(cx, cy, rad, bg);
-            c.drawCircle(cx, cy, rad - 1.5f, ring);
-            float r = rad * 0.62f, k = r * 0.2f;
-            path.reset();
-            path.moveTo(cx, cy - r);
-            path.quadTo(cx + k, cy - k, cx + r, cy);
-            path.quadTo(cx + k, cy + k, cx, cy + r);
-            path.quadTo(cx - k, cy + k, cx - r, cy);
-            path.quadTo(cx - k, cy - k, cx, cy - r);
-            path.close();
-            star.setShader(new LinearGradient(cx - r, cy - r, cx + r, cy + r, new int[]{0xFF22E5FF, 0xFF4D77FF, 0xFFFF6AA8}, null, Shader.TileMode.CLAMP));
-            c.drawPath(path, star);
+            c.drawCircle(cx, cy, rad, glow);   // the glow, and the fill if the artwork can't load
+            if (art != null) {
+                // the K sits in the middle of the artwork; scale it so the pencil-K fills the circle nicely
+                float scale = (2f * rad * 1.06f) / art.getWidth();
+                m.reset();
+                m.postScale(scale, scale);
+                m.postTranslate(cx - art.getWidth() * scale / 2f, cy - art.getHeight() * scale / 2f);
+                logo.getShader().setLocalMatrix(m);
+                c.drawCircle(cx, cy, rad, logo);
+            }
+            c.drawCircle(cx, cy, rad - 1.75f, ring);
         }
     }
 

@@ -299,6 +299,7 @@ test('Minimize turns the assistant into a floating bubble over other apps (overl
     assert.doesNotMatch(manifest, /BIND_ACCESSIBILITY_SERVICE/);
     const bubble = fs.readFileSync(path.join(dir, 'java/com/knowura/app/BubbleService.java'), 'utf8');
     assert.match(bubble, /TYPE_APPLICATION_OVERLAY/); assert.match(bubble, /snapToEdge/); assert.match(bubble, /dismiss\(\)/);
+    assert.match(bubble, /R\.drawable\.ic_launcher_foreground/); assert.doesNotMatch(bubble, /quadTo/);   // Knowura's own logo, not a generic sparkle
     const session = fs.readFileSync(path.join(dir, 'java/com/knowura/app/KnowuraSession.java'), 'utf8');
     assert.match(session, /public void minimize\(\)/); assert.match(session, /Settings\.canDrawOverlays/); assert.match(session, /BubbleService\.hide\(\)/);
     const panel = pub('assistant.html');
