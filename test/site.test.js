@@ -347,3 +347,21 @@ test('the Knowura app is opened from the panel through a hop screen, so it never
     assert.match(fs.readFileSync(path.join(dir, 'AndroidManifest.xml'), 'utf8'), /\.OpenAppActivity/);
     assert.match(fs.readFileSync(path.join(dir, 'java/com/knowura/app/KnowuraSession.java'), 'utf8'), /new Intent\(getContext\(\), OpenAppActivity\.class\)/);
 });
+
+test('the Windows desktop app: tray + hotkey + low-memory switches, a locked-down window, and the page adapts to it', () => {
+    const dir = path.join(__dirname, '..', 'desktop');
+    const main = fs.readFileSync(path.join(dir, 'main.js'), 'utf8');
+    const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+    assert.match(main, /app\.disableHardwareAcceleration\(\)/); assert.match(main, /max-old-space-size/); assert.match(main, /IDLE_DESTROY_MS/);
+    assert.match(main, /globalShortcut\.register/); assert.match(main, /new Tray\(/); assert.match(main, /requestSingleInstanceLock/);
+    assert.match(main, /contextIsolation: true/); assert.match(main, /nodeIntegration: false/); assert.match(main, /sandbox: true/);
+    assert.match(main, /setPermissionRequestHandler/); assert.match(main, /will-navigate/);
+    assert.match(main, /knowura\.vercel\.app\/assistant/);
+    assert.ok(pkg.devDependencies.electron && pkg.devDependencies['electron-builder']);
+    assert.ok(fs.existsSync(path.join(dir, 'package-lock.json')) && fs.existsSync(path.join(dir, 'build', 'icon.png')));
+    const preload = fs.readFileSync(path.join(dir, 'preload.js'), 'utf8');
+    assert.match(preload, /contextBridge\.exposeInMainWorld\('KnowuraDesk'/); assert.doesNotMatch(preload, /require\('fs'\)|child_process/);
+    assert.match(fs.readFileSync(path.join(__dirname, '..', '.github/workflows/windows-app.yml'), 'utf8'), /windows-latest/);
+    const panel = pub('assistant.html');
+    assert.match(panel, /window\.KnowuraDesk/); assert.match(panel, /body\.desktop/); assert.match(panel, /desk\.hide\(\)/); assert.match(panel, /desk\.openApp\(path\)/);
+});

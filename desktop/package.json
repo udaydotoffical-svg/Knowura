@@ -1,0 +1,43 @@
+{
+  "name": "knowura-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Knowura assistant for Windows: a small tray app that pops up with a hotkey.",
+  "main": "main.js",
+  "author": "Knowura",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.knowura.desktop",
+    "productName": "Knowura",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "assets/**"],
+    "asar": true,
+    "compression": "maximum",
+    "electronLanguages": ["en-US"],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Knowura-Desktop-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Knowura-Desktop-Portable-${version}.${ext}"
+    }
+  }
+}
