@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import androidx.core.content.FileProvider;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /** The assistant panel can't show a file picker itself, so it opens this invisible screen and gets the result back. */
 public class FilePickActivity extends Activity {
@@ -25,7 +27,7 @@ public class FilePickActivity extends Activity {
         try {
             startActivityForResult(Intent.createChooser(get, "Attach to Knowura"), REQUEST);
         } catch (RuntimeException e) {
-            KnowuraSession.deliverFiles(null);
+            KnowuraSession.filesPicked(new ArrayList<>());
             finish();
         }
     }
@@ -66,7 +68,19 @@ public class FilePickActivity extends Activity {
                 picked = new Uri[]{data.getData()};
             }
         }
-        KnowuraSession.deliverFiles(picked);
-        finish();
+        if (picked == null || picked.length == 0) {
+            KnowuraSession.filesPicked(new ArrayList<>());   // cancelled: just bring the panel back
+            finish();
+            return;
+        }
+        // copy into our own cache first (access to the picked file can end when this screen closes), then hand over
+        final Uri[] chosen = picked;
+        new Thread(() -> {
+            final List<PickedFiles.Item> items = PickedFiles.copyIn(getApplicationContext(), chosen);
+            runOnUiThread(() -> {
+                KnowuraSession.filesPicked(items);
+                finish();
+            });
+        }, "knowura-pick").start();
     }
 }
