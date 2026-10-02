@@ -165,6 +165,14 @@
 
         /* a quick message that tells you what just happened (copied, shared, couldn't open...) */
         .kb-open #minBtn { display: none; }
+        /* ── Windows desktop popup: the stack fills the whole (frameless) window; the top strip drags it ── */
+        body.desktop { background: #05070f; }
+        body.desktop .scrim { background: none; }
+        body.desktop .stack { top: 0; max-width: none; padding: 12px 10px 10px; }
+        body.desktop #voiceView.live-panel { flex: 1; height: auto; min-height: 0; }
+        body.desktop .sheet { flex: 1; max-height: none !important; }
+        body.desktop::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: 12px; z-index: 50; -webkit-app-region: drag; }
+        body.desktop button, body.desktop textarea, body.desktop .grab-zone { -webkit-app-region: no-drag; }
         body.debug .build-tag { display: block; }
         body.expanding .stack { padding: 0 !important; gap: 0; bottom: 0 !important; }
         body.expanding .sheet { border-width: 0; width: 100%; }
@@ -308,6 +316,8 @@ function showAlert(message) { window.__note && window.__note(message); }
     const bridge = native && window.KnowuraNative ? window.KnowuraNative : null;
     if (native) document.body.classList.add('native');
     if (location.search.includes('debug=1')) document.body.classList.add('debug');   // shows the build tag
+    const desk = window.KnowuraDesk || null;   // the Windows desktop app: hide the popup / open the full app in its own window
+    if (desk || /KnowuraDesktop/.test(navigator.userAgent) || location.search.includes('desktop=1')) document.body.classList.add('desktop');
     const canBubble = !!(bridge && typeof bridge.minimize === 'function');   // newer Android app: Minimize turns the panel into a floating bubble
 
     // ── identity: the same stored sign-in the app uses (shared in a browser; the phone panel has its own) ──
@@ -351,7 +361,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     function pop(el) { if (!el) return; el.classList.remove('view-in'); void el.offsetWidth; el.classList.add('view-in'); }
     function showVoice() {
         view = 'voice'; pop($('voiceView'));
-        $('voiceView').classList.add('open'); $('textView').hidden = true; $('inputArea').hidden = true; $('minBtn').hidden = !canBubble;
+        $('voiceView').classList.add('open'); $('textView').hidden = true; $('inputArea').hidden = true; $('minBtn').hidden = !(canBubble || desk);
     }
     function showText(focus) {
         endCall();
@@ -365,7 +375,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     function closePanel() {
         endCall(); stopSpeaking();
         $('stack').classList.add('leaving'); $('scrim').classList.add('leaving');   // slide away, then hand back to Android
-        setTimeout(() => { if (bridge) bridge.hide(); else history.length > 1 ? history.back() : window.close(); }, 190);
+        setTimeout(() => { if (desk) desk.hide(); else if (bridge) bridge.hide(); else history.length > 1 ? history.back() : window.close(); }, 190);
     }
     function scrollChat() { const c = $('chat-box'); c.scrollTop = c.scrollHeight; }
 
@@ -836,7 +846,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         const data = exportChat();
         openApp('/' + (data ? '#kwimport=' + data : ''));
     }
-    function openApp(path) { if (bridge) bridge.openApp(path); else location.assign(path); }
+    function openApp(path) { if (desk) desk.openApp(path); else if (bridge) bridge.openApp(path); else location.assign(path); }
 
     // Pull the handle up: the sheet grows under your finger, the keyboard drops, and when you let go it fills the whole
     // screen and opens the Knowura app with this chat. Pull it down: minimize. Not far enough: it springs back.
@@ -887,11 +897,12 @@ function showAlert(message) { window.__note && window.__note(message); }
     function minimize() {
         stopSpeaking();
         if (canBubble) { endCall(); persist(); bridge.minimize(); return; }   // floating bubble over other apps
+        if (desk) { endCall(); persist(); desk.hide(); return; }                // desktop: tuck the popup away (it stays in the tray)
         $('textView').hidden = true; $('minBtn').hidden = true;
     }
     $('minBtn').addEventListener('click', minimize);
     $('newBtn').addEventListener('click', () => { newChat(); $('userInput').focus(); });
-    $('scrim').addEventListener('click', closePanel);
+    $('scrim').addEventListener('click', () => { if (!desk) closePanel(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('studyOverlay').classList.contains('open')) closePanel(); });
     $('userInput').addEventListener('focus', () => { if ($('textView').hidden) { $('textView').hidden = false; $('minBtn').hidden = false; } });
 
@@ -962,6 +973,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     linkReady = refreshLink();
     restore(); renderAcct(); orb('idle');
     { const d = load('knowura_assistant_draft') || (() => { try { return localStorage.getItem('knowura_assistant_draft'); } catch (e) { return null; } })(); if (typeof d === 'string' && d && !$('userInput').value) { $('userInput').value = d; setSend(); } }
+    if (desk) showVoice();          // desktop popup: voice view with the Minimize chip from the start
     if (!bridge) startCall(true); // in a normal browser tab, begin listening right away
     window.__kw = { showText, showVoice, openAppWithChat, exportChat, get chat() { return chat; } }; // for tests
 })();
