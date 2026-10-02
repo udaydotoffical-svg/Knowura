@@ -159,6 +159,10 @@
 
         /* a quick message that tells you what just happened (copied, shared, couldn't open...) */
         .kb-open #minBtn { display: none; }
+        body.expanding .stack { padding: 0 !important; gap: 0; bottom: 0 !important; }
+        body.expanding .sheet { border-width: 0; width: 100%; }
+        body.expanding #inputArea, body.expanding #minBtn { display: none; }   /* already faded out while pulling; frees the space so the sheet sits flush with the top edge */
+        body.expanding .scrim { background: #070d22; transition: background .4s ease; }
         .build-tag { position: fixed; left: 50%; top: calc(4px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 5; font: 600 10px/1 ui-monospace, monospace; color: rgba(143,166,204,.75); letter-spacing: .4px; pointer-events: none; text-shadow: 0 1px 2px #000; }
         .kw-toast {
             position: fixed; left: 50%; top: calc(18px + env(safe-area-inset-top)); z-index: 900; max-width: min(92vw, 420px); padding: 11px 16px;
@@ -349,7 +353,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         requestAnimationFrame(autosize); // it was sized while hidden (0px), so re-measure now it's visible
         if (focus) $('userInput').focus();
     }
-    function playEnter() { const st = $('stack'), sc = $('scrim'); st.classList.remove('leaving', 'enter'); sc.classList.remove('leaving', 'glow'); void st.offsetWidth; st.classList.add('enter'); sc.classList.add('glow'); }
+    function playEnter() { if (window.__resetSheet) window.__resetSheet(); const st = $('stack'), sc = $('scrim'); st.classList.remove('leaving', 'enter'); sc.classList.remove('leaving', 'glow'); void st.offsetWidth; st.classList.add('enter'); sc.classList.add('glow'); }
     function closePanel() {
         endCall(); stopSpeaking();
         $('stack').classList.add('leaving'); $('scrim').classList.add('leaving');   // slide away, then hand back to Android
@@ -824,12 +828,50 @@ function showAlert(message) { window.__note && window.__note(message); }
     }
     function openApp(path) { if (bridge) bridge.openApp(path); else location.assign(path); }
 
-    // swiping the handle up opens the app with this chat; swiping down minimizes the sheet
+    // Pull the handle up: the sheet grows under your finger, the keyboard drops, and when you let go it fills the whole
+    // screen and opens the Knowura app with this chat. Pull it down: minimize. Not far enough: it springs back.
     (function () {
-        const grab = $('grab'), sheet = $('textView'); let y0 = null, dy = 0;
-        grab.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; sheet.style.transition = 'max-height .22s ease'; try { grab.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } });
-        grab.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = e.clientY - y0; sheet.style.transform = 'translateY(' + Math.max(-70, Math.min(dy, 90)) + 'px)'; });
-        const end = () => { if (y0 == null) return; const d = dy; y0 = null; sheet.style.transition = 'transform .6s var(--spring), max-height .22s ease'; sheet.style.transform = ''; setTimeout(() => { sheet.style.transition = ''; }, 650); if (d < -55) openAppWithChat(); else if (d > 70) minimize(); };
+        const grab = $('grab'), sheet = $('textView'); let y0 = null, dy = 0, base = 0, grow = 0;
+        const reach = () => Math.max(window.innerHeight, window.screen ? Math.min(window.screen.height, window.innerHeight * 1.6) : 0);   // the full screen even if the keyboard just closed
+        function paint(g) {   // g: 0 = as it was, 1 = full screen
+            grow = g;
+            sheet.style.height = (base + g * (reach() - base)) + 'px';
+            sheet.style.maxHeight = 'none';
+            sheet.style.borderRadius = (26 * (1 - g)) + 'px';
+            sheet.style.boxShadow = g > 0.6 ? 'none' : '';
+            $('inputArea').style.opacity = String(Math.max(0, 1 - g * 1.6)); $('minBtn').style.opacity = String(Math.max(0, 1 - g * 1.6));
+        }
+        function reset(animate) {
+            sheet.style.transition = animate ? 'height .5s var(--spring), border-radius .4s ease, transform .5s var(--spring)' : 'none';
+            sheet.style.height = ''; sheet.style.maxHeight = ''; sheet.style.borderRadius = ''; sheet.style.boxShadow = ''; sheet.style.transform = '';
+            $('inputArea').style.opacity = ''; $('minBtn').style.opacity = '';
+            document.body.classList.remove('expanding'); $('stack').style.padding = '';
+            setTimeout(() => { sheet.style.transition = ''; }, animate ? 520 : 0);
+            grow = 0;
+        }
+        window.__resetSheet = () => reset(false);
+        async function expandAndOpen() {
+            haptic('success');
+            const ae = document.activeElement; if (ae && ae.blur) ae.blur();            // the keyboard goes away gracefully
+            document.body.classList.add('expanding');                                    // the sheet flush with the screen edges
+            sheet.style.transition = 'height .5s var(--spring), border-radius .4s ease, box-shadow .3s ease';
+            paint(1); sheet.style.height = '100vh';   // tracks the real screen height as the keyboard finishes closing
+            await new Promise((ok) => setTimeout(ok, 460));
+            openAppWithChat();
+        }
+        grab.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; base = sheet.offsetHeight; sheet.style.transition = 'none'; try { grab.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } });
+        grab.addEventListener('pointermove', (e) => {
+            if (y0 == null) return;
+            dy = e.clientY - y0;
+            if (dy < 0) { sheet.style.transform = ''; paint(Math.min(1, -dy / Math.max(220, reach() * 0.35))); }
+            else { if (grow) paint(0); sheet.style.transform = 'translateY(' + Math.min(dy, 90) + 'px)'; }
+        });
+        const end = () => {
+            if (y0 == null) return; const d = dy; y0 = null;
+            if (grow > 0.28 || d < -110) { expandAndOpen(); return; }
+            reset(true);
+            if (d > 70) minimize();
+        };
         grab.addEventListener('pointerup', end); grab.addEventListener('pointercancel', end);
     })();
     function minimize() {

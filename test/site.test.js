@@ -310,3 +310,10 @@ test('the AI reply reveal animation never leaves a clip on the message (the avat
     const panel = pub('assistant.html');
     assert.match(panel, /\.msg\.reveal \{ animation: kwMsgL \.42s var\(--spring\) both, kwReveal \.8s cubic-bezier\(\.2,\.8,\.2,1\) backwards;/);
 });
+
+test('pulling the handle up grows the sheet to the full screen, drops the keyboard, then opens the app', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /async function expandAndOpen/); assert.match(panel, /ae\.blur\(\)/);
+    assert.match(panel, /body\.expanding \.sheet/); assert.match(panel, /sheet\.style\.height = '100vh'/);
+    assert.match(panel, /window\.__resetSheet/);   // a fresh open is back to normal size
+});
