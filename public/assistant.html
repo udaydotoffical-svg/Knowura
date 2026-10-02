@@ -462,7 +462,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (attachCtl && attachCtl.busy()) { KnowuraAttach.toast('Still reading your files, one moment...'); return; }
         stopSpeaking();
         const html = (atts.length ? KnowuraAttach.bubbleHTML(atts) : '') + userHTML(text);
-        el.value = ''; if (attachCtl) attachCtl.take(); autosize(); busy = true; setSend();
+        el.value = ''; store('knowura_assistant_draft', null); if (attachCtl) attachCtl.take(); autosize(); busy = true; setSend();
         const sb = $('sendBtn'); sb.classList.remove('fly'); void sb.offsetWidth; sb.classList.add('fly'); haptic('tick');
         addBubble(html, 'user');
         chat.messages.push({ text: html, type: 'user' });
@@ -537,7 +537,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         const q = e.target.closest('.suggest button'); if (!q || busy) return;
         $('userInput').value = q.dataset.q + ': '; setSend(); $('userInput').focus();
     });
-    $('userInput').addEventListener('input', setSend);
+    $('userInput').addEventListener('input', () => { setSend(); store('knowura_assistant_draft', $('userInput').value || null); });
     $('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); } });
     $('sendBtn').addEventListener('click', () => {
         if (busy) { if (ctrl) ctrl.abort(); return; }
@@ -880,12 +880,31 @@ function showAlert(message) { window.__note && window.__note(message); }
         linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true);
     };
     window.knowuraHidden = () => { endCall(); stopSpeaking(); };
+    // Files picked in Android's gallery / file manager / camera come back through the app, which serves them at /__kw_file/N
+    // (the panel can be a brand new window by then). Fetch them, attach them, and tell Android they were received.
+    window.knowuraPicked = async (n) => {
+        const files = [];
+        for (let i = 0; i < n; i++) {
+            try {
+                const r = await fetch('/__kw_file/' + i, { cache: 'no-store' });
+                if (!r.ok) continue;
+                const b = await r.blob();
+                let name = 'file-' + (i + 1); try { name = decodeURIComponent(r.headers.get('X-Kw-Name') || name); } catch (e) { /* keep the generic name */ }
+                files.push(new File([b], name, { type: b.type || r.headers.get('Content-Type') || '' }));
+            } catch (e) { /* skip one that failed */ }
+        }
+        if (bridge && bridge.pickedDone) { try { bridge.pickedDone(); } catch (e) { /* gone */ } }
+        if (view !== 'text') showText(false);
+        $('textView').hidden = false; $('minBtn').hidden = false;
+        if (files.length) attachCtl.add(files); else if (n > 0) toast('Couldn\'t read that file. Try again.', true);
+    };
     window.knowuraNeedMic = () => { showMicCard(true); status('Microphone needed'); };
 
     // first paint
     playEnter();
     linkReady = refreshLink();
     restore(); renderAcct(); orb('idle');
+    { const d = load('knowura_assistant_draft') || (() => { try { return localStorage.getItem('knowura_assistant_draft'); } catch (e) { return null; } })(); if (typeof d === 'string' && d && !$('userInput').value) { $('userInput').value = d; setSend(); } }
     if (!bridge) startCall(true); // in a normal browser tab, begin listening right away
     window.__kw = { showText, showVoice, openAppWithChat, exportChat, get chat() { return chat; } }; // for tests
 })();

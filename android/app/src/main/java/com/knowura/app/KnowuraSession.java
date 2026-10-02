@@ -22,13 +22,19 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The floating assistant panel. It shows https://knowura.vercel.app/assistant (Knowura's own UI) in a
@@ -40,12 +46,15 @@ public class KnowuraSession extends VoiceInteractionSession {
 
     private static WeakReference<KnowuraSession> current = new WeakReference<>(null);
     private static ValueCallback<Uri[]> pendingFiles;
+    private static volatile boolean resumeNext;   // the next show() is a return from the picker / permission screen, not a fresh open
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private WebView web;
     private boolean pageFailed;
     private boolean showing;
     private boolean resuming;
+    private boolean pageReady;   // the page has finished loading, so its hooks (knowuraShown ...) exist
     private long loadedAt;   // when the panel's page last finished loading; an old one is reloaded on open so deploys always show
     private volatile NativeMic mic;
 
@@ -90,8 +99,32 @@ public class KnowuraSession extends VoiceInteractionSession {
             @Override
             public void onPageFinished(WebView view, String url) {
                 loadedAt = System.currentTimeMillis();
+                pageReady = true;
                 // the panel can be opened before the page has loaded; start it as soon as it has
-                if (showing) callShown();
+                if (showing) {
+                    callShown();
+                    deliverPicked();
+                }
+            }
+
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                Uri u = request.getUrl();
+                if (HOST.equals(u.getHost()) && u.getPath() != null && u.getPath().startsWith("/__kw_file/")) {
+                    try {
+                        PickedFiles.Item it = PickedFiles.get(Integer.parseInt(u.getLastPathSegment()));
+                        if (it != null) {
+                            Map<String, String> h = new HashMap<>();
+                            h.put("X-Kw-Name", Uri.encode(it.name));
+                            h.put("Cache-Control", "no-store");
+                            return new WebResourceResponse(it.mime, null, 200, "OK", h, new FileInputStream(it.file));
+                        }
+                    } catch (Exception ignored) {
+                        // falls through to 404
+                    }
+                    return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", new HashMap<>(), new ByteArrayInputStream(new byte[0]));
+                }
+                return super.shouldInterceptRequest(view, request);
             }
 
             @Override
@@ -112,7 +145,7 @@ public class KnowuraSession extends VoiceInteractionSession {
                 pick.putExtra("images", imagesOnly);
                 pick.putExtra("capture", params.isCaptureEnabled());   // <input capture>: open the phone's camera app
                 if (openExternal(pick)) {
-                    // the panel's window sits above the camera app, gallery and file manager, so step aside; deliverFiles() brings it back (with the files, or as it was if cancelled)
+                    // the panel's window sits above the camera app, gallery and file manager, so step aside; filesPicked() brings it back (with the files, or as it was if cancelled)
                     main.postDelayed(() -> {
                         try {
                             hide();
@@ -152,14 +185,20 @@ public class KnowuraSession extends VoiceInteractionSession {
         super.onShow(args, showFlags);
         showing = true;
         current = new WeakReference<>(this);
+        boolean resume = resumeNext;
+        resumeNext = false;
+        if (resume) resuming = true;
         if (web == null) return;
         boolean stale = !resuming && loadedAt > 0 && System.currentTimeMillis() - loadedAt > 5 * 60 * 1000L;
         if (pageFailed || stale) {
             pageFailed = false;
+            pageReady = false;
             web.loadUrl(ASSISTANT_URL);   // revalidates with the server, so the newest deploy shows up
             return; // onPageFinished starts it
         }
+        if (!pageReady) return;   // still loading: onPageFinished starts it
         callShown();
+        deliverPicked();
     }
 
     private void callShown() {
@@ -168,19 +207,39 @@ public class KnowuraSession extends VoiceInteractionSession {
         if (web != null) web.evaluateJavascript("window.knowuraShown&&window.knowuraShown(" + hasMic() + "," + again + ")", null);
     }
 
-    /** Result of the file picker: hand the files to the page and bring the panel back (as it was, not reset). */
-    static void deliverFiles(Uri[] uris) {
+    /** Tells the page that files are waiting; it fetches them from /__kw_file/N and calls pickedDone() when it has them. */
+    private void deliverPicked() {
+        int n = PickedFiles.count();
+        if (n > 0 && web != null) web.evaluateJavascript("window.knowuraPicked&&window.knowuraPicked(" + n + ")", null);
+    }
+
+    /** Result of the picker or camera (empty if cancelled): keep the files, finish the web view's chooser, bring the panel back. */
+    static void filesPicked(List<PickedFiles.Item> items) {
+        PickedFiles.set(items);
         ValueCallback<Uri[]> cb = pendingFiles;
         pendingFiles = null;
-        if (cb != null) cb.onReceiveValue(uris);
-        final KnowuraSession s = current.get();
-        if (s == null) return;
-        s.main.post(() -> {
-            s.resuming = true;
+        if (cb != null) {
             try {
-                s.show(null, 0);
+                cb.onReceiveValue(null);   // the files travel through /__kw_file/N instead, which survives a new window
             } catch (RuntimeException ignored) {
-                s.resuming = false;
+                // the old web view is gone
+            }
+        }
+        reopen(true);
+    }
+
+    /** Brings the panel back on screen after another screen (picker, camera, permission prompt) has closed. */
+    static void reopen(boolean resume) {
+        resumeNext = resume;
+        MAIN.post(() -> {
+            if (KnowuraInteractionService.showPanel()) return;
+            KnowuraSession s = current.get();
+            if (s != null) {
+                try {
+                    s.show(null, 0);
+                } catch (RuntimeException ignored) {
+                    // the session is gone
+                }
             }
         });
     }
@@ -248,17 +307,9 @@ public class KnowuraSession extends VoiceInteractionSession {
 
     /** Called when the microphone prompt closes: bring the panel back and let the page start listening. */
     static void permissionDone() {
-        final KnowuraSession s = current.get();
-        if (s == null) return;
-        s.main.post(() -> {
-            s.resuming = false;
-            try {
-                s.show(null, 0);
-            } catch (RuntimeException ignored) {
-                // the panel was closed meanwhile
-            }
-        });
+        reopen(false);
     }
+
 
     /** Methods the page can call. They arrive on a WebView thread, so everything hops to the main thread. */
     private class Bridge {
@@ -292,6 +343,11 @@ public class KnowuraSession extends VoiceInteractionSession {
         public void micArm(boolean on) {
             NativeMic m = mic;
             if (m != null) m.arm(on);
+        }
+
+        @JavascriptInterface
+        public void pickedDone() {
+            PickedFiles.clear();
         }
 
         @JavascriptInterface

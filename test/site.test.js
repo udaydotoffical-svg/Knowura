@@ -278,3 +278,16 @@ test('the assistant panel shows which build it is running', () => {
     const panel = pub('assistant.html');
     assert.match(panel, /id="buildTag"/); assert.match(panel, /'build ' \+/);
 });
+
+test('files picked for the assistant panel survive the picker: copied to app storage, panel re-shown through the service, page fetches them', () => {
+    const dir = path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app');
+    const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
+    assert.match(read('PickedFiles.java'), /copyIn\(/);
+    assert.match(read('FilePickActivity.java'), /PickedFiles\.copyIn/); assert.match(read('FilePickActivity.java'), /KnowuraSession\.filesPicked/);
+    assert.match(read('KnowuraInteractionService.java'), /showSession\(null, 0\)/);
+    const s = read('KnowuraSession.java');
+    assert.match(s, /shouldInterceptRequest/); assert.match(s, /\/__kw_file\//); assert.match(s, /static void reopen\(/); assert.match(s, /public void pickedDone\(\)/);
+    assert.match(s, /if \(!pageReady\) return;/);
+    const panel = pub('assistant.html');
+    assert.match(panel, /window\.knowuraPicked/); assert.match(panel, /\/__kw_file\//); assert.match(panel, /bridge\.pickedDone/);
+});
