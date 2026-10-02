@@ -404,8 +404,8 @@ public class KnowuraSession extends VoiceInteractionSession {
         public void openApp(final String path) {
             final String safe = path != null && path.startsWith("/") && !path.startsWith("//") ? path : "/";
             main.post(() -> {
-                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://" + HOST + safe));
-                i.setPackage(getContext().getPackageName());
+                // through a tiny hop screen that starts the app in a normal task (not parked in the assistant's stack)
+                Intent i = new Intent(getContext(), OpenAppActivity.class).setData(Uri.parse("https://" + HOST + safe));
                 // keep the full-screen panel up while the app launches, then step aside once it is on screen, so the app
                 // never shows half-loaded behind the panel
                 if (openExternal(i)) hideAfter(550);
