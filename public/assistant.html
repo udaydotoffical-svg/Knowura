@@ -296,6 +296,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     const native = /KnowuraAssistant/.test(navigator.userAgent) || location.search.includes('native=1');
     const bridge = native && window.KnowuraNative ? window.KnowuraNative : null;
     if (native) document.body.classList.add('native');
+    const canBubble = !!(bridge && typeof bridge.minimize === 'function');   // newer Android app: Minimize turns the panel into a floating bubble
 
     // ── identity: the same stored sign-in the app uses (shared in a browser; the phone panel has its own) ──
     const load = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
@@ -338,7 +339,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     function pop(el) { if (!el) return; el.classList.remove('view-in'); void el.offsetWidth; el.classList.add('view-in'); }
     function showVoice() {
         view = 'voice'; pop($('voiceView'));
-        $('voiceView').classList.add('open'); $('textView').hidden = true; $('inputArea').hidden = true; $('minBtn').hidden = true;
+        $('voiceView').classList.add('open'); $('textView').hidden = true; $('inputArea').hidden = true; $('minBtn').hidden = !canBubble;
     }
     function showText(focus) {
         endCall();
@@ -831,7 +832,11 @@ function showAlert(message) { window.__note && window.__note(message); }
         const end = () => { if (y0 == null) return; const d = dy; y0 = null; sheet.style.transition = 'transform .6s var(--spring), max-height .22s ease'; sheet.style.transform = ''; setTimeout(() => { sheet.style.transition = ''; }, 650); if (d < -55) openAppWithChat(); else if (d > 70) minimize(); };
         grab.addEventListener('pointerup', end); grab.addEventListener('pointercancel', end);
     })();
-    function minimize() { stopSpeaking(); $('textView').hidden = true; $('minBtn').hidden = true; }
+    function minimize() {
+        stopSpeaking();
+        if (canBubble) { endCall(); persist(); bridge.minimize(); return; }   // floating bubble over other apps
+        $('textView').hidden = true; $('minBtn').hidden = true;
+    }
     $('minBtn').addEventListener('click', minimize);
     $('newBtn').addEventListener('click', () => { newChat(); $('userInput').focus(); });
     $('scrim').addEventListener('click', closePanel);

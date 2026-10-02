@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.service.voice.VoiceInteractionSession;
 import android.util.Base64;
 import android.view.View;
@@ -183,6 +184,7 @@ public class KnowuraSession extends VoiceInteractionSession {
     @Override
     public void onShow(Bundle args, int showFlags) {
         super.onShow(args, showFlags);
+        BubbleService.hide();   // the panel is back, so the minimised bubble goes away
         showing = true;
         current = new WeakReference<>(this);
         boolean resume = resumeNext;
@@ -261,6 +263,17 @@ public class KnowuraSession extends VoiceInteractionSession {
             web = null;
         }
         super.onDestroy();
+    }
+
+    /** The panel's window sits above other screens, so it steps aside a moment after another screen has been started. */
+    private void hideSoon() {
+        main.postDelayed(() -> {
+            try {
+                hide();
+            } catch (RuntimeException ignored) {
+                // already hidden
+            }
+        }, 150);
     }
 
     private void stopMic() {
@@ -343,6 +356,19 @@ public class KnowuraSession extends VoiceInteractionSession {
         public void micArm(boolean on) {
             NativeMic m = mic;
             if (m != null) m.arm(on);
+        }
+
+        /** Minimise to a floating bubble over other apps. Asks once for "Display over other apps" if it isn't allowed yet. */
+        @JavascriptInterface
+        public void minimize() {
+            main.post(() -> {
+                if (!Settings.canDrawOverlays(getContext())) {
+                    if (openExternal(new Intent(getContext(), OverlayPermissionActivity.class))) hideSoon();
+                    return;
+                }
+                BubbleService.show(getContext());
+                hide();
+            });
         }
 
         @JavascriptInterface

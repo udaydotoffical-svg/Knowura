@@ -291,3 +291,16 @@ test('files picked for the assistant panel survive the picker: copied to app sto
     const panel = pub('assistant.html');
     assert.match(panel, /window\.knowuraPicked/); assert.match(panel, /\/__kw_file\//); assert.match(panel, /bridge\.pickedDone/);
 });
+
+test('Minimize turns the assistant into a floating bubble over other apps (overlay permission, no accessibility)', () => {
+    const dir = path.join(__dirname, '..', 'android/app/src/main');
+    const manifest = fs.readFileSync(path.join(dir, 'AndroidManifest.xml'), 'utf8');
+    assert.match(manifest, /SYSTEM_ALERT_WINDOW/); assert.match(manifest, /\.BubbleService/); assert.match(manifest, /\.OverlayPermissionActivity/);
+    assert.doesNotMatch(manifest, /BIND_ACCESSIBILITY_SERVICE/);
+    const bubble = fs.readFileSync(path.join(dir, 'java/com/knowura/app/BubbleService.java'), 'utf8');
+    assert.match(bubble, /TYPE_APPLICATION_OVERLAY/); assert.match(bubble, /snapToEdge/); assert.match(bubble, /dismiss\(\)/);
+    const session = fs.readFileSync(path.join(dir, 'java/com/knowura/app/KnowuraSession.java'), 'utf8');
+    assert.match(session, /public void minimize\(\)/); assert.match(session, /Settings\.canDrawOverlays/); assert.match(session, /BubbleService\.hide\(\)/);
+    const panel = pub('assistant.html');
+    assert.match(panel, /typeof bridge\.minimize === 'function'/); assert.match(panel, /bridge\.minimize\(\)/);
+});
