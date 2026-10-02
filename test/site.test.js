@@ -317,3 +317,11 @@ test('pulling the handle up grows the sheet to the full screen, drops the keyboa
     assert.match(panel, /body\.expanding \.sheet/); assert.match(panel, /sheet\.style\.height = '100vh'/);
     assert.match(panel, /window\.__resetSheet/);   // a fresh open is back to normal size
 });
+
+test('the call buttons are equal in size and share one shadow direction; no glow halos; build tag hidden by default', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /#voiceView \.call-controls \.mic-btn \{ width: 64px; height: 64px;/);
+    assert.match(panel, /\.mic-btn\.end-call svg \{ transform: rotate\(135deg\); \}/);
+    assert.doesNotMatch(panel, /kwEdge/); assert.doesNotMatch(panel, /0 0 \d+px -\d+px rgba/);
+    assert.match(panel, /\.build-tag \{ display: none;/);
+});

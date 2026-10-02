@@ -68,10 +68,16 @@
         @keyframes kwWave { 0%, 100% { transform: scaleY(.2); } 50% { transform: scaleY(calc(.35 + var(--k, 1) * .55)); } }
         @keyframes kwDot { 0%, 100% { transform: scaleY(.14); opacity: .5; } 50% { transform: scaleY(.5); opacity: 1; } }
 
-        #voiceView .call-controls .mic-btn { transition: transform .25s var(--spring), box-shadow .15s ease, background .2s ease, color .2s ease; }
-        #voiceView .call-controls .mic-btn:active { transform: scale(.9); }
-        .mic-card { animation: kwView .5s var(--spring) both, kwEdge 2.4s ease-in-out infinite .5s; }
-        @keyframes kwEdge { 0%, 100% { box-shadow: 0 0 22px -8px rgba(34,229,255,.4); } 50% { box-shadow: 0 0 36px -4px rgba(34,229,255,.85); } }
+        /* the three call buttons are the same size and share one shadow direction (down-right) */
+        #voiceView .call-controls { align-items: center; gap: 18px; }
+        #voiceView .call-controls .mic-btn { width: 64px; height: 64px; min-width: 64px; padding: 0; font-size: 16px; display: grid; place-items: center; box-shadow: 4px 4px 0 var(--ink); transform: none; transition: transform .15s ease, box-shadow .15s ease, background .2s ease, color .2s ease; }
+        #voiceView .call-controls .mic-btn:hover { transform: none; box-shadow: 4px 4px 0 var(--ink); }
+        #voiceView .call-controls .mic-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+        #voiceView .call-controls .mic-btn.end-call { transform: none; }                    /* only the phone glyph is rotated, so the shadow never turns with it */
+        #voiceView .call-controls .mic-btn.end-call:active { transform: translate(3px, 3px); }
+        #voiceView .call-controls .mic-btn.end-call svg { transform: rotate(135deg); }
+        #voiceView .call-controls .mic-btn svg { width: 26px; height: 26px; }
+        .mic-card { animation: kwView .5s var(--spring) both; }
         .live-status.pop-text { animation: kwText .3s ease-out both; }
         @keyframes kwText { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         @keyframes kwRise { from { opacity: 0; transform: translateY(60px) scale(.95); } to { opacity: 1; transform: none; } }
@@ -97,7 +103,7 @@
         /* ── voice mode: solid, deep panel with a neon edge; the orb breathes with your voice ── */
         #voiceView.live-panel {
             position: relative; inset: auto; z-index: 1; height: min(68vh, 560px); padding: 16px; overflow: hidden;
-            border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg), 0 0 0 1px rgba(34,229,255,.18), 0 0 46px -8px rgba(34,229,255,.35);
+            border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg);
             backdrop-filter: none; -webkit-backdrop-filter: none;
             background: radial-gradient(80% 55% at 50% 38%, rgba(34,229,255,.16), transparent 70%), linear-gradient(180deg, #060b1c, #03060f);
         }
@@ -117,7 +123,7 @@
         .acct-voice { position: absolute; top: 14px; left: 14px; }
         .mic-card {
             position: relative; z-index: 2; display: grid; gap: 10px; justify-items: center; text-align: center; max-width: 92%;
-            padding: 14px 16px; border: 2.5px solid var(--cyan); border-radius: 18px; background: #08142f; box-shadow: 0 0 28px -6px rgba(34,229,255,.55);
+            padding: 14px 16px; border: 2.5px solid var(--cyan); border-radius: 18px; background: #08142f; box-shadow: var(--shadow-sm);
         }
         .mic-card p { font-size: 13px; line-height: 1.5; color: var(--text-dim); }
         .mic-card .btn-ui { justify-content: center; }
@@ -127,7 +133,7 @@
 
         /* ── text chat: a solid sheet holding the app's own message bubbles ── */
         .sheet {
-            background: linear-gradient(180deg, #0b1633, #070d22); border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg), 0 0 40px -10px rgba(77,119,255,.4);
+            background: linear-gradient(180deg, #0b1633, #070d22); border: 3px solid var(--ink); border-radius: 26px; box-shadow: var(--shadow-lg);
             display: flex; flex-direction: column; max-height: var(--sheetMax, 60vh); overflow: hidden; touch-action: pan-y; transition: max-height .22s cubic-bezier(.2,.9,.3,1);
         }
         .sheet-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 10px 0; flex: none; }
@@ -159,22 +165,23 @@
 
         /* a quick message that tells you what just happened (copied, shared, couldn't open...) */
         .kb-open #minBtn { display: none; }
+        body.debug .build-tag { display: block; }
         body.expanding .stack { padding: 0 !important; gap: 0; bottom: 0 !important; }
         body.expanding .sheet { border-width: 0; width: 100%; }
         body.expanding #inputArea, body.expanding #minBtn { display: none; }   /* already faded out while pulling; frees the space so the sheet sits flush with the top edge */
         body.expanding .scrim { background: #070d22; transition: background .4s ease; }
-        .build-tag { position: fixed; left: 50%; top: calc(4px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 5; font: 600 10px/1 ui-monospace, monospace; color: rgba(143,166,204,.75); letter-spacing: .4px; pointer-events: none; text-shadow: 0 1px 2px #000; }
+        .build-tag { display: none; position: fixed; left: 50%; top: calc(4px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 5; font: 600 10px/1 ui-monospace, monospace; color: rgba(143,166,204,.75); letter-spacing: .4px; pointer-events: none; text-shadow: 0 1px 2px #000; }
         .kw-toast {
             position: fixed; left: 50%; top: calc(18px + env(safe-area-inset-top)); z-index: 900; max-width: min(92vw, 420px); padding: 11px 16px;
             border: 2.5px solid var(--ink); border-radius: 14px; background: #0d1a3a; color: var(--text); font-size: 14px; font-weight: 700; text-align: center;
-            box-shadow: var(--shadow-sm), 0 0 26px -6px rgba(34,229,255,.55); transform: translate(-50%, -150%); transition: transform .5s var(--spring); overflow: hidden; pointer-events: none;
+            box-shadow: var(--shadow-sm); transform: translate(-50%, -150%); transition: transform .5s var(--spring); overflow: hidden; pointer-events: none;
         }
         .kw-toast::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--cyan); transform-origin: left; transform: scaleX(0); }
         .kw-toast.bad::after { background: #ff3057; }
         .kw-toast.show { transform: translate(-50%, 0); }
         .kw-toast.show::after { animation: kwBar 2.2s linear forwards; }
         @keyframes kwBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-        .kw-toast.bad { border-color: #ff3057; box-shadow: var(--shadow-sm), 0 0 26px -6px rgba(255,48,87,.6); }
+        .kw-toast.bad { border-color: #ff3057; }
         @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; transition-duration: .01s !important; } }
     </style>
 </head>
@@ -300,6 +307,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     const native = /KnowuraAssistant/.test(navigator.userAgent) || location.search.includes('native=1');
     const bridge = native && window.KnowuraNative ? window.KnowuraNative : null;
     if (native) document.body.classList.add('native');
+    if (location.search.includes('debug=1')) document.body.classList.add('debug');   // shows the build tag
     const canBubble = !!(bridge && typeof bridge.minimize === 'function');   // newer Android app: Minimize turns the panel into a floating bubble
 
     // ── identity: the same stored sign-in the app uses (shared in a browser; the phone panel has its own) ──
