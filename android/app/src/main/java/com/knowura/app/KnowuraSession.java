@@ -267,13 +267,17 @@ public class KnowuraSession extends VoiceInteractionSession {
 
     /** The panel's window sits above other screens, so it steps aside a moment after another screen has been started. */
     private void hideSoon() {
+        hideAfter(150);
+    }
+
+    private void hideAfter(long ms) {
         main.postDelayed(() -> {
             try {
                 hide();
             } catch (RuntimeException ignored) {
                 // already hidden
             }
-        }, 150);
+        }, ms);
     }
 
     private void stopMic() {
@@ -402,7 +406,9 @@ public class KnowuraSession extends VoiceInteractionSession {
             main.post(() -> {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://" + HOST + safe));
                 i.setPackage(getContext().getPackageName());
-                if (openExternal(i)) hide();
+                // keep the full-screen panel up while the app launches, then step aside once it is on screen, so the app
+                // never shows half-loaded behind the panel
+                if (openExternal(i)) hideAfter(550);
             });
         }
 

@@ -325,3 +325,10 @@ test('the call buttons are equal in size and share one shadow direction; no glow
     assert.doesNotMatch(panel, /kwEdge/); assert.doesNotMatch(panel, /0 0 \d+px -\d+px rgba/);
     assert.match(panel, /\.build-tag \{ display: none;/);
 });
+
+test('opening the app from the panel is quick and clean: no cloud wait after the pull-up, panel stays until the app is up', () => {
+    const panel = pub('assistant.html');
+    assert.match(panel, /openAppWithChat\(true\)/); assert.match(panel, /async function openAppWithChat\(fast\)/);
+    const java = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/KnowuraSession.java'), 'utf8');
+    assert.match(java, /hideAfter\(550\)/); assert.match(java, /private void hideAfter\(long ms\)/);
+});
