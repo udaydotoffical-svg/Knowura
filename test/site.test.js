@@ -383,3 +383,13 @@ test('desktop hotkeys: Alt+Space opens the text box, Ctrl+Space opens voice mode
     assert.match(panel, /window\.knowuraMode = /); assert.match(panel, /async \(hasMic, resume, mode\)/); assert.match(panel, /startMode === 'text'/);
     assert.match(panel, /get view\(\)/);
 });
+
+test('desktop file handoff hooks reuse the composer path and stay desktop-only', () => {
+    const panel = pub('assistant.html');
+    for (const n of ['knowuraAttachBegin', 'knowuraAttachChunk', 'knowuraAttachEnd', 'knowuraAttach'])
+        assert.match(panel, new RegExp('window\\.' + n + ' = '));
+    assert.match(panel, /window\.knowuraReady = true/);
+    assert.match(panel, /document\.body\.classList\.contains\('desktop'\)/);
+    assert.match(panel, /attachCtl\.add\(\[file\]\)/);
+    assert.match(panel, /get attachments\(\)/);
+});

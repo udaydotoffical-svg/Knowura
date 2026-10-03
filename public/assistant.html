@@ -323,6 +323,79 @@ function showAlert(message) { window.__note && window.__note(message); }
     if (location.search.includes('transparent=1')) document.body.classList.add('transparent');   // the Windows window is see-through: nothing but the panel card is drawn
     const canBubble = !!(bridge && typeof bridge.minimize === 'function');   // newer Android app: Minimize turns the panel into a floating bubble
 
+    // ── desktop file handoff: the Coucou desktop app hands a file over in chunks and it lands in the composer as if the
+    // user had picked it with "+" (same code path: attachCtl.add), on the text view with the microphone off. Never sends.
+    //   knowuraAttachBegin({ id, name, type, size }) -> boolean
+    //   knowuraAttachChunk(id, base64Piece)           -> boolean   (plain base64, ~256 KB of raw bytes)
+    //   knowuraAttachEnd(id)                          -> Promise<boolean>   (poll __kw.attachments / __kw.lastAttach)
+    //   knowuraAttach({ name, type, size, data })     -> Promise<boolean>   (small files, one call)
+    //   knowuraReady                                  -> true once the four hooks above exist
+    // Only exists in the desktop app (body.desktop). These are plain page-local functions: nothing here is reachable from other
+    // sites, and a transfer only ever adds a file to the tray, like the user choosing it.
+    let attachResolve; const attachReady = new Promise((ok) => { attachResolve = ok; });   // resolved once the composer's attachment controller exists
+    let lastAttach = null;
+    if (document.body.classList.contains('desktop')) {
+        const transfers = new Map(), MAX_TRANSFERS = 4, STALE_MS = 60 * 1000;
+        const prune = () => { const now = Date.now(); for (const [k, t] of transfers) if (now - t.at > STALE_MS) transfers.delete(k); };   // stray or half-finished transfers expire
+        const tooBig = async (name, size) => {   // the same message the "+" button shows for an oversized file
+            let msg = String(name) + ' is too big. The limit is ' + Math.round(KnowuraAttach.limits.maxFileBytes / (1024 * 1024)) + ' MB.';
+            try { await KnowuraAttach.process({ name: String(name), size }); } catch (e) { if (e && e.friendly) msg = e.message; }
+            return msg;
+        };
+        window.knowuraAttachBegin = (info) => {
+            prune();
+            try {
+                const id = info && typeof info.id === 'string' ? info.id.slice(0, 80) : '';
+                const size = Number(info && info.size);
+                if (!id || !isFinite(size) || size < 0) return false;
+                if (size > KnowuraAttach.limits.maxFileBytes) { tooBig(info.name, size).then((m) => KnowuraAttach.toast(m)); return false; }
+                if (!transfers.has(id) && transfers.size >= MAX_TRANSFERS) return false;
+                transfers.set(id, { name: String(info.name || 'file').slice(0, 200), type: String(info.type || '').slice(0, 100), size, got: 0, parts: [], at: Date.now() });
+                return true;
+            } catch (e) { return false; }
+        };
+        window.knowuraAttachChunk = (id, b64) => {
+            prune();
+            const t = transfers.get(id);
+            if (!t || typeof b64 !== 'string') return false;
+            try {
+                const bin = atob(b64), bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                if (t.got + bytes.length > t.size) { transfers.delete(id); return false; }   // more bytes than declared: drop the transfer
+                t.parts.push(bytes); t.got += bytes.length; t.at = Date.now();
+                return true;
+            } catch (e) { transfers.delete(id); return false; }
+        };
+        window.knowuraAttachEnd = async (id) => {
+            prune();
+            const t = transfers.get(id);
+            transfers.delete(id);
+            const done = (ok, error) => { lastAttach = { id, ok, error: error || null }; return ok; };
+            if (!t) return done(false, 'unknown transfer');
+            if (t.got !== t.size) { KnowuraAttach.toast('That file didn\'t arrive completely. Try again.'); t.parts = null; return done(false, 'incomplete'); }
+            try {
+                const file = new File(t.parts, t.name, { type: t.type });
+                t.parts = null;   // free the buffer either way
+                await Promise.race([attachReady, new Promise((ok) => setTimeout(ok, 5000))]);
+                if (!attachCtl) return done(false, 'composer not ready');
+                if (view !== 'text') { endCall(); showText(true); }                 // text view, microphone off (same as knowuraMode('text'))
+                $('textView').hidden = false; $('minBtn').hidden = false;
+                const before = attachCtl.count();
+                await attachCtl.add([file]);                                       // the exact path "+", paste and drop use: validation, limits, errors, tray
+                $('userInput').focus();
+                return done(attachCtl.count() > before, attachCtl.count() > before ? null : 'not accepted');
+            } catch (e) { t.parts = null; return done(false, 'failed'); }
+        };
+        window.knowuraAttach = async (f) => {
+            if (!f || typeof f.data !== 'string') return false;
+            const id = 'one-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            if (!window.knowuraAttachBegin({ id, name: f.name, type: f.type, size: f.size })) return false;
+            if (!window.knowuraAttachChunk(id, f.data)) return false;
+            return window.knowuraAttachEnd(id);
+        };
+        window.knowuraReady = true;
+    }
+
     // ── identity: the same stored sign-in the app uses (shared in a browser; the phone panel has its own) ──
     const load = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
     const store = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { /* storage blocked */ } };
@@ -581,6 +654,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     attachCtl = KnowuraAttach.mount({
         input: $('userInput'), drop: $('textView'), bar: $('attBar'), transcribe: transcribeFile, onChange: () => setSend()
     });
+    attachResolve();   // the desktop file handoff can now feed the composer
     $('attachBtn').addEventListener('click', () => { if ($('textView').hidden) { $('textView').hidden = false; $('minBtn').hidden = false; } attachCtl.pick(); });
 
     // ── voice mode: the app's hands-free call loop (listen → transcribe → answer → speak) ──
@@ -990,7 +1064,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (desk) showVoice();          // desktop popup: voice view with the Minimize chip from the start
         if (!bridge) startCall(true); // in a normal browser tab, begin listening right away
     }
-    window.__kw = { showText, showVoice, openAppWithChat, exportChat, get view() { return view; }, get chat() { return chat; } }; // for tests
+    window.__kw = { showText, showVoice, openAppWithChat, exportChat, get view() { return view; }, get attachments() { return attachCtl ? attachCtl.count() : 0; }, get lastAttach() { return lastAttach; }, get chat() { return chat; } }; // for tests
 })();
 </script>
 </body>
