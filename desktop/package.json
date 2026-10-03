@@ -1,6 +1,6 @@
 {
   "name": "knowura-desktop",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "description": "Knowura assistant for Windows: a small tray app that pops up with a hotkey.",
   "main": "main.js",

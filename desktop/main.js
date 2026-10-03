@@ -9,12 +9,14 @@ const path = require('path');
 const fs = require('fs');
 
 const HOST = 'knowura.vercel.app';
-const assistantUrl = () => `https://${HOST}/assistant?desktop=1${prefs.transparent ? '&transparent=1' : ''}`;
+const assistantUrl = (mode) => `https://${HOST}/assistant?desktop=1&mode=${mode === 'text' ? 'text' : 'voice'}${prefs.transparent ? '&transparent=1' : ''}`;
 const IDLE_DESTROY_MS = 2 * 60 * 1000;
 const PARTITION = 'persist:knowura';
-const SHORTCUTS = ['Alt+Space', 'Control+Alt+K'];   // first one that Windows lets us have
+// the first combo of each pair that Windows lets us have: text box, and voice
+const HOTKEYS = { text: ['Alt+Space', 'Control+Alt+K'], voice: ['Control+Space', 'Control+Alt+V'] };
 
-let tray = null, panel = null, full = null, idleTimer = null, activeShortcut = null, quitting = false;
+let tray = null, panel = null, full = null, idleTimer = null, quitting = false;
+const active = { text: null, voice: null };
 let prefs = { autoStart: false, hideOnBlur: false, transparent: true };
 const prefsFile = () => path.join(app.getPath('userData'), 'prefs.json');
 
@@ -40,7 +42,7 @@ app.commandLine.appendSwitch('no-pings');
 if (!app.requestSingleInstanceLock()) {
     app.quit();
 } else {
-    app.on('second-instance', () => showPanel());
+    app.on('second-instance', () => showPanel('text'));
 }
 
 // ── what the website is allowed to do: its own microphone, nothing else ──
@@ -91,7 +93,7 @@ function placePanel() {
     panel.setPosition(Math.round(wa.x + wa.width - w - 16), Math.round(wa.y + wa.height - h - 16));
 }
 
-function createPanel() {
+function createPanel(mode) {
     const wa = screen.getPrimaryDisplay().workArea;
     const w = 440, h = Math.min(720, wa.height - 32);
     panel = new BrowserWindow({
@@ -108,18 +110,20 @@ function createPanel() {
     panel.on('blur', () => { if (prefs.hideOnBlur && panel && panel.isVisible() && !panel.webContents.isDevToolsOpened()) hidePanel(); });
     panel.on('closed', () => { panel = null; });
     panel.webContents.on('render-process-gone', () => { if (panel) { panel.destroy(); panel = null; } });
-    panel.loadURL(assistantUrl());
+    panel.loadURL(assistantUrl(mode));
 }
 
-function showPanel() {
+function showPanel(mode) {
+    mode = mode === 'voice' ? 'voice' : 'text';
     clearTimeout(idleTimer);
     const fresh = !panel;
-    if (fresh) createPanel();
+    if (fresh) createPanel(mode);
     placePanel();
     panel.show();
     panel.focus();
-    // a window that was only hidden tells the page it is back (it starts listening again); a brand new one starts itself
-    if (!fresh) panel.webContents.executeJavaScript('window.knowuraShown&&window.knowuraShown(true,false)').catch(() => {});
+    panel.webContents.focus();
+    // a window that was only hidden tells the page it is back and in which mode; a brand new one starts in that mode itself
+    if (!fresh) panel.webContents.executeJavaScript(`window.knowuraShown&&window.knowuraShown(true,false,${JSON.stringify(mode)})`).catch(() => {});
 }
 
 function hidePanel() {
@@ -133,9 +137,20 @@ function hidePanel() {
     }, IDLE_DESTROY_MS);
 }
 
-function togglePanel() {
-    if (panel && panel.isVisible() && panel.isFocused()) hidePanel(); else showPanel();
+// one hotkey per mode: hidden -> open in that mode; open in the other mode -> switch to this one; open in this mode -> hide
+async function hotkey(mode) {
+    if (panel && panel.isVisible()) {
+        let view = '';
+        try { view = await panel.webContents.executeJavaScript('window.__kw && window.__kw.view'); } catch (e) { /* page still loading */ }
+        if (view === mode && panel.isFocused()) { hidePanel(); return; }
+        panel.focus();
+        panel.webContents.focus();
+        if (view !== mode) panel.webContents.executeJavaScript(`window.knowuraMode&&window.knowuraMode(${JSON.stringify(mode)})`).catch(() => {});
+        return;
+    }
+    showPanel(mode);
 }
+const togglePanel = () => hotkey('text');   // tray click: the text box (never switches the microphone on by itself)
 
 // ── the full Knowura app in its own window (used by the pull-up in the panel) ──
 function openFull(urlPath) {
@@ -162,28 +177,33 @@ ipcMain.on('kw:hide', (e) => { if (panel && e.sender === panel.webContents) hide
 ipcMain.on('kw:openApp', (e, p) => { if (panel && e.sender === panel.webContents) openFull(p); });
 
 // ── tray + hotkey ──
-function registerShortcut() {
+function registerShortcuts() {
     globalShortcut.unregisterAll();
-    activeShortcut = null;
-    for (const combo of SHORTCUTS) {
-        try { if (globalShortcut.register(combo, togglePanel)) { activeShortcut = combo; break; } } catch (e) { /* try the next one */ }
+    for (const mode of ['text', 'voice']) {
+        active[mode] = null;
+        for (const combo of HOTKEYS[mode]) {
+            try { if (globalShortcut.register(combo, () => hotkey(mode))) { active[mode] = combo; break; } } catch (e) { /* try the next one */ }
+        }
     }
 }
+const pretty = (c) => (c || '').replace('Control', 'Ctrl');
 
 function buildTray() {
     const img = nativeImage.createFromPath(iconPath()).resize({ width: 16, height: 16 });
     tray = new Tray(img);
     const refresh = () => {
-        tray.setToolTip('Knowura' + (activeShortcut ? ` (${activeShortcut.replace('Control', 'Ctrl')})` : ''));
+        tray.setToolTip('Knowura' + (active.text || active.voice ? ` (${pretty(active.text) || '-'} text, ${pretty(active.voice) || '-'} voice)` : ''));
         tray.setContextMenu(Menu.buildFromTemplate([
-            { label: 'Open Knowura assistant', click: showPanel },
+            { label: 'Open the text box', click: () => showPanel('text') },
+            { label: 'Start voice mode', click: () => showPanel('voice') },
             { label: 'Open the full Knowura app', click: () => openFull('/') },
             { type: 'separator' },
             { label: 'Start with Windows', type: 'checkbox', checked: !!prefs.autoStart, click: (m) => { prefs.autoStart = m.checked; savePrefs(); applyAutoStart(); } },
             { label: 'Hide when I click away', type: 'checkbox', checked: !!prefs.hideOnBlur, click: (m) => { prefs.hideOnBlur = m.checked; savePrefs(); } },
             { label: 'See-through window (uses more memory while open)', type: 'checkbox', checked: !!prefs.transparent, click: (m) => { prefs.transparent = m.checked; savePrefs(); quitting = true; app.relaunch(); app.exit(0); } },
             { type: 'separator' },
-            { label: activeShortcut ? `Hotkey: ${activeShortcut.replace('Control', 'Ctrl')}` : 'Hotkey unavailable (another app uses it)', enabled: false },
+            { label: active.text ? `Text box: ${pretty(active.text)}` : 'Text hotkey unavailable (another app uses it)', enabled: false },
+            { label: active.voice ? `Voice: ${pretty(active.voice)}` : 'Voice hotkey unavailable (another app uses it)', enabled: false },
             { label: 'Quit Knowura', click: () => { quitting = true; app.quit(); } }
         ]));
     };
@@ -198,10 +218,10 @@ function applyAutoStart() {
 app.whenReady().then(() => {
     setupSession(session.fromPartition(PARTITION));
     setupSession(session.defaultSession);
-    registerShortcut();
+    registerShortcuts();
     buildTray();
     applyAutoStart();
-    if (!process.argv.includes('--hidden')) showPanel();
+    if (!process.argv.includes('--hidden')) showPanel('text');
 });
 
 // a tray app: closing every window must not quit it

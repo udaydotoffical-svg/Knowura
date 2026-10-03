@@ -374,3 +374,12 @@ test('the Windows popup is see-through by default (no black rectangle), with a t
     const panel = pub('assistant.html');
     assert.match(panel, /body\.desktop\.transparent/); assert.match(panel, /classList\.add\('transparent'\)/);
 });
+
+test('desktop hotkeys: Alt+Space opens the text box, Ctrl+Space opens voice mode, and the page honours both', () => {
+    const main = fs.readFileSync(path.join(__dirname, '..', 'desktop/main.js'), 'utf8');
+    assert.match(main, /text: \['Alt\+Space', 'Control\+Alt\+K'\]/); assert.match(main, /voice: \['Control\+Space', 'Control\+Alt\+V'\]/);
+    assert.match(main, /async function hotkey\(mode\)/); assert.match(main, /mode=\$\{mode === 'text' \? 'text' : 'voice'\}/);
+    const panel = pub('assistant.html');
+    assert.match(panel, /window\.knowuraMode = /); assert.match(panel, /async \(hasMic, resume, mode\)/); assert.match(panel, /startMode === 'text'/);
+    assert.match(panel, /get view\(\)/);
+});

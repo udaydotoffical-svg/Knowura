@@ -51,5 +51,5 @@ jobs:
           TAG="desktop-${GITHUB_RUN_NUMBER}"
           gh release create "$TAG" dist/Knowura-Desktop-Setup-*.exe dist/Knowura-Desktop-Portable-*.exe \
             --title "Knowura for Windows #${GITHUB_RUN_NUMBER}" \
-            --notes "Knowura assistant for Windows. Setup installs per user (no admin); Portable runs from anywhere. Pop it up with Alt+Space (or Ctrl+Alt+K). Windows may show a SmartScreen warning because the app is not code-signed: choose More info, then Run anyway." \
+            --notes "Knowura assistant for Windows. Setup installs per user (no admin); Portable runs from anywhere. Alt+Space opens the text box, Ctrl+Space opens voice mode (fallbacks: Ctrl+Alt+K / Ctrl+Alt+V). Windows may show a SmartScreen warning because the app is not code-signed: choose More info, then Run anyway." \
             --target "${GITHUB_SHA}"
