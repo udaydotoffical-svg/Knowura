@@ -167,8 +167,10 @@
         .kb-open #minBtn { display: none; }
         /* ── Windows desktop popup: the stack fills the whole (frameless) window; the top strip drags it ── */
         body.desktop { background: #05070f; }
-        body.desktop .scrim { background: none; }
-        body.desktop .stack { top: 0; max-width: none; padding: 12px 10px 10px; }
+        body.desktop .scrim { display: none; }
+        body.desktop .stack { top: 0; max-width: none; padding: 0; }                        /* opaque window: the panel is flush with the window edges */
+        body.desktop.transparent, html:has(body.desktop.transparent) { background: transparent !important; }
+        body.desktop.transparent .stack { padding: 14px 20px 20px 14px; }                  /* room for the hard shadow, drawn on the desktop itself */
         body.desktop #voiceView.live-panel { flex: 1; height: auto; min-height: 0; }
         body.desktop .sheet { flex: 1; max-height: none !important; }
         body.desktop::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: 12px; z-index: 50; -webkit-app-region: drag; }
@@ -318,6 +320,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     if (location.search.includes('debug=1')) document.body.classList.add('debug');   // shows the build tag
     const desk = window.KnowuraDesk || null;   // the Windows desktop app: hide the popup / open the full app in its own window
     if (desk || /KnowuraDesktop/.test(navigator.userAgent) || location.search.includes('desktop=1')) document.body.classList.add('desktop');
+    if (location.search.includes('transparent=1')) document.body.classList.add('transparent');   // the Windows window is see-through: nothing but the panel card is drawn
     const canBubble = !!(bridge && typeof bridge.minimize === 'function');   // newer Android app: Minimize turns the panel into a floating bubble
 
     // ── identity: the same stored sign-in the app uses (shared in a browser; the phone panel has its own) ──

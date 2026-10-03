@@ -9,22 +9,13 @@ const path = require('path');
 const fs = require('fs');
 
 const HOST = 'knowura.vercel.app';
-const ASSISTANT_URL = `https://${HOST}/assistant?desktop=1`;
+const assistantUrl = () => `https://${HOST}/assistant?desktop=1${prefs.transparent ? '&transparent=1' : ''}`;
 const IDLE_DESTROY_MS = 2 * 60 * 1000;
 const PARTITION = 'persist:knowura';
 const SHORTCUTS = ['Alt+Space', 'Control+Alt+K'];   // first one that Windows lets us have
 
-// ── memory: skip the GPU process, cap the heap, drop features a single-site app never uses ──
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=160');
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,MediaRouter,Translate,AutofillServerCommunication,OptimizationHints,SpareRendererForSitePerProcess');
-app.commandLine.appendSwitch('disable-site-isolation-trials');
-app.commandLine.appendSwitch('disable-background-networking');
-app.commandLine.appendSwitch('disable-component-update');
-app.commandLine.appendSwitch('no-pings');
-
 let tray = null, panel = null, full = null, idleTimer = null, activeShortcut = null, quitting = false;
-let prefs = { autoStart: false, hideOnBlur: false };
+let prefs = { autoStart: false, hideOnBlur: false, transparent: true };
 const prefsFile = () => path.join(app.getPath('userData'), 'prefs.json');
 
 function loadPrefs() {
@@ -33,6 +24,18 @@ function loadPrefs() {
 function savePrefs() {
     try { fs.writeFileSync(prefsFile(), JSON.stringify(prefs)); } catch (e) { /* not fatal */ }
 }
+loadPrefs();
+
+// ── memory: cap the heap, drop features a single-site app never uses, and (opaque mode) skip the GPU process.
+// A see-through window needs Windows' GPU compositing, so transparent mode keeps the GPU process, but only while the
+// popup exists: after two minutes hidden the window is destroyed and the GPU process goes with it.
+if (!prefs.transparent) app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=160');
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,MediaRouter,Translate,AutofillServerCommunication,OptimizationHints,SpareRendererForSitePerProcess');
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+app.commandLine.appendSwitch('disable-background-networking');
+app.commandLine.appendSwitch('disable-component-update');
+app.commandLine.appendSwitch('no-pings');
 
 if (!app.requestSingleInstanceLock()) {
     app.quit();
@@ -93,8 +96,10 @@ function createPanel() {
     const w = 440, h = Math.min(720, wa.height - 32);
     panel = new BrowserWindow({
         width: w, height: h, minWidth: 360, minHeight: 420,
-        show: false, frame: false, alwaysOnTop: true, skipTaskbar: true, resizable: true, fullscreenable: false,
-        backgroundColor: '#05070f', title: 'Knowura', icon: nativeImage.createFromPath(iconPath()),
+        show: false, frame: false, alwaysOnTop: true, skipTaskbar: true, fullscreenable: false,
+        // transparent: only the panel card shows, floating on your desktop (such windows can't be resized by dragging)
+        transparent: !!prefs.transparent, hasShadow: !prefs.transparent, resizable: !prefs.transparent,
+        backgroundColor: prefs.transparent ? '#00000000' : '#05070f', title: 'Knowura', icon: nativeImage.createFromPath(iconPath()),
         webPreferences: webPrefs()
     });
     panel.setMenuBarVisibility(false);
@@ -103,7 +108,7 @@ function createPanel() {
     panel.on('blur', () => { if (prefs.hideOnBlur && panel && panel.isVisible() && !panel.webContents.isDevToolsOpened()) hidePanel(); });
     panel.on('closed', () => { panel = null; });
     panel.webContents.on('render-process-gone', () => { if (panel) { panel.destroy(); panel = null; } });
-    panel.loadURL(ASSISTANT_URL);
+    panel.loadURL(assistantUrl());
 }
 
 function showPanel() {
@@ -176,6 +181,7 @@ function buildTray() {
             { type: 'separator' },
             { label: 'Start with Windows', type: 'checkbox', checked: !!prefs.autoStart, click: (m) => { prefs.autoStart = m.checked; savePrefs(); applyAutoStart(); } },
             { label: 'Hide when I click away', type: 'checkbox', checked: !!prefs.hideOnBlur, click: (m) => { prefs.hideOnBlur = m.checked; savePrefs(); } },
+            { label: 'See-through window (uses more memory while open)', type: 'checkbox', checked: !!prefs.transparent, click: (m) => { prefs.transparent = m.checked; savePrefs(); quitting = true; app.relaunch(); app.exit(0); } },
             { type: 'separator' },
             { label: activeShortcut ? `Hotkey: ${activeShortcut.replace('Control', 'Ctrl')}` : 'Hotkey unavailable (another app uses it)', enabled: false },
             { label: 'Quit Knowura', click: () => { quitting = true; app.quit(); } }
@@ -190,7 +196,6 @@ function applyAutoStart() {
 }
 
 app.whenReady().then(() => {
-    loadPrefs();
     setupSession(session.fromPartition(PARTITION));
     setupSession(session.defaultSession);
     registerShortcut();

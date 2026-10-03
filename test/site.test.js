@@ -365,3 +365,12 @@ test('the Windows desktop app: tray + hotkey + low-memory switches, a locked-dow
     const panel = pub('assistant.html');
     assert.match(panel, /window\.KnowuraDesk/); assert.match(panel, /body\.desktop/); assert.match(panel, /desk\.hide\(\)/); assert.match(panel, /desk\.openApp\(path\)/);
 });
+
+test('the Windows popup is see-through by default (no black rectangle), with a tray switch back to the low-memory opaque mode', () => {
+    const main = fs.readFileSync(path.join(__dirname, '..', 'desktop/main.js'), 'utf8');
+    assert.match(main, /transparent: !!prefs\.transparent/); assert.match(main, /backgroundColor: prefs\.transparent \? '#00000000'/);
+    assert.match(main, /if \(!prefs\.transparent\) app\.disableHardwareAcceleration\(\)/);   // transparency needs the GPU compositor
+    assert.match(main, /See-through window/); assert.match(main, /transparent=1/);
+    const panel = pub('assistant.html');
+    assert.match(panel, /body\.desktop\.transparent/); assert.match(panel, /classList\.add\('transparent'\)/);
+});
