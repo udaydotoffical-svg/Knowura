@@ -944,12 +944,20 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (!loadedStamp) { loadedStamp = v; return false; }
         return v !== loadedStamp;
     }
-    window.knowuraShown = async (hasMic, resume) => {
+    // mode: 'text' = open on the text box (typing, no microphone), anything else = voice. Used by the desktop hotkeys.
+    window.knowuraShown = async (hasMic, resume, mode) => {
         playEnter();
         if (resume) return; /* back from the file picker: stay exactly where we were */
-        if (await newerSiteExists()) { location.reload(); return; }   // the fresh page starts itself (Android calls knowuraShown again when it has loaded)
-        linkReady = refreshLink(); restore(); renderAcct(); showVoice(); orb('idle'); startCall(true);
+        if (await newerSiteExists()) {   // the fresh page starts itself (Android calls knowuraShown again when it has loaded)
+            try { const u = new URL(location.href); u.searchParams.set('mode', mode === 'text' ? 'text' : 'voice'); history.replaceState(null, '', u); } catch (e) { /* keep the url */ }
+            location.reload(); return;
+        }
+        linkReady = refreshLink(); restore(); renderAcct();
+        if (mode === 'text') { endCall(); showText(true); return; }
+        showVoice(); orb('idle'); startCall(true);
     };
+    // switch the visible window between the two modes (desktop hotkeys while the popup is already open)
+    window.knowuraMode = (mode) => { if (mode === 'text') { endCall(); showText(true); } else { showVoice(); startCall(true); } };
     window.knowuraHidden = () => { endCall(); stopSpeaking(); };
     // Files picked in Android's gallery / file manager / camera come back through the app, which serves them at /__kw_file/N
     // (the panel can be a brand new window by then). Fetch them, attach them, and tell Android they were received.
@@ -976,9 +984,13 @@ function showAlert(message) { window.__note && window.__note(message); }
     linkReady = refreshLink();
     restore(); renderAcct(); orb('idle');
     { const d = load('knowura_assistant_draft') || (() => { try { return localStorage.getItem('knowura_assistant_draft'); } catch (e) { return null; } })(); if (typeof d === 'string' && d && !$('userInput').value) { $('userInput').value = d; setSend(); } }
-    if (desk) showVoice();          // desktop popup: voice view with the Minimize chip from the start
-    if (!bridge) startCall(true); // in a normal browser tab, begin listening right away
-    window.__kw = { showText, showVoice, openAppWithChat, exportChat, get chat() { return chat; } }; // for tests
+    const startMode = new URLSearchParams(location.search).get('mode');   // desktop hotkeys: Alt+Space = text, Ctrl+Space = voice
+    if (desk && startMode === 'text') showText(true);                    // text box ready to type, microphone stays off
+    else {
+        if (desk) showVoice();          // desktop popup: voice view with the Minimize chip from the start
+        if (!bridge) startCall(true); // in a normal browser tab, begin listening right away
+    }
+    window.__kw = { showText, showVoice, openAppWithChat, exportChat, get view() { return view; }, get chat() { return chat; } }; // for tests
 })();
 </script>
 </body>
