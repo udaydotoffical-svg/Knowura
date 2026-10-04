@@ -867,7 +867,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     $('voiceX').addEventListener('click', () => showText(false)); // the cross: leave voice, stay in the assistant as a text chat
 
     // ── sign in: done once in the Knowura app; this panel picks it up from the server by install id ──
-    const installId = bridge && bridge.installId ? bridge.installId() : '';
+    const installId = bridge?.installId?.() || desk?.installId?.() || '';
     let prefs = { assistantModel: '' };
     async function refreshLink() {
         if (!installId) return;
@@ -876,18 +876,37 @@ function showAlert(message) { window.__note && window.__note(message); }
             if (!r.ok) return;
             const d = await r.json();
             prefs = d.prefs || prefs;
+            const wasIn = signedIn();
             if (d.linked && d.token) {
                 session = { user: d.profile.given_name, savedAt: Date.now(), sub: d.profile.sub, email: d.profile.email, picture: d.profile.picture, sessionToken: d.token };
                 store('knowura_session', session);
+                if (!wasIn) toast('Signed in as ' + (session.user || session.email || 'your account'));
             } else { session = {}; store('knowura_session', null); } // signed out in the app -> signed out here
             renderAcct();
         } catch (e) { /* offline: keep what we have */ }
     }
     let linkReady = Promise.resolve();
+    let linkWatch = 0;
+    function watchLink() { // after the browser opens: look for the link on focus and every ~3 s for 2 minutes
+        clearInterval(linkWatch);
+        const end = Date.now() + 2 * 60 * 1000;
+        linkWatch = setInterval(() => { if (signedIn() || Date.now() > end) { clearInterval(linkWatch); linkWatch = 0; } else refreshLink(); }, 3000);
+        watchUntil = end;
+    }
+    let watchUntil = 0;
+    const checkLink = () => { if (watchUntil > Date.now() && !signedIn()) refreshLink(); };
+    window.addEventListener('focus', checkLink);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkLink(); });
     function signIn() {
         showText(false);
-        const b = addBubble('<p>Sign in on the Knowura app and it shows up here automatically, with your chats.</p>', 'ai');
+        const canBrowser = !!(desk && desk.signInBrowser);
+        const b = addBubble('<p>' + (canBrowser ? 'Sign in in the app or in your browser. Either way it shows up here.' : 'Sign in on the Knowura app and it shows up here automatically, with your chats.') + '</p>', 'ai');
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-ui cta'; btn.textContent = 'Open Knowura'; btn.onclick = () => openApp('/'); b.appendChild(btn);
+        if (canBrowser) {
+            const bb = document.createElement('button'); bb.type = 'button'; bb.className = 'btn-ui'; bb.textContent = 'Sign in with browser';
+            bb.onclick = () => { try { desk.signInBrowser(); } catch (e) { /* the desktop app reports its own errors */ } watchLink(); };
+            b.appendChild(bb);
+        }
     }
     function renderAcct() {
         const label = signedIn() ? (session.picture ? '<img class="acct-img" alt="" src="' + escapeHtml(session.picture) + '" referrerpolicy="no-referrer"> ' : '') + escapeHtml((session.user || 'Account').slice(0, 10)) : 'Sign in';
@@ -900,7 +919,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (!p.hidden) { p.hidden = true; return; }
         p.innerHTML = '<div><b>' + escapeHtml(session.user || 'Signed in') + '</b><span>' + escapeHtml(session.email || '') + '</span></div><span>' + (bridge ? 'Signed in through the Knowura app. Sign out there to sign out here.' : 'Chats here sync to your Knowura account.') + '</span>' + (bridge ? '' : '<button type="button" class="btn-ui" id="signOutBtn">Sign out</button>');
         p.hidden = false;
-        if ($('signOutBtn')) $('signOutBtn').onclick = () => { session = {}; store('knowura_session', null); store('knowura_owner_token', null); ownerToken = undefined; renderAcct(); };
+        if ($('signOutBtn')) $('signOutBtn').onclick = () => { if (installId) post('device-link', { installId, unlink: true }).catch(() => {}); session = {}; store('knowura_session', null); store('knowura_owner_token', null); ownerToken = undefined; renderAcct(); };
     }
     $('acctBtn').addEventListener('click', acctClick);
     $('acctVoice').addEventListener('click', () => { if (!signedIn()) { signIn(); } else { showText(false); acctClick(); } });

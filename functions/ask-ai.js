@@ -270,11 +270,18 @@ exports.handler = async (event, context) => {
             payload.reasoning_effort = effort;
         }
 
-        if (offerStudy) { payload.tools = STUDY_TOOLS; payload.tool_choice = "auto"; }
+        if (offerStudy) {
+            payload.tools = STUDY_TOOLS; payload.tool_choice = "auto";
+            // building a quiz is formatting, not hard thinking: keep gpt-oss quick so it finishes in time
+            if (isGptOss && !isUltra && !payload.reasoning_effort) payload.reasoning_effort = "low";
+        }
         if (isAux) payload.max_tokens = 400; // helper calls only ever need a sentence or a title
 
         // One quick retry on a rate limit / upstream 5xx / dropped connection — these are
         // usually momentary and otherwise surface to the user as a failed message.
+        // Everything has to finish inside the function's 30 s limit, so the retries share one time budget
+        // (a slow quiz used to time out twice in a row and surface as a bare 500/504).
+        const startedAt = Date.now(), BUDGET_MS = 27000;
         const callGroq = () => fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -282,29 +289,35 @@ exports.handler = async (event, context) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(25000)
+            signal: AbortSignal.timeout(Math.max(3000, BUDGET_MS - (Date.now() - startedAt)))
         });
         const callWithRetry = async () => {
             let r;
             try { r = await callGroq(); } catch (e) { r = null; }
-            if (!r || r.status === 429 || r.status >= 500) {
+            if ((!r || r.status === 429 || r.status >= 500) && Date.now() - startedAt < BUDGET_MS - 6000) {
                 await new Promise(res => setTimeout(res, 1200));
-                r = await callGroq();
+                try { r = await callGroq(); } catch (e) { r = null; }
             }
             return r;
         };
         let response = await callWithRetry();
-        // Some models reject or garble tool calls (400). Fall back to a plain text answer
+        // Some models reject or garble tool calls (400, "tool_use_failed"). Fall back to a plain text answer
         // rather than failing the whole message.
-        if (!response.ok && response.status === 400 && payload.tools) {
+        if (response && !response.ok && response.status === 400 && payload.tools) {
+            const why = await response.clone().text().catch(() => "");
+            console.warn(`Groq rejected the study tool call (400): ${why.slice(0, 300)}`);
             delete payload.tools; delete payload.tool_choice;
             response = await callWithRetry();
+        }
+        if (!response) {
+            console.warn("Groq did not answer in time");
+            return json(504, { error: "The AI took too long to answer. Please try again (a shorter quiz can help)." });
         }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             // Don't dress an upstream failure up as a success — the client checks res.ok.
-            // Generic on purpose — provider error text can name accounts, limits or key problems.
-            console.warn(`Groq returned ${response.status}`);
+            // The client message is generic on purpose; the real reason goes to the server log only.
+            console.warn(`Groq returned ${response.status}: ${JSON.stringify(data?.error || {}).slice(0, 300)}`);
             return response.status === 429
                 ? json(429, { error: "The AI is busy right now — please try again in a moment." })
                 : json(502, { error: "The AI service had a problem. Please try again." });
