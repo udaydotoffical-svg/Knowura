@@ -57,14 +57,14 @@ test('live preview loads pages in a sandboxed /preview page with its own CSP, an
     const mainCsp = main.headers.find(x => x.key === 'Content-Security-Policy').value;
     assert.match(mainCsp, /img-src 'self' data: blob: https:\/\/\*\.googleusercontent\.com;/);
     assert.match(mainCsp, /frame-src 'self' https:\/\/accounts\.google\.com/);
-    assert.match(mainCsp, /frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app(;|$)/);
+    assert.match(mainCsp, /frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app https:\/\/udaysingh\.vercel\.app(;|$)/);
     assert.ok(!main.headers.some(x => x.key === 'X-Frame-Options'), 'main block must not send X-Frame-Options');
     assert.equal(rule.headers.find(x => x.key === 'X-Frame-Options').value, 'SAMEORIGIN');
     const netlify = fs.readFileSync(path.join(__dirname, '..', 'netlify.toml'), 'utf8');
     assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = "default-src 'none'/);
     assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    X-Frame-Options/);
     assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = [^\n]*\n    X-Frame-Options = "SAMEORIGIN"/);
-    assert.equal((netlify.match(/frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app;/g) || []).length, (netlify.match(/default-src 'self'; script-src/g) || []).length);
+    assert.equal((netlify.match(/frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app https:\/\/udaysingh\.vercel\.app;/g) || []).length, (netlify.match(/default-src 'self'; script-src/g) || []).length);
     assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    Content-Security-Policy/);
 });
 
@@ -443,9 +443,15 @@ test('search engines can find Knowura: robots, sitemap, description, canonical a
     for (const f of ['assistant.html', '404.html', 'preview.html']) assert.match(pub(f), /noindex/);
     const llms = fs.readFileSync(path.join(root, 'llms.txt'), 'utf8');
     assert.match(llms, /^# Knowura AI\n\n> /); assert.match(llms, /https:\/\/knowura\.vercel\.app\/terms/);
-    assert.equal(fs.readFileSync(path.join(root, 'llm.txt'), 'utf8'), llms, 'llm.txt mirrors llms.txt');
+    assert.ok(!fs.existsSync(path.join(root, 'llm.txt')), 'only llms.txt ships');
 });
 
 test('the home page carries the Google Search Console verification tag', () => {
     assert.match(pub('index.html'), /<meta name="google-site-verification" content="9vt2JE-QknnLcxWJikBuNVfQzwLf875Vr40s72cNTpE"/);
+});
+
+test('the Android dismiss target draws a pixel X (no smooth lines left)', () => {
+    const j = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/BubbleService.java'), 'utf8');
+    assert.match(j, /21x21 pixel grid/); assert.match(j, /drawRect\(ox \+ k\[0\] \* cell/);
+    assert.doesNotMatch(j, /c\.drawLine\(cx - d/);
 });

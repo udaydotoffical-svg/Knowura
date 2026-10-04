@@ -297,18 +297,15 @@ public class BubbleService extends Service {
         }
     }
 
-    /** The "drop here to dismiss" circle with an X. */
+    /** The "drop here to dismiss" circle with a pixel X (the same 21x21 pixel grid as the app's Pixel icons). */
     private static class TargetView extends View {
-        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), x = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), x = new Paint();
         private boolean hot;
 
         TargetView(Context c) {
             super(c);
             fill.setColor(0xCC10162B);
-            x.setColor(0xFFFFFFFF);
-            x.setStyle(Paint.Style.STROKE);
-            x.setStrokeWidth(5f);
-            x.setStrokeCap(Paint.Cap.ROUND);
+            x.setColor(0xFFFFFFFF);   // no anti-aliasing: hard pixel edges
         }
 
         void setHot(boolean h) {
@@ -321,10 +318,14 @@ public class BubbleService extends Service {
 
         @Override
         protected void onDraw(Canvas c) {
-            float cx = getWidth() / 2f, cy = getHeight() / 2f, r = Math.min(cx, cy) - 2f, d = r * 0.34f;
+            float cx = getWidth() / 2f, cy = getHeight() / 2f, r = Math.min(cx, cy) - 2f;
             c.drawCircle(cx, cy, r, fill);
-            c.drawLine(cx - d, cy - d, cx + d, cy + d, x);
-            c.drawLine(cx + d, cy - d, cx - d, cy + d, x);
+            // the X is drawn from square "pixels": a 21x21 grid, diagonal 2 cells thick, spanning about 60% of the circle
+            float cell = (r * 1.2f) / 21f, ox = cx - cell * 10.5f, oy = cy - cell * 10.5f;
+            for (int i = 0; i <= 14; i++) {
+                int[][] cells = { { 3 + i, 3 + i }, { 4 + i, 3 + i }, { 18 - i, 3 + i }, { 17 - i, 3 + i } };
+                for (int[] k : cells) c.drawRect(ox + k[0] * cell, oy + k[1] * cell, ox + (k[0] + 1) * cell, oy + (k[1] + 1) * cell, x);
+            }
         }
     }
 }
