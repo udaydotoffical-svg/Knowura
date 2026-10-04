@@ -57,8 +57,14 @@ test('live preview loads pages in a sandboxed /preview page with its own CSP, an
     const mainCsp = main.headers.find(x => x.key === 'Content-Security-Policy').value;
     assert.match(mainCsp, /img-src 'self' data: blob: https:\/\/\*\.googleusercontent\.com;/);
     assert.match(mainCsp, /frame-src 'self' https:\/\/accounts\.google\.com/);
+    assert.match(mainCsp, /frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app(;|$)/);
+    assert.ok(!main.headers.some(x => x.key === 'X-Frame-Options'), 'main block must not send X-Frame-Options');
+    assert.equal(rule.headers.find(x => x.key === 'X-Frame-Options').value, 'SAMEORIGIN');
     const netlify = fs.readFileSync(path.join(__dirname, '..', 'netlify.toml'), 'utf8');
     assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = "default-src 'none'/);
+    assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    X-Frame-Options/);
+    assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = [^\n]*\n    X-Frame-Options = "SAMEORIGIN"/);
+    assert.equal((netlify.match(/frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app;/g) || []).length, (netlify.match(/default-src 'self'; script-src/g) || []).length);
     assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    Content-Security-Policy/);
 });
 
