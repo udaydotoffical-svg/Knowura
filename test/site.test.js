@@ -441,4 +441,7 @@ test('search engines can find Knowura: robots, sitemap, description, canonical a
     assert.ok(ld['@graph'].some(n => n['@type'] === 'WebSite' && n.name === 'Knowura'));
     for (const f of ['terms', 'privacy', 'eula', 'dmca']) assert.match(pub(f + '.html'), /rel="canonical"/);
     for (const f of ['assistant.html', '404.html', 'preview.html']) assert.match(pub(f), /noindex/);
+    const llms = fs.readFileSync(path.join(root, 'llms.txt'), 'utf8');
+    assert.match(llms, /^# Knowura AI\n\n> /); assert.match(llms, /https:\/\/knowura\.vercel\.app\/terms/);
+    assert.equal(fs.readFileSync(path.join(root, 'llm.txt'), 'utf8'), llms, 'llm.txt mirrors llms.txt');
 });
