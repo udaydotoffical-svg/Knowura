@@ -393,3 +393,13 @@ test('desktop file handoff hooks reuse the composer path and stay desktop-only',
     assert.match(panel, /attachCtl\.add\(\[file\]\)/);
     assert.match(panel, /get attachments\(\)/);
 });
+
+test('desktop browser sign-in reuses the device link', () => {
+    const panel = pub('assistant.html'), idx = pub('index.html');
+    assert.match(panel, /bridge\?\.installId\?\.\(\) \|\| desk\?\.installId\?\.\(\) \|\| ''/);
+    assert.match(panel, /desk\.signInBrowser\(\)/); assert.match(panel, /Sign in with browser/);
+    assert.match(panel, /Sign in in the app or in your browser\. Either way it shows up here\./);
+    assert.match(panel, /Signed in as /); assert.match(panel, /installId, unlink: true/);
+    assert.doesNotMatch(panel, /classList\.add\('native'\)[^;]*desk/);
+    assert.match(idx, /syncAssistantLink\(\);   \/\/ a browser opened with \?kwdev=/);
+});

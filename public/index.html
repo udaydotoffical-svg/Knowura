@@ -4502,6 +4502,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             document.getElementById('user-display').innerText = currentUser;
             ownerEligible = !!data.ownerEligible;   // the owner's Google account is recognised, but signing in no longer switches owner mode on
             saveSession(currentUser, { mode: 'google', sub: userSub, sessionToken: userToken, email: data.profile.email, picture: data.profile.picture });
+            syncAssistantLink();   // a browser opened with ?kwdev= links to the assistant right away, not only at the next launch
             enterApp();
         } catch (e) {
             showAlert("Couldn't reach Knowura's sign-in service. Check your connection and try again.", "Sign-in failed");
