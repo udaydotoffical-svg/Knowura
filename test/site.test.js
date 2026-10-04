@@ -425,3 +425,23 @@ test('every icon is from the Pixel set (CC BY 4.0) or drawn on its grid, and the
     assert.match(app, />Pixel icons<\/a> by Streamline, <a[^>]*>CC BY 4\.0</);
     assert.ok(fs.existsSync(path.join(__dirname, '..', 'scripts/pixel-icons/build.js')));
 });
+
+test('search engines can find Knowura: robots, sitemap, description, canonical and structured data', () => {
+    const root = path.join(__dirname, '..', 'public');
+    const robots = fs.readFileSync(path.join(root, 'robots.txt'), 'utf8');
+    assert.match(robots, /Allow: \//); assert.match(robots, /Sitemap: https:\/\/knowura\.vercel\.app\/sitemap\.xml/);
+    assert.match(robots, /Disallow: \/assistant/); assert.doesNotMatch(robots, /Disallow: \/\s*$/m);
+    const sm = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
+    for (const u of ['/', '/terms', '/privacy', '/eula', '/dmca']) assert.ok(sm.includes(`<loc>https://knowura.vercel.app${u}</loc>`), u);
+    const h = pub('index.html');
+    assert.match(h, /<meta name="description" content="Knowura is a free AI study helper/);
+    assert.match(h, /<link rel="canonical" href="https:\/\/knowura\.vercel\.app\/">/);
+    assert.doesNotMatch(h, /<meta name="robots" content="[^"]*noindex/);
+    const ld = JSON.parse(h.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+    assert.ok(ld['@graph'].some(n => n['@type'] === 'WebSite' && n.name === 'Knowura'));
+    for (const f of ['terms', 'privacy', 'eula', 'dmca']) assert.match(pub(f + '.html'), /rel="canonical"/);
+    for (const f of ['assistant.html', '404.html', 'preview.html']) assert.match(pub(f), /noindex/);
+    const llms = fs.readFileSync(path.join(root, 'llms.txt'), 'utf8');
+    assert.match(llms, /^# Knowura AI\n\n> /); assert.match(llms, /https:\/\/knowura\.vercel\.app\/terms/);
+    assert.equal(fs.readFileSync(path.join(root, 'llm.txt'), 'utf8'), llms, 'llm.txt mirrors llms.txt');
+});

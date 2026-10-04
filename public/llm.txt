@@ -1,0 +1,29 @@
+# Knowura AI
+
+> Knowura AI is a free, education-first AI study helper made by Uday Singh, a student who builds robotics, web apps and AI tools. You can chat by text or talk by voice, get anything explained until it clicks, and turn a topic into a quiz or flashcards in seconds.
+
+Knowura runs in the browser at https://knowura.vercel.app/ and also as an Android app (with a pull-up assistant panel) and a Windows desktop app (tray popup with hotkeys). Signing in with Google is optional; it syncs chats and memory across devices.
+
+## What it does
+
+- Text chat and hands-free voice conversations, with a choice of AI models and a "think harder" mode.
+- Quizzes and flashcards that pop up as interactive study cards.
+- Attach photos, PDFs, Word documents, spreadsheets, code and audio to a question.
+- Code answers open in a side panel with a live, sandboxed preview for HTML, SVG and Markdown.
+- Saved chats, optional memory, an incognito mode and a built-in lo-fi music player.
+- Safety checks on messages and pictures before the AI answers.
+
+## Pages
+
+- [Knowura AI (the app)](https://knowura.vercel.app/): chat, voice, quizzes and flashcards.
+- [Terms & Conditions](https://knowura.vercel.app/terms): rules for using Knowura.
+- [Privacy Policy](https://knowura.vercel.app/privacy): what is stored and why.
+- [EULA](https://knowura.vercel.app/eula): licence for the apps.
+- [Copyright & DMCA](https://knowura.vercel.app/dmca): how to report content.
+
+## About
+
+- Name: Knowura (also "Knowura AI").
+- Creator: Uday Singh.
+- Source code: https://github.com/udaydotoffical-svg/Knowura
+- Knowura is an AI and can make mistakes; answers should be double checked.

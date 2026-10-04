@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /assistant
+Disallow: /preview
+Disallow: /api/
+Disallow: /.netlify/
+
+Sitemap: https://knowura.vercel.app/sitemap.xml
