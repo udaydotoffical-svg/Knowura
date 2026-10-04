@@ -309,7 +309,7 @@
             imageCount: kept.length, droppedImages: images.length - kept.length
         };
     }
-    const iconFor = (a) => ({ pdf: '📕', docx: '📘', pptx: '📙', xlsx: '📗', zip: '🗜️', audio: '🎧', image: '🖼️' }[a.kind] || '📄');
+    const iconFor = (a) => '<svg class="icon"><use href="#icon-' + ({ audio: 'music', image: 'image', zip: 'folder' }[a.kind] || 'file') + '"/></svg>';
     // saved inside the chat bubble: thumbnails + chips; a chip keeps a slice of the text so a resumed chat still knows the file
     function bubbleHTML(atts) {
         if (!atts.length) return '';
@@ -395,9 +395,9 @@
         }
         // ── phones: "Photos / Camera / Files" sheet ──
         const ico = {
-            photos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5.5-5.5L5 20"/></svg>',
-            camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.8"/></svg>',
-            files: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
+            photos: '<svg class="icon"><use href="#icon-image"/></svg>',
+            camera: '<svg class="icon"><use href="#icon-camera"/></svg>',
+            files: '<svg class="icon"><use href="#icon-folder"/></svg>'
         };
         let sheet = null;
         function closeSheet() { if (sheet) { sheet.remove(); sheet = null; } }

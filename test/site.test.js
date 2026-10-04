@@ -177,7 +177,7 @@ test('attachments: engine, vendored parsers and licences ship; app and panel are
     assert.match(pub('terms.html'), /anything you attach/);
     assert.match(pub('privacy.html'), /No video is recorded or sent/);
     assert.match(engine, /att-sheet/); assert.match(engine, /camInput\.click\(\)/); assert.doesNotMatch(engine, /getUserMedia/);   // phone sheet + native camera app
-    assert.match(app, /M12 5v14M5 12h14/); assert.match(panel, /M12 5v14M5 12h14/);       // the plus button in both prompt boxes
+    assert.match(app, /id="pbAttachBtn"[^\n]*#icon-plus/); assert.match(panel, /id="attachBtn"[^\n]*#icon-plus/);       // the plus button in both prompt boxes
     assert.match(pub('eula.html'), /PDF\.js \(Apache-2\.0\), JSZip \(MIT\)/);
     // the server keeps handling pictures safely: the chat function must not accept remote image URLs
     assert.match(fs.readFileSync(path.join(root, 'functions/ask-ai.js'), 'utf8'), /IMAGE_URL = \/\^data:image/);
@@ -327,7 +327,7 @@ test('pulling the handle up grows the sheet to the full screen, drops the keyboa
 test('the call buttons are equal in size and share one shadow direction; no glow halos; build tag hidden by default', () => {
     const panel = pub('assistant.html');
     assert.match(panel, /#voiceView \.call-controls \.mic-btn \{ width: 64px; height: 64px;/);
-    assert.match(panel, /\.mic-btn\.end-call svg \{ transform: rotate\(135deg\); \}/);
+    assert.match(panel, /\.mic-btn\.end-call svg \{ transform: none; \}/); /* the pixel handset is already drawn the right way up */
     assert.doesNotMatch(panel, /kwEdge/); assert.doesNotMatch(panel, /0 0 \d+px -\d+px rgba/);
     assert.match(panel, /\.build-tag \{ display: none;/);
 });
@@ -408,4 +408,20 @@ test('desktop browser sign-in reuses the device link', () => {
     assert.match(panel, /Signed in as /); assert.match(panel, /installId, unlink: true/);
     assert.doesNotMatch(panel, /classList\.add\('native'\)[^;]*desk/);
     assert.match(idx, /syncAssistantLink\(\);   \/\/ a browser opened with \?kwdev=/);
+});
+
+test('every icon is from the Pixel set (CC BY 4.0) or drawn on its grid, and the credit ships', () => {
+    const app = pub('index.html');
+    const sprite = app.match(/<svg style="display:none" aria-hidden="true">[\s\S]*?<\/svg>/)[0];
+    const ids = [...sprite.matchAll(/<symbol id="icon-([a-z-]+)" viewBox="0 0 32 32">/g)].map(m => m[1]);
+    assert.ok(ids.length >= 38, 'sprite has the pixel icons');
+    assert.equal(new Set(ids).size, ids.length, 'no duplicate symbol ids');
+    assert.doesNotMatch(sprite, /viewBox="0 0 24 24"/, 'no old stroke icons left in the sprite');
+    // every <use href="#icon-x"> the pages and scripts reference exists
+    for (const f of ['index.html', 'assistant.html', 'assets/attach/attach.js']) {
+        for (const m of pub(f).matchAll(/#icon-([a-z-]+)/g)) assert.ok(ids.includes(m[1]), `${f} uses #icon-${m[1]} which is not in the sprite`);
+    }
+    assert.match(pub('assistant.html'), /d="M11 3L13 3/); assert.match(app, /const PB_ARROW = \[11, 3, 13, 3/);
+    assert.match(app, />Pixel icons<\/a> by Streamline, <a[^>]*>CC BY 4\.0</);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'scripts/pixel-icons/build.js')));
 });
