@@ -443,9 +443,15 @@ test('search engines can find Knowura: robots, sitemap, description, canonical a
     for (const f of ['assistant.html', '404.html', 'preview.html']) assert.match(pub(f), /noindex/);
     const llms = fs.readFileSync(path.join(root, 'llms.txt'), 'utf8');
     assert.match(llms, /^# Knowura AI\n\n> /); assert.match(llms, /https:\/\/knowura\.vercel\.app\/terms/);
-    assert.equal(fs.readFileSync(path.join(root, 'llm.txt'), 'utf8'), llms, 'llm.txt mirrors llms.txt');
+    assert.ok(!fs.existsSync(path.join(root, 'llm.txt')), 'only llms.txt ships');
 });
 
 test('the home page carries the Google Search Console verification tag', () => {
     assert.match(pub('index.html'), /<meta name="google-site-verification" content="9vt2JE-QknnLcxWJikBuNVfQzwLf875Vr40s72cNTpE"/);
+});
+
+test('the Android dismiss target draws a pixel X (no smooth lines left)', () => {
+    const j = fs.readFileSync(path.join(__dirname, '..', 'android/app/src/main/java/com/knowura/app/BubbleService.java'), 'utf8');
+    assert.match(j, /21x21 pixel grid/); assert.match(j, /drawRect\(ox \+ k\[0\] \* cell/);
+    assert.doesNotMatch(j, /c\.drawLine\(cx - d/);
 });
