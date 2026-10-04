@@ -75,7 +75,7 @@
         #voiceView .call-controls .mic-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
         #voiceView .call-controls .mic-btn.end-call { transform: none; }                    /* only the phone glyph is rotated, so the shadow never turns with it */
         #voiceView .call-controls .mic-btn.end-call:active { transform: translate(3px, 3px); }
-        #voiceView .call-controls .mic-btn.end-call svg { transform: rotate(135deg); }
+        #voiceView .call-controls .mic-btn.end-call svg { transform: none; }
         #voiceView .call-controls .mic-btn svg { width: 26px; height: 26px; }
         .mic-card { animation: kwView .5s var(--spring) both; }
         .live-status.pop-text { animation: kwText .3s ease-out both; }
@@ -201,7 +201,7 @@
 <div class="kw-toast" id="kwToast" role="status" aria-live="polite"></div>
 
 <div class="stack" id="stack">
-    <button type="button" class="chip" id="minBtn" hidden><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg> Minimize</button>
+    <button type="button" class="chip" id="minBtn" hidden><svg class="icon"><use href="#icon-chevron-down"/></svg> Minimize</button>
 
     <!-- VOICE MODE (opens first) -->
     <section id="voiceView" class="live-panel open" aria-label="Voice mode">
@@ -246,10 +246,10 @@
                         <div id="attBar" class="att-bar" hidden aria-label="Attachments"></div>
                         <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt" enterkeyhint="send"></textarea>
                         <div class="pb-bar">
-                            <button type="button" id="attachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+                            <button type="button" id="attachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg></button>
                             <span class="pb-spacer"></span>
                             <button type="button" id="sendBtn" class="pb-send mic-mode" title="Talk to Knowura live" aria-label="Talk to Knowura live">
-                                <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path id="pbGlyphPath" d="M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z"/></svg>
+                                <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none" shape-rendering="crispEdges"><path id="pbGlyphPath" d="M11 3L13 3L13 5L15 5L15 7L17 7L17 9L19 9L19 11L14 11L14 20L10 20L10 11L5 11L5 9L7 9L7 7L9 7L9 5L11 5Z"/></svg>
                                 <svg class="icon pb-mic" aria-hidden="true"><use href="#icon-mic"/></svg>
                             </button>
                         </div>
@@ -597,7 +597,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         }
         if (btn) {
             const keep = btn.innerHTML; btn.classList.add('on', 'done');
-            if (ok) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+            if (ok) btn.innerHTML = '<svg class="icon"><use href="#icon-check"/></svg>';
             setTimeout(() => { btn.classList.remove('on', 'done'); btn.innerHTML = keep; }, 1300);
         }
         haptic(ok ? 'tick' : 'error'); toast(ok ? 'Copied' : 'Couldn\'t copy that', !ok);
@@ -612,17 +612,17 @@ function showAlert(message) { window.__note && window.__note(message); }
         $('chat-box').querySelectorAll('.msg-actions').forEach((n) => n.remove());
         const row = document.createElement('div'); row.className = 'msg-actions';
         const mk = (label, svg, fn) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', label); b.title = label; b.innerHTML = svg; b.onclick = () => fn(b); return b; };
-        const S = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+        const S = (id) => '<svg class="icon"><use href="#icon-' + id + '"/></svg>';
         row.append(
-            mk('Copy', S('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'), (b) => copyText(lastReplyText, b)),
-            mk('Share', S('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2"/>'), () => shareText(lastReplyText)),
-            mk('Read aloud', S('<path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'), (b) => { if (speakingAudio) { stopSpeaking(); b.classList.remove('on'); } else { b.classList.add('on'); speak(lastReplyText).finally(() => b.classList.remove('on')); } })
+            mk('Copy', S('copy'), (b) => copyText(lastReplyText, b)),
+            mk('Share', S('share'), () => shareText(lastReplyText)),
+            mk('Read aloud', S('volume'), (b) => { if (speakingAudio) { stopSpeaking(); b.classList.remove('on'); } else { b.classList.add('on'); speak(lastReplyText).finally(() => b.classList.remove('on')); } })
         );
         bubble.after(row); scrollChat();
     }
 
     // ── prompt box behaviour (same morphing send/mic button as the app) ──
-    const ARROW = 'M12 4.5L18.5 11L14.25 11L14.25 19.5L9.75 19.5L9.75 11L5.5 11Z', SQUARE = 'M12 6L18 6L18 12L18 18L6 18L6 12L6 6Z';
+    const ARROW = 'M11 3L13 3L13 5L15 5L15 7L17 7L17 9L19 9L19 11L14 11L14 20L10 20L10 11L5 11L5 9L7 9L7 7L9 7L9 5L11 5Z', SQUARE = 'M11 6L13 6L15 6L18 6L18 8L18 10L18 13L18 16L18 18L15 18L13 18L11 18L9 18L6 18L6 15L6 12L6 9L6 6L8 6L9.5 6Z';
     function autosize() { const el = $('userInput'); el.style.height = '0px'; const max = 22 * 5; el.style.height = Math.min(el.scrollHeight, max) + 'px'; el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden'; }
     function setSend() {
         const btn = $('sendBtn'), has = $('userInput').value.trim().length > 0 || !!(attachCtl && attachCtl.count() > 0);

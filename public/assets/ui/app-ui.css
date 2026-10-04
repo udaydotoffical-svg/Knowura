@@ -19,7 +19,7 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Geist Pixel', 'Segoe UI', sans-serif; }
 
-        .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+        .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; shape-rendering: crispEdges; }
 
 
         .btn-ui {
@@ -458,7 +458,7 @@
         .mic-btn.secondary.muted { background: var(--owner); color: #fff; }
         .mic-btn.cc-btn { width: 44px; height: 44px; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-dim); }
         .mic-btn.cc-btn.active { background: var(--cyan); color: #001018; }
-        .mic-btn.end-call { background: var(--owner); color: #fff; transform: rotate(135deg); }
+        .mic-btn.end-call { background: var(--owner); color: #fff; }
         .mic-btn.end-call:hover { background: #ff5470; }
         .mic-btn.primary.holding { background: var(--cyan); color: #001018; animation: micPulse 0.8s ease-in-out infinite; }
         @keyframes micPulse {
