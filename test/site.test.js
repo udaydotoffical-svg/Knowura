@@ -445,3 +445,7 @@ test('search engines can find Knowura: robots, sitemap, description, canonical a
     assert.match(llms, /^# Knowura AI\n\n> /); assert.match(llms, /https:\/\/knowura\.vercel\.app\/terms/);
     assert.equal(fs.readFileSync(path.join(root, 'llm.txt'), 'utf8'), llms, 'llm.txt mirrors llms.txt');
 });
+
+test('the home page carries the Google Search Console verification tag', () => {
+    assert.match(pub('index.html'), /<meta name="google-site-verification" content="9vt2JE-QknnLcxWJikBuNVfQzwLf875Vr40s72cNTpE"/);
+});
