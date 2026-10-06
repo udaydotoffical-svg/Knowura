@@ -11,7 +11,7 @@
     <!-- the real app UI (colours, bubbles, prompt bar, voice orb, quiz/flashcards), generated from index.html -->
     <link rel="stylesheet" href="/assets/ui/app-ui.css">
     <link rel="stylesheet" href="/assets/attach/attach.css">
-    <script>try { var r = document.documentElement, rs = JSON.parse(localStorage.getItem('knowura_retro') || '{}'); if (rs.crt === 'on') r.classList.add('crt'); if (localStorage.getItem('knowura_term') === '1') r.classList.add('term'); } catch (e) { /* storage blocked */ }</script>
+    <script>try { var r = document.documentElement, rs = JSON.parse(localStorage.getItem('knowura_retro') || '{}'); if (rs.crt === 'on') r.classList.add('crt'); var th = localStorage.getItem('knowura_theme') || (localStorage.getItem('knowura_term') === '1' ? 'terminal' : 'dark'); if (th === 'light') r.classList.add('light'); if (th === 'terminal') r.classList.add('term'); } catch (e) { /* storage blocked */ }</script>
 <style>
         html, body { height: 100%; background: transparent; color: var(--text); overflow: hidden; -webkit-tap-highlight-color: transparent; }
         /* in a normal browser tab (no phone screen behind it) give the page its own backdrop */
@@ -128,6 +128,9 @@
         }
         .mic-card p { font-size: 13px; line-height: 1.5; color: var(--text-dim); }
         .mic-card .btn-ui { justify-content: center; }
+        .sheet-head .left { display: flex; flex-wrap: nowrap; gap: 6px; }
+        .sheet-head .left .btn-ui { min-width: 0; padding: 7px 9px; font-size: 12px; }
+        .sheet-head .left .btn-ui .icon { width: 16px; height: 16px; }
         .suggest { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
         .suggest button { border: 2px solid var(--ink); border-radius: 999px; background: #0d1a3a; color: var(--text); font-size: 13px; font-weight: 700; padding: 7px 12px; cursor: pointer; box-shadow: var(--shadow-sm); }
         .suggest button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
@@ -195,6 +198,8 @@
         .kw-toast.bad { border-color: #ff3057; }
         @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; transition-duration: .01s !important; } }
     </style>
+    <link rel="stylesheet" href="/assets/ui/theme-light.css">
+    <link rel="stylesheet" href="/assets/ui/theme-term.css">
 </head>
 <body>
 <div class="scrim" id="scrim"></div>
@@ -231,7 +236,7 @@
     <!-- TEXT CHAT -->
     <section id="textView" class="sheet" hidden aria-label="Text chat">
         <div class="sheet-head">
-            <div class="left"><button type="button" class="btn-ui" id="newBtn" title="New chat" aria-label="New chat"><svg class="icon"><use href="#icon-edit"/></svg></button><button type="button" class="btn-ui" id="aaBtn" title="Text size" aria-label="Change text size">Aa</button><button type="button" class="btn-ui" id="hcBtn" title="High contrast" aria-label="Toggle high contrast" aria-pressed="false"><svg class="icon"><use href="#icon-eye"/></svg></button></div>
+            <div class="left"><button type="button" class="btn-ui" id="newBtn" title="New chat" aria-label="New chat"><svg class="icon"><use href="#icon-edit"/></svg></button><button type="button" class="btn-ui" id="aaBtn" title="Text size" aria-label="Change text size">Aa</button><button type="button" class="btn-ui" id="themeBtn" title="Theme" aria-label="Change theme"><svg class="icon"><use href="#icon-sun"/></svg></button><button type="button" class="btn-ui" id="hcBtn" title="High contrast" aria-label="Toggle high contrast" aria-pressed="false"><svg class="icon"><use href="#icon-eye"/></svg></button></div>
             <div class="grab-zone" id="grab" title="Swipe up to open in the app" aria-label="Swipe up to open in the app"><div class="grab"></div></div>
             <div class="right"><button type="button" class="btn-ui" id="acctBtn">Sign in</button></div>
         </div>
@@ -689,6 +694,7 @@ function showAlert(message) { window.__note && window.__note(message); }
             if (k === 'n') { e.preventDefault(); showText(true); newChat(); } else if (k === 'm') { e.preventDefault(); toggleStudy(); }
         }
     });
+    $('themeBtn').addEventListener('click', () => { const list = kwThemeList(), next = list[(list.indexOf(kwTheme()) + 1) % list.length]; kwSetTheme(next); toast('Theme: ' + next); });
     applyStudy(); applyA11y();
 
     // ── prompt box behaviour (same morphing send/mic button as the app) ──

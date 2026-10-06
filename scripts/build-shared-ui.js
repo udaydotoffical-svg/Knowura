@@ -51,7 +51,7 @@ function build() {
         + '// ── quiz + flashcard pop-up (needs escapeHtml, haptic and showAlert from the host page) ──\n'
         + study + '\n';
 
-    return { 'app-ui.css': css, 'app-ui.js': js };
+    return { 'app-ui.css': css, 'app-ui.js': js, ...require('./build-themes').build() };
 }
 
 if (require.main === module) {
