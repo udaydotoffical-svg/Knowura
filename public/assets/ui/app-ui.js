@@ -9,6 +9,140 @@
     // ─── STUDY TOOLS: quiz + flashcard pop-up (the AI creates these via tool calls) ─────────
     let study = null; // { data, ...state } while the overlay is open
 
+
+    // ── retro pack (shared with the assistant panel): scanlines, 8-bit sounds, pixel burst, Konami green terminal ──
+    const kwRetro = Object.assign({ crt: 'off', sfx: 'off' }, (() => { try { return JSON.parse(localStorage.getItem('knowura_retro') || '{}'); } catch (e) { return {}; } })());
+    function kwRetroSet(k, v) {
+        kwRetro[k] = v;
+        try { localStorage.setItem('knowura_retro', JSON.stringify(kwRetro)); } catch (e) { /* storage blocked */ }
+        document.documentElement.classList.toggle('crt', kwRetro.crt === 'on');
+        if (k === 'sfx' && v === 'on') kwSfx('success');
+    }
+    let kwAudio = null;
+    const KW_SFX = { tap: [[880, .03]], select: [[660, .04]], nav: [[330, .04]], send: [[440, .05], [880, .07]], success: [[523, .07], [659, .07], [784, .12]], error: [[196, .09], [147, .15]] };
+    function kwSfx(kind) {   // tiny square-wave blips made on the fly (no sound files); off unless the user turns them on
+        const seq = KW_SFX[kind];
+        if (!seq || kwRetro.sfx !== 'on') return;
+        try {
+            kwAudio = kwAudio || new (window.AudioContext || window.webkitAudioContext)();
+            if (kwAudio.state === 'suspended') kwAudio.resume();
+            let t = kwAudio.currentTime;
+            for (const [f, d] of seq) {
+                const o = kwAudio.createOscillator(), g = kwAudio.createGain();
+                o.type = 'square'; o.frequency.value = f; g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+                o.connect(g); g.connect(kwAudio.destination); o.start(t); o.stop(t + d + 0.01); t += d;
+            }
+        } catch (e) { /* audio blocked */ }
+    }
+    function kwPixelBurst(x, y, n = 30) {
+        if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const term = document.documentElement.classList.contains('term');
+        const colors = term ? ['#39ff6a', '#1fa84a', '#a8ffbf'] : ['#22e5ff', '#2f6bff', '#ffffff', '#19c37d'];
+        const layer = document.createElement('div'); layer.className = 'pxburst';
+        for (let i = 0; i < n; i++) {
+            const e = document.createElement('i'), a = Math.random() * Math.PI * 2, r = 50 + Math.random() * 130;
+            e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.setProperty('--c', colors[i % colors.length]);
+            e.style.setProperty('--dx', Math.round(Math.cos(a) * r / 4) * 4 + 'px'); e.style.setProperty('--dy', Math.round(Math.sin(a) * r / 4) * 4 + 'px');
+            layer.append(e);
+        }
+        document.body.append(layer); setTimeout(() => layer.remove(), 1200);
+    }
+    function kwTerminal(on) {
+        const root = document.documentElement;
+        const next = on === undefined ? !root.classList.contains('term') : on;
+        root.classList.toggle('term', next);
+        try { localStorage.setItem('knowura_term', next ? '1' : '0'); } catch (e) { /* storage blocked */ }
+        kwPixelBurst(innerWidth / 2, innerHeight / 2, 44); kwSfx('success');
+        window.KnowuraAttach?.toast?.(next ? 'root access granted. terminal mode on (enter the code again to leave)' : 'terminal mode off', 'ok');
+    }
+    (function () {   // ↑ ↑ ↓ ↓ ← → ← → B A  (or tap the logo 7 times on the start screen)
+        const code = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let at = 0, taps = 0, tapTimer = null;
+        document.addEventListener('keydown', (e) => {
+            const t = e.target, typing = t && ((t.matches && t.matches('input, textarea, select')) || t.isContentEditable);
+            if (typing && (t.isContentEditable || String(t.value || '') !== '' && at === 0)) { at = 0; return; }   // only while the box is empty, so normal typing never triggers it
+            const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+            if (k === code[at]) {
+                at++;
+                if (at === code.length) { at = 0; if (typing) { t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); } kwTerminal(); }
+            } else at = k === code[0] ? 1 : 0;
+        });
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest || !e.target.closest('.empty-logo')) return;
+            taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => { taps = 0; }, 2500);
+            if (taps >= 7) { taps = 0; kwTerminal(); }
+        });
+    })();
+
+    // Study progress shared with the assistant panel: streak days, weak spots and their spaced review.
+    const kwStore = {
+        get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } },
+        set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
+    };
+    const kwSay = (m) => window.KnowuraAttach?.toast?.(m, 'ok');
+
+    // Streaks (days you finished a quiz, a deck or a review) and weak spots (missed quiz questions come back later).
+    const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    function streakInfo() {
+        const days = new Set(kwStore.get('knowura_days', []));
+        const d = new Date(); let n = 0;
+        if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+        while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+        return n;
+    }
+    function markStudyDay() {
+        if (typeof incognito !== 'undefined' && incognito) return;
+        const days = kwStore.get('knowura_days', []), t = dayKey(new Date());
+        if (days.includes(t)) return;
+        days.push(t); kwStore.set('knowura_days', days.slice(-120));
+        refreshStudyHome(true);
+        const chip = document.querySelector('#studyHome .streak-chip img');
+        if (chip) { const r = chip.getBoundingClientRect(); kwPixelBurst(r.left + r.width / 2, r.top + r.height / 2, 18); }
+    }
+    const WEAK_DAYS = [1, 3, 7, 14];
+    const weakList = () => kwStore.get('knowura_weak', []);
+    function weakAdd(q) {
+        if (typeof incognito !== 'undefined' && incognito) return;
+        const id = 'w' + [...q.question].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
+        const list = weakList().filter((w) => w.id !== id);
+        list.push({ id, front: q.question, back: q.options[q.answer] + (q.explanation ? ' (' + q.explanation + ')' : ''), box: 0, due: Date.now() });
+        kwStore.set('knowura_weak', list.slice(-80));
+    }
+    function weakRate(wid, knew) {
+        let list = weakList();
+        const w = list.find((x) => x.id === wid);
+        if (!w) return;
+        if (knew) { w.box++; if (w.box >= WEAK_DAYS.length + 1) list = list.filter((x) => x.id !== wid); else w.due = Date.now() + WEAK_DAYS[w.box - 1] * 864e5; }
+        else { w.box = 0; w.due = Date.now() + 864e5; }
+        kwStore.set('knowura_weak', list);
+    }
+    const weakDue = () => weakList().filter((w) => w.due <= Date.now());
+    function startWeakReview() {
+        const due = weakDue().sort((a, b) => a.due - b.due).slice(0, 12);
+        if (!due.length) { kwSay('Nothing to review right now'); return; }
+        openStudy({ type: 'flashcards', title: 'Weak-spot review', review: true, cards: due.map((w) => ({ front: w.front, back: w.back, wid: w.id })) });
+    }
+    function refreshStudyHome(bump) {
+        const el = document.getElementById('studyHome');
+        if (!el) return;
+        el.innerHTML = '';
+        const streak = streakInfo(), due = weakDue().length;
+        if (streak > 0) {
+            const c = document.createElement('span'); c.className = 'streak-chip' + (bump ? ' bump' : '');
+            c.innerHTML = '<img src="assets/brand/k-mark.svg" alt=""> ';
+            c.append(document.createTextNode(streak + '-day streak'));
+            el.append(c);
+        }
+        if (due > 0) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'streak-chip';
+            b.innerHTML = '<svg class="icon"><use href="#icon-study"/></svg> ';
+            b.append(document.createTextNode('Review weak spots (' + due + ')'));
+            b.addEventListener('click', startWeakReview);
+            el.append(b);
+        }
+    }
+
+
     function studyEl(tag, cls, text) {
         const e = document.createElement(tag);
         if (cls) e.className = cls;
@@ -172,6 +306,8 @@
     }
 
     function confettiBurst() {
+        const ring = document.querySelector('#studyBody .score-ring, #studyBody .result-head'), rc = ring ? ring.getBoundingClientRect() : null;
+        kwPixelBurst(rc ? rc.left + rc.width / 2 : innerWidth / 2, rc ? rc.top + rc.height / 2 : innerHeight / 3);
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
         const layer = studyEl('div', 'confetti');
         const colors = ['#22e5ff', '#2f6bff', '#19c37d', '#ffd23f', '#ff4d6d', '#eaf6ff'];

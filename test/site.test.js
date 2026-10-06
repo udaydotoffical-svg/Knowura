@@ -495,3 +495,29 @@ test('study mode, reply tools, follow-ups, streaks, weak spots and accessibility
     assert.match(h, /data-group="textScale"/); assert.match(h, /data-group="contrast"/); assert.match(h, /function showShortcuts/); assert.match(h, /e\.altKey && !e\.ctrlKey/);
     for (const id of ['refresh', 'thumb-up', 'thumb-down', 'study']) assert.match(h, new RegExp('<symbol id="icon-' + id + '"'));
 });
+
+test('the assistant panel has the same study features, and the shared quiz code never calls helpers the panel lacks', () => {
+    const a = pub('assistant.html'), ui = pub('assets/ui/app-ui.js');
+    // quiz/flashcard code is shared with the panel, so everything it calls must ship in the same file
+    for (const f of ['weakAdd', 'weakRate', 'markStudyDay', 'refreshStudyHome', 'startWeakReview']) assert.match(ui, new RegExp('function ' + f), f + ' ships with the shared UI');
+    assert.doesNotMatch(ui, /const store =/, 'no clash with the panel\'s own store()');
+    assert.match(a, /id="studyBtn"/); assert.match(a, /id="studyStrip"[^>]*>[^]*?bloub-cercle-neutre-bleu\.gif/); assert.match(a, /studyMode: studyOn/);
+    for (const f of ['regenerate', 'loadFollowups', 'rate', 'applyA11y', 'toggleStudy']) assert.match(a, new RegExp('function ' + f));
+    assert.match(a, /id="aaBtn"/); assert.match(a, /id="hcBtn"/); assert.match(a, /Quiz from a photo/); assert.match(a, /id="studyHome"/);
+});
+
+test('retro pack: Konami green terminal, CRT scanlines, 8-bit sounds, pixel burst and press-into-shadow buttons', () => {
+    const h = pub('index.html'), a = pub('assistant.html'), ui = pub('assets/ui/app-ui.js'), css = pub('assets/ui/app-ui.css');
+    // the code lives in the shared files, so the assistant panel gets it too
+    for (const f of ['kwRetroSet', 'kwSfx', 'kwPixelBurst', 'kwTerminal']) assert.match(ui, new RegExp('function ' + f));
+    assert.match(ui, /'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'/);
+    assert.match(ui, /square/); assert.doesNotMatch(ui, /new Audio\(|\.mp3|\.wav/, 'sounds are synthesised, no files');
+    assert.match(css, /html\.term \{ --dark: #000/); assert.match(css, /html\.term \{ filter: grayscale\(1\) sepia\(1\)/);
+    assert.match(css, /knowura@alpha:~\$ \.\/learn --wip/); assert.match(css, /html\.crt::after/); assert.match(css, /html\.lite\.crt:not\(\.term\)::after/);
+    assert.match(css, /\.btn-ui:not\(:disabled\):active/); assert.match(css, /prefers-reduced-motion: reduce\) \{ \.pxburst/);
+    // saved state is applied before first paint on both pages
+    for (const html of [h, a]) assert.match(html, /knowura_term'\) === '1'\) r\.classList\.add\('term'\)/);
+    // sounds ride on haptic(), and are off until the user turns them on
+    assert.match(h, /if \(typeof kwSfx === 'function'\) kwSfx\(kind\)/); assert.match(a, /kwSfx\(kind === 'tick' \? 'tap' : kind\)/);
+    assert.match(ui, /crt: 'off', sfx: 'off'/); assert.match(h, /data-group="crt"/); assert.match(h, /data-group="sfx"/);
+});
