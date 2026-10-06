@@ -3,26 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-    <style id="kw-boot-css">
-        /* Instant loader — first thing in <head>, tiny and self-contained so it paints while the rest of this large page (and its images/scripts) is still downloading on a slow connection. */
-        #kw-boot { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: radial-gradient(120% 90% at 50% 0%, #0f2a80 0%, #05070f 60%); color: #eaf6ff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; transition: opacity .45s ease; }
-        #kw-boot.done { opacity: 0; pointer-events: none; }
-        #kw-boot .kwb-spin { position: relative; width: 148px; height: 148px; display: flex; align-items: center; justify-content: center; }
-        #kw-boot .kwb-ring { position: absolute; inset: 0; border-radius: 50%; border: 4px solid rgba(255,255,255,.1); border-top-color: #22e5ff; border-right-color: #2f6bff; animation: kwbSpin 1s linear infinite; }
-        #kw-boot .kwb-k { height: 84px; width: auto; filter: drop-shadow(0 0 16px rgba(34,229,255,.5)); animation: kwbPulse 1.8s ease-in-out infinite; }
-        #kw-boot .kwb-quote { max-width: min(420px, 86vw); text-align: center; padding: 0 8px; }
-        #kw-boot .kwb-quote q { display: block; quotes: none; font-size: 16px; line-height: 1.5; font-weight: 600; color: #eaf6ff; }
-        #kw-boot .kwb-quote cite { display: block; margin-top: 8px; font-style: normal; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; color: #22e5ff; }
-        @keyframes kwbSpin { to { transform: rotate(360deg); } }
-        #kw-boot .kwb-msg { font-size: 13px; font-weight: 600; letter-spacing: .4px; color: #8fa6cc; min-height: 18px; text-align: center; padding: 0 24px; }
-        #kw-boot .kwb-retry { display: none; margin-top: -6px; padding: 10px 18px; border-radius: 10px; border: 2px solid #22e5ff; background: transparent; color: #22e5ff; font-weight: 700; font-size: 13px; cursor: pointer; }
-        #kw-boot.stuck .kwb-retry { display: inline-block; }
-        @keyframes kwbPulse { 0%, 100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.06); opacity: 1; } }
-        @keyframes kwbSlide { from { transform: translateX(-110%); } to { transform: translateX(260%); } }
-        /* stays animated even in Lite performance mode (which otherwise freezes every animation) */
-        html.lite #kw-boot .kwb-ring, html.balanced #kw-boot .kwb-ring { animation: kwbSpin 1s linear infinite !important; }
-        html.lite #kw-boot .kwb-k, html.balanced #kw-boot .kwb-k { animation: kwbPulse 1.8s ease-in-out infinite !important; filter: none !important; }
-        @media (prefers-reduced-motion: reduce) { #kw-boot .kwb-k { animation: none !important; } #kw-boot .kwb-ring { animation-duration: 3s !important; } }
+    <script>
+    // Boot counter gate: once per browser session, main app page only, never with reduced motion. A failsafe always lifts it.
+    (function () {
+        try {
+            var d = document.documentElement;
+            if (!/^\/(index\.html)?$/.test(location.pathname) || sessionStorage.getItem('knowura-booted')) return;
+            if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            sessionStorage.setItem('knowura-booted', '1');   // a reload or a sign-in redirect mid-boot never shows it twice
+            d.classList.add('is-booting');
+            window.__bootFailsafe = setTimeout(function () {
+                d.classList.remove('is-booting');
+                var b = document.getElementById('boot');
+                if (b && b.parentNode) b.parentNode.removeChild(b);
+                [].forEach.call(document.querySelectorAll('[data-boot-inert]'), function (n) { n.removeAttribute('inert'); n.removeAttribute('data-boot-inert'); });
+            }, 8000);
+        } catch (e) { /* storage blocked: skip the counter */ }
+    })();
+    </script>
+    <style id="boot-css">
+        /* Boot counter: a full-screen 0-100 on the first visit of a session. Only exists while <html> has .is-booting (set in the gate script above); a failsafe lifts it after 8 s. */
+        .boot { display: none; }
+        html.is-booting { overflow: hidden; }
+        html.is-booting .boot { position: fixed; inset: 0; z-index: 2147483001; display: grid; grid-template-rows: auto 1fr; padding: 28px; background: var(--dark, #05070f); color: var(--text, #eaf6ff); font-family: 'Geist Pixel', ui-monospace, Menlo, Consolas, monospace; clip-path: inset(0); transition: clip-path .75s cubic-bezier(.76, 0, .24, 1); }
+        html.is-booting .boot.boot-out { clip-path: inset(0 0 100% 0); }
+        .boot-log { list-style: none; margin: 0; padding: 0; font-size: 12px; line-height: 1.9; letter-spacing: .06em; color: var(--text-dim, #8fa6cc); }
+        .boot-log li { opacity: .45; transition: opacity .25s ease; }
+        .boot-log li.on { opacity: 1; }
+        .boot-log li.on::before { content: '[ok] '; color: var(--cyan, #22e5ff); }
+        .boot-foot { align-self: end; }
+        .boot-num { font-size: min(38vw, 48vh); line-height: .82; letter-spacing: -.04em; color: #fff; text-shadow: 8px 8px 0 var(--ink, #000); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .boot-num small { font-size: .25em; letter-spacing: 0; margin-left: .08em; color: var(--cyan, #22e5ff); text-shadow: none; }
+        .boot-bar { height: 10px; margin-top: 22px; border: 3px solid var(--ink, #000); background: rgba(18, 34, 68, .5); box-shadow: 3px 3px 0 var(--ink, #000); }
+        .boot-bar i { display: block; height: 100%; background: var(--cyan, #22e5ff); box-shadow: 0 0 18px var(--cyan, #22e5ff); transform: scaleX(0); transform-origin: left center; }
     </style>
     <title>Knowura AI | By Uday Singh</title>
     <meta name="description" content="Knowura is a free AI study helper by Uday Singh. Chat or talk, get anything explained until it clicks, and make quizzes and flashcards in seconds.">
@@ -104,53 +117,66 @@
 
 </head>
 <body>
-<div id="kw-boot" role="status" aria-live="polite">
-    <div class="kwb-spin" aria-hidden="true"><i class="kwb-ring"></i><svg class="kwb-k" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><g transform="translate(-168.19 -156.38) scale(2.5939)"><g><g transform="translate(19 19)" fill="#000" stroke="#000" stroke-width="10" stroke-linejoin="miter"><path d="M160 134 L252 68 L252 134 Q206 181.0 160 202 Z"/><path d="M160 210 L252 276 L252 342 Q206 323.0 160 278 Z"/><path d="M90 130L125 70L160 130V342H90Z"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 250 L252 316 L252 342 Q206 323.0 160 278 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 259.2 Q206 296.2 252 324.6" fill="none"/><path d="M160 268.5 Q206 309.4 252 333.2" fill="none"/></g><polygon points="160,243 252,309 252,316 160,250" fill="#0f2a80"/><polygon points="160,210 252,276 252,309 160,243" fill="#22e5ff"/><rect x="160" y="210" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-linejoin="miter" stroke-width="10"><path d="M160 174 L252 108 L252 134 Q206 181.0 160 202 Z" fill="#eaf6ff"/><g stroke-width="5"><path d="M160 183.2 Q206 154.2 252 116.6" fill="none"/><path d="M160 192.5 Q206 167.4 252 125.2" fill="none"/></g><polygon points="160,167 252,101 252,108 160,174" fill="#0f2a80"/><polygon points="160,134 252,68 252,101 160,167" fill="#22e5ff"/><rect x="160" y="134" width="14" height="68" fill="#0f2a80"/></g><g stroke="#000" stroke-width="10" stroke-linejoin="miter"><polygon points="90,130 125,70 160,130" fill="#eaf6ff"/><rect x="90" y="130" width="70" height="170" fill="#2f6bff"/><rect x="90" y="300" width="70" height="16" fill="#8fa6cc"/><rect x="90" y="316" width="70" height="26" rx="8" fill="#22e5ff"/></g><rect x="92" y="132" width="14" height="166" fill="#5b8dff"/><rect x="144" y="132" width="14" height="166" fill="#0f2a80"/><g stroke="#000" stroke-width="5"><line x1="106" y1="130" x2="106" y2="300"/><line x1="144" y1="130" x2="144" y2="300"/></g><polygon points="111,94 125,70 139,94" fill="#000"/></g></g></svg></div>
-    <div class="kwb-quote"><q id="kwb-q">Education is the most powerful weapon which you can use to change the world.</q><cite id="kwb-a">Nelson Mandela</cite></div>
-    <div class="kwb-msg" id="kwb-msg">Loading Knowura…</div>
-    <button type="button" class="kwb-retry" onclick="location.reload()">Reload</button>
+<div id="boot" class="boot" aria-hidden="true">
+    <ul class="boot-log"><li>waking the tutor</li><li>warming up the models</li><li>loading your notes</li><li>ready to learn</li></ul>
+    <div class="boot-foot">
+        <div class="boot-num"><span id="boot-n">000</span><small>%</small></div>
+        <div class="boot-bar"><i id="boot-bar"></i></div>
+    </div>
 </div>
 <script>
 (function () {
-    var el = document.getElementById('kw-boot'), msg = document.getElementById('kwb-msg'), gone = false, timers = [];
-    // A random education quote each visit (the first one is already in the markup as the no-JS fallback).
-    var QUOTES = [
-        ['Education is the most powerful weapon which you can use to change the world.', 'Nelson Mandela'],
-        ['The beautiful thing about learning is that no one can take it away from you.', 'B.B. King'],
-        ['An investment in knowledge pays the best interest.', 'Benjamin Franklin'],
-        ['Live as if you were to die tomorrow. Learn as if you were to live forever.', 'Mahatma Gandhi'],
-        ['The more that you read, the more things you will know. The more that you learn, the more places you’ll go.', 'Dr. Seuss'],
-        ['Education is the passport to the future, for tomorrow belongs to those who prepare for it today.', 'Malcolm X'],
-        ['It does not matter how slowly you go as long as you do not stop.', 'Confucius'],
-        ['The roots of education are bitter, but the fruit is sweet.', 'Aristotle'],
-        ['The only thing that interferes with my learning is my education.', 'Albert Einstein'],
-        ['Study hard what interests you the most in the most undisciplined, irreverent and original manner possible.', 'Richard Feynman']
-    ];
-    try {
-        var pick = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-        document.getElementById('kwb-q').textContent = pick[0];
-        document.getElementById('kwb-a').textContent = '— ' + pick[1];
-    } catch (e) { /* keep the fallback quote */ }
-    function say(t) { if (msg && !gone) msg.textContent = t; }
-    function offline() { return navigator.onLine === false; }
-    timers.push(setTimeout(function () { say(offline() ? "You're offline — waiting for a connection…" : 'Slow connection — hang tight…'); }, 5000));
-    timers.push(setTimeout(function () { say(offline() ? "You're offline. Check your wifi or data, then reload." : 'Still loading. Your connection looks slow.'); if (el) el.classList.add('stuck'); }, 18000));
-    window.addEventListener('offline', function () { say("You're offline — waiting for a connection…"); });
-    window.addEventListener('online', function () { say('Back online — loading…'); });
-    // Called at the end of the app script (everything is wired up); 'load' is only a fallback.
-    window.kwBootDone = function () {
-        if (gone) return; gone = true;
-        timers.forEach(clearTimeout);
-        requestAnimationFrame(function () {
-            if (!el) return;
-            el.classList.add('done');
-            setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 600);
+    // Counter: waits at least 1300 ms, creeps toward 92% on time, then finishes only when the page, the fonts AND the app are really ready (hard cap 7 s).
+    var root = document.documentElement, el = document.getElementById('boot');
+    if (!el) return;
+    if (!root.classList.contains('is-booting')) { el.parentNode.removeChild(el); return; }
+    var num = document.getElementById('boot-n'), bar = document.getElementById('boot-bar'), logs = el.querySelectorAll('.boot-log li');
+    var MIN = 1300, CAP = 7000, STEPS = [4, 32, 62, 98], t0 = performance.now(), last = t0, shown = 0, finishing = false;
+    var ready = { load: document.readyState === 'complete', fonts: false, app: !!window.__knowuraReady };
+    function lock(on) {   // nothing under the loader can take focus while it is up
+        ['startup', 'app'].forEach(function (id) {
+            var n = document.getElementById(id);
+            if (!n) return;
+            if (on) { n.setAttribute('inert', ''); n.setAttribute('data-boot-inert', ''); } else { n.removeAttribute('inert'); n.removeAttribute('data-boot-inert'); }
         });
-    };
-    window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400); });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { if (!finishing) lock(true); }); else lock(true);
+    window.addEventListener('load', function () { ready.load = true; });
+    document.addEventListener('knowura:ready', function () { ready.app = true; });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { ready.fonts = true; }); else ready.fonts = true;
+    function leave() {
+        if (finishing) return; finishing = true;
+        el.classList.add('boot-out');
+        setTimeout(function () {
+            clearTimeout(window.__bootFailsafe);
+            if (el.parentNode) el.parentNode.removeChild(el);
+            root.classList.remove('is-booting');
+            lock(false);
+            try { sessionStorage.setItem('knowura-booted', '1'); } catch (e) { /* fine */ }
+        }, 900);
+    }
+    function frame(now) {
+        var t = now - t0, dt = Math.min(64, now - last); last = now;
+        var go = (ready.load && ready.fonts && ready.app && t >= MIN) || t >= CAP;
+        var target = go ? 100 : 92 * (1 - Math.exp(-t / 1800));
+        shown += (target - shown) * (1 - Math.pow(1 - (go ? 0.22 : 0.12), dt / 16.67));
+        if (go && shown > 99.4) shown = 100;
+        var n = Math.round(shown);
+        num.textContent = ('00' + n).slice(-3);   // 000 … 100
+        bar.style.transform = 'scaleX(' + (shown / 100).toFixed(4) + ')';
+        for (var i = 0; i < logs.length; i++) if (shown >= STEPS[i]) logs[i].classList.add('on');
+        if (shown >= 100) { setTimeout(leave, 380); return; }   // hold on 100 for a beat
+        requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(function (now) { t0 = last = now; frame(now); });
 })();
 </script>
-<noscript><style>#kw-boot { display: none; }</style><p style="color:#eaf6ff;text-align:center;padding:40px;font-family:sans-serif"><b>Knowura AI</b> is a free AI study helper by Uday Singh: ask anything, get it explained until it clicks, and make quizzes and flashcards. It needs JavaScript turned on to work.</p></noscript>
+<script>
+// The app script calls this when everything is wired up; the boot counter waits for it ('load' is only a fallback).
+window.kwBootDone = function () { window.__knowuraReady = true; document.dispatchEvent(new Event('knowura:ready')); };
+window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400); });
+</script>
+<noscript><style>#boot { display: none; }</style><p style="color:#eaf6ff;text-align:center;padding:40px;font-family:sans-serif"><b>Knowura AI</b> is a free AI study helper by Uday Singh: ask anything, get it explained until it clicks, and make quizzes and flashcards. It needs JavaScript turned on to work.</p></noscript>
 <a class="skip-link" href="#userInput">Skip to message box</a>
 <!-- Main stylesheet lives in the body, after the instant loader, so the loader can paint before this big block finishes downloading. -->
 <style>

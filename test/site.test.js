@@ -455,3 +455,24 @@ test('the Android dismiss target draws a pixel X (no smooth lines left)', () => 
     assert.match(j, /21x21 pixel grid/); assert.match(j, /drawRect\(ox \+ k\[0\] \* cell/);
     assert.doesNotMatch(j, /c\.drawLine\(cx - d/);
 });
+
+test('boot counter: once per session, main page only, waits for the app, never traps the user', () => {
+    const h = pub('index.html');
+    assert.equal((h.match(/id="boot"/g) || []).length, 1);
+    assert.ok(h.indexOf('<body>\n<div id="boot" class="boot" aria-hidden="true">') > 0, '#boot is the first child of <body>');
+    for (const t of ['waking the tutor', 'warming up the models', 'loading your notes', 'ready to learn']) assert.ok(h.includes(`<li>${t}</li>`), t);
+    // the gate runs first in <head>: session flag, reduced motion, main page only, 8 s failsafe
+    const head = h.slice(h.indexOf('<head>'), h.indexOf('</head>'));
+    assert.ok(head.indexOf('is-booting') < head.indexOf('<style'), 'gate script comes before any styles');
+    assert.match(head, /sessionStorage\.getItem\('knowura-booted'\)/); assert.match(head, /prefers-reduced-motion: reduce/);
+    assert.match(head, /\^\\\/\(index\\\.html\)\?\$/); assert.match(head, /setTimeout\(function \(\) \{[\s\S]*?\}, 8000\)/);
+    // waits for load + fonts + the app, at least 1300 ms, hard cap 7000 ms
+    assert.match(h, /var MIN = 1300, CAP = 7000/); assert.match(h, /ready\.load && ready\.fonts && ready\.app && t >= MIN/);
+    assert.match(h, /document\.dispatchEvent\(new Event\('knowura:ready'\)\)/); assert.match(h, /window\.kwBootDone\?\.\(\);/);
+    assert.match(h, /clip-path: inset\(0 0 100% 0\)/); assert.match(h, /setAttribute\('inert', ''\)/);
+    // uses the app's colour tokens and the self-hosted pixel font; no old spinner loader left
+    assert.match(h, /\.boot-num \{ font-size: min\(38vw, 48vh\); line-height: \.82; letter-spacing: -\.04em;/);
+    assert.match(h, /var\(--cyan, #22e5ff\)/); assert.match(h, /var\(--ink, #000\)/);
+    assert.doesNotMatch(h, /kw-boot|kwb-/);
+    assert.equal(fs.readFileSync(path.join(__dirname, '..', 'public/sw.js'), 'utf8').includes('boot'), false, 'service worker untouched (nothing is cached)');
+});
