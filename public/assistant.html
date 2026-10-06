@@ -11,7 +11,8 @@
     <!-- the real app UI (colours, bubbles, prompt bar, voice orb, quiz/flashcards), generated from index.html -->
     <link rel="stylesheet" href="/assets/ui/app-ui.css">
     <link rel="stylesheet" href="/assets/attach/attach.css">
-    <style>
+    <script>try { var r = document.documentElement, rs = JSON.parse(localStorage.getItem('knowura_retro') || '{}'); if (rs.crt === 'on') r.classList.add('crt'); if (localStorage.getItem('knowura_term') === '1') r.classList.add('term'); } catch (e) { /* storage blocked */ }</script>
+<style>
         html, body { height: 100%; background: transparent; color: var(--text); overflow: hidden; -webkit-tap-highlight-color: transparent; }
         /* in a normal browser tab (no phone screen behind it) give the page its own backdrop */
         body:not(.native) { background: radial-gradient(120% 90% at 50% 0%, #0f2a80 0%, #05070f 60%); }
@@ -282,7 +283,7 @@
 <script>
 // helpers the shared study module expects from its host page (same names as in the app)
 function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-function haptic(kind) { try { navigator.vibrate && navigator.vibrate(kind === 'error' ? [20, 40, 20] : 12); } catch (e) { /* not supported */ } }
+function haptic(kind) { if (typeof kwSfx === 'function') kwSfx(kind === 'tick' ? 'tap' : kind); try { navigator.vibrate && navigator.vibrate(kind === 'error' ? [20, 40, 20] : 12); } catch (e) { /* not supported */ } }
 function showAlert(message) { window.__note && window.__note(message); }
 </script>
 <script src="/assets/ui/app-ui.js"></script>

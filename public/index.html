@@ -21,6 +21,7 @@
         } catch (e) { /* storage blocked: skip the counter */ }
     })();
     </script>
+    <script>try { var r = document.documentElement, rs = JSON.parse(localStorage.getItem('knowura_retro') || '{}'); if (rs.crt === 'on') r.classList.add('crt'); if (localStorage.getItem('knowura_term') === '1') r.classList.add('term'); } catch (e) { /* storage blocked */ }</script>
     <style id="boot-css">
         /* Boot counter: a full-screen 0-100 on the first visit of a session. Only exists while <html> has .is-booting (set in the gate script above); a failsafe lifts it after 8 s. */
         .boot { display: none; }
@@ -524,6 +525,29 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         html.hc { --text-dim: #cfdcf3; --panel: rgba(12, 24, 52, 0.9); --panel-strong: rgba(9, 18, 40, 0.96); }
         html.hc :focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
         html.hc .msg { border-color: #fff; }
+
+        /* ─── RETRO PACK: press-into-shadow buttons, CRT scanlines, pixel burst, green terminal mode (Konami code) ─── */
+        .btn-ui:not(:disabled):active, .pb-pick:not(:disabled):active, .suggestion-chip:active, .menu-item:active, .menu-nav:active, .choice-pill:active, .chip:active,
+        .followups button:active, .reply-tools button:active, button.streak-chip:active, .q-opt:not(:disabled):active, .suggest button:active, .msg-actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+        html.crt::after, html.term::after { content: ''; position: fixed; inset: 0; z-index: 2147483100; pointer-events: none;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.16) 3px), radial-gradient(120% 100% at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.35) 100%); }
+        html.crt:not(.term) body { text-shadow: 0 0 6px rgba(34, 229, 255, 0.18); }
+        html.lite.crt:not(.term)::after, html.lite.crt:not(.term) body { display: none; text-shadow: none; }
+        .pxburst { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; overflow: hidden; }
+        .pxburst i { position: absolute; width: 8px; height: 8px; background: var(--c, #22e5ff); box-shadow: 2px 2px 0 #000; animation: pxFly .95s steps(9) forwards; }
+        @keyframes pxFly { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .pxburst { display: none; } }
+        /* green phosphor terminal: a half-finished project on purpose */
+        html.term { --dark: #000; --blue: #1fa84a; --blue-deep: #052b12; --cyan: #39ff6a; --text: #a8ffbf; --text-dim: #2fbf5c; --panel: rgba(0, 28, 8, 0.86); --panel-strong: rgba(0, 20, 6, 0.95); --owner: #ffb000; }
+        html.term { filter: grayscale(1) sepia(1) hue-rotate(78deg) saturate(2.6) brightness(1.08) contrast(1.2); }   /* everything, logos and photos included, goes phosphor green */
+        html.term body { background: #000 !important; background-image: none !important; }
+        html.term * { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace !important; text-shadow: 0 0 5px rgba(57, 255, 106, 0.4); }
+        html.term .msg, html.term button, html.term .prompt-bar, html.term .pb-inner, html.term input, html.term textarea, html.term .sheet, html.term .study-card { border-radius: 0 !important; }
+        html.term img.orb-gif, html.term .study-strip img { filter: hue-rotate(-60deg) saturate(1.4); }
+        html.term::before { content: 'knowura@alpha:~$ ./learn --wip   # TODO: finish this project'; position: fixed; top: 0; left: 0; right: 0; z-index: 2147483200; padding: 3px 10px; font: 11px ui-monospace, Menlo, Consolas, monospace; color: #39ff6a; background: #000; border-bottom: 1px solid #1fa84a; pointer-events: none; white-space: nowrap; overflow: hidden; }
+        html.term body::after { content: '\2588'; position: fixed; right: 12px; bottom: 6px; z-index: 2147483200; color: #39ff6a; font-size: 14px; pointer-events: none; animation: termBlink 1s steps(1) infinite; }
+        @keyframes termBlink { 50% { opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { html.term body::after { animation: none; } }
 
         .msg h1, .msg h2, .msg h3 { margin: 12px 0 8px; font-weight: 700; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.3px; }
         .msg h1 { font-size: 1.2em; } .msg h2 { font-size: 1.08em; } .msg h3 { font-size: 1em; }
@@ -2013,6 +2037,15 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                 <button type="button" class="menu-item" style="margin-top:8px;" onclick="showShortcuts()"><svg class="icon"><use href="#icon-info"/></svg> Keyboard shortcuts</button>
             </div>
 
+            <div class="settings-section">
+                <div class="settings-label">Retro</div>
+                <button class="choice-pill" data-group="crt" data-value="off" onclick="setRetro('crt','off')"><span class="choice-row"><span class="choice-dot"></span>Clean screen</span></button>
+                <button class="choice-pill" data-group="crt" data-value="on" onclick="setRetro('crt','on')"><span class="choice-row"><span class="choice-dot"></span>CRT scanlines</span><span class="choice-hint">Faint scanlines and a soft glow (off automatically in Lite mode)</span></button>
+                <button class="choice-pill" data-group="sfx" data-value="off" onclick="setRetro('sfx','off')"><span class="choice-row"><span class="choice-dot"></span>Sounds off</span></button>
+                <button class="choice-pill" data-group="sfx" data-value="on" onclick="setRetro('sfx','on')"><span class="choice-row"><span class="choice-dot"></span>8-bit sounds</span><span class="choice-hint">Little chip-tune blips on taps, sends and quiz answers</span></button>
+                <div class="settings-hint" style="font-size:12px;color:var(--text-dim);margin-top:8px;">Psst: try the Konami code (↑ ↑ ↓ ↓ ← → ← → B A), or tap the big logo 7 times.</div>
+            </div>
+
 
             </div>
 
@@ -2486,6 +2519,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         return !navigator.userActivation || navigator.userActivation.hasBeenActive;
     }
     function haptic(kind = 'tap') {
+        if (typeof kwSfx === 'function') kwSfx(kind);
         if (!navigator.vibrate || settings.haptics === 'off') return false;
         if (!hapticAllowed()) { if (kind !== 'tick' && kind !== 'key') pendingHaptic = kind; return false; }
         const now = performance.now();
@@ -3644,6 +3678,71 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // ─── STUDY TOOLS: quiz + flashcard pop-up (the AI creates these via tool calls) ─────────
     let study = null; // { data, ...state } while the overlay is open
 
+
+    // ── retro pack (shared with the assistant panel): scanlines, 8-bit sounds, pixel burst, Konami green terminal ──
+    const kwRetro = Object.assign({ crt: 'off', sfx: 'off' }, (() => { try { return JSON.parse(localStorage.getItem('knowura_retro') || '{}'); } catch (e) { return {}; } })());
+    function kwRetroSet(k, v) {
+        kwRetro[k] = v;
+        try { localStorage.setItem('knowura_retro', JSON.stringify(kwRetro)); } catch (e) { /* storage blocked */ }
+        document.documentElement.classList.toggle('crt', kwRetro.crt === 'on');
+        if (k === 'sfx' && v === 'on') kwSfx('success');
+    }
+    let kwAudio = null;
+    const KW_SFX = { tap: [[880, .03]], select: [[660, .04]], nav: [[330, .04]], send: [[440, .05], [880, .07]], success: [[523, .07], [659, .07], [784, .12]], error: [[196, .09], [147, .15]] };
+    function kwSfx(kind) {   // tiny square-wave blips made on the fly (no sound files); off unless the user turns them on
+        const seq = KW_SFX[kind];
+        if (!seq || kwRetro.sfx !== 'on') return;
+        try {
+            kwAudio = kwAudio || new (window.AudioContext || window.webkitAudioContext)();
+            if (kwAudio.state === 'suspended') kwAudio.resume();
+            let t = kwAudio.currentTime;
+            for (const [f, d] of seq) {
+                const o = kwAudio.createOscillator(), g = kwAudio.createGain();
+                o.type = 'square'; o.frequency.value = f; g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+                o.connect(g); g.connect(kwAudio.destination); o.start(t); o.stop(t + d + 0.01); t += d;
+            }
+        } catch (e) { /* audio blocked */ }
+    }
+    function kwPixelBurst(x, y, n = 30) {
+        if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const term = document.documentElement.classList.contains('term');
+        const colors = term ? ['#39ff6a', '#1fa84a', '#a8ffbf'] : ['#22e5ff', '#2f6bff', '#ffffff', '#19c37d'];
+        const layer = document.createElement('div'); layer.className = 'pxburst';
+        for (let i = 0; i < n; i++) {
+            const e = document.createElement('i'), a = Math.random() * Math.PI * 2, r = 50 + Math.random() * 130;
+            e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.setProperty('--c', colors[i % colors.length]);
+            e.style.setProperty('--dx', Math.round(Math.cos(a) * r / 4) * 4 + 'px'); e.style.setProperty('--dy', Math.round(Math.sin(a) * r / 4) * 4 + 'px');
+            layer.append(e);
+        }
+        document.body.append(layer); setTimeout(() => layer.remove(), 1200);
+    }
+    function kwTerminal(on) {
+        const root = document.documentElement;
+        const next = on === undefined ? !root.classList.contains('term') : on;
+        root.classList.toggle('term', next);
+        try { localStorage.setItem('knowura_term', next ? '1' : '0'); } catch (e) { /* storage blocked */ }
+        kwPixelBurst(innerWidth / 2, innerHeight / 2, 44); kwSfx('success');
+        window.KnowuraAttach?.toast?.(next ? 'root access granted. terminal mode on (enter the code again to leave)' : 'terminal mode off', 'ok');
+    }
+    (function () {   // ↑ ↑ ↓ ↓ ← → ← → B A  (or tap the logo 7 times on the start screen)
+        const code = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let at = 0, taps = 0, tapTimer = null;
+        document.addEventListener('keydown', (e) => {
+            const t = e.target, typing = t && ((t.matches && t.matches('input, textarea, select')) || t.isContentEditable);
+            if (typing && (t.isContentEditable || String(t.value || '') !== '' && at === 0)) { at = 0; return; }   // only while the box is empty, so normal typing never triggers it
+            const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+            if (k === code[at]) {
+                at++;
+                if (at === code.length) { at = 0; if (typing) { t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); } kwTerminal(); }
+            } else at = k === code[0] ? 1 : 0;
+        });
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest || !e.target.closest('.empty-logo')) return;
+            taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => { taps = 0; }, 2500);
+            if (taps >= 7) { taps = 0; kwTerminal(); }
+        });
+    })();
+
     // Study progress shared with the assistant panel: streak days, weak spots and their spaced review.
     const kwStore = {
         get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } },
@@ -3666,6 +3765,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (days.includes(t)) return;
         days.push(t); kwStore.set('knowura_days', days.slice(-120));
         refreshStudyHome(true);
+        const chip = document.querySelector('#studyHome .streak-chip img');
+        if (chip) { const r = chip.getBoundingClientRect(); kwPixelBurst(r.left + r.width / 2, r.top + r.height / 2, 18); }
     }
     const WEAK_DAYS = [1, 3, 7, 14];
     const weakList = () => kwStore.get('knowura_weak', []);
@@ -3874,6 +3975,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function confettiBurst() {
+        const ring = document.querySelector('#studyBody .score-ring, #studyBody .result-head'), rc = ring ? ring.getBoundingClientRect() : null;
+        kwPixelBurst(rc ? rc.left + rc.width / 2 : innerWidth / 2, rc ? rc.top + rc.height / 2 : innerHeight / 3);
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
         const layer = studyEl('div', 'confetti');
         const colors = ['#22e5ff', '#2f6bff', '#19c37d', '#ffd23f', '#ff4d6d', '#eaf6ff'];
@@ -6047,6 +6150,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.documentElement.style.setProperty('--kw-text', String(Number(settings.textScale || 100) / 100));
         document.documentElement.classList.toggle('hc', settings.contrast === 'high');
     }
+    function setRetro(k, v) { kwRetroSet(k, v); settings[k] = v; saveSettings(); updateSettingsUI(); }
+    settings.crt = kwRetro.crt; settings.sfx = kwRetro.sfx; updateSettingsUI();
     function setTextScale(v) { settings.textScale = v; saveSettings(); applyA11y(); updateSettingsUI(); }
     function setContrast(v) { settings.contrast = v; saveSettings(); applyA11y(); updateSettingsUI(); }
     function showShortcuts() {
