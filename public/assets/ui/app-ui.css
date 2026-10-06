@@ -49,7 +49,7 @@
 
         .msg {
             position: relative; padding: 14px 20px; border-radius: 14px; max-width: 80%;
-            font-size: 15px; line-height: 1.65; animation: fadeInUp 0.16s ease-out;
+            font-size: calc(15px * var(--kw-text, 1)); line-height: 1.65; animation: fadeInUp 0.16s ease-out;
             word-wrap: break-word; min-width: 0;
             border: 2.5px solid var(--ink);
             box-shadow: var(--shadow-sm);
@@ -61,13 +61,39 @@
             margin-left: 34px;
         }
         .ai::before {
-            content: 'K'; position: absolute; left: -34px; top: 0;
+            content: ''; position: absolute; left: -34px; top: 0;
             width: 26px; height: 26px; border-radius: 7px;
-            background: var(--cyan); border: 2px solid var(--ink);
-            color: #001018; font-weight: 800; font-size: 12px;
-            display: flex; align-items: center; justify-content: center;
+            background: var(--cyan) url(/assets/brand/k-mark.svg) center / 74% no-repeat; border: 2px solid var(--ink);
             box-shadow: 2px 2px 0 var(--ink);
         }
+
+
+        /* ─── STUDY MODE, REPLY TOOLS, FOLLOW-UPS, STREAK, ACCESSIBILITY ─── */
+        .reply-tools { display: flex; align-items: center; gap: 6px; margin: -4px 0 4px 34px; align-self: flex-start; }
+        .reply-tools button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 2px solid var(--ink); border-radius: 8px; background: var(--panel-strong); color: var(--text-dim); cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .reply-tools button:hover { color: var(--cyan); }
+        .reply-tools button.on { color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
+        .reply-tools .icon { width: 16px; height: 16px; }
+        .followups { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
+        .followups button { padding: 7px 12px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 13px; text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .followups button:hover { color: var(--cyan); }
+        .study-strip { display: none; align-items: center; gap: 10px; margin: 0 0 8px; padding: 6px 8px 6px 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(34, 229, 255, 0.1); box-shadow: var(--shadow-sm); font-size: 12.5px; line-height: 1.35; }
+        .study-strip.on { display: flex; }
+        .study-strip img { width: 36px; height: 36px; flex: none; border-radius: 50%; }
+        .study-strip b { color: var(--cyan); }
+        .study-strip button { margin-left: auto; flex: none; padding: 5px 9px; border: 2px solid var(--ink); border-radius: 8px; background: var(--panel-strong); color: var(--text); font-size: 12px; cursor: pointer; }
+        .pb-pick.on { color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
+        .study-home { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+        .study-home:empty { display: none; }
+        .streak-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 2.5px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 13px; font-weight: 700; box-shadow: var(--shadow-sm); }
+        button.streak-chip { cursor: pointer; }
+        .streak-chip img { width: 22px; height: 22px; padding: 2px; border-radius: 6px; background: var(--cyan); }
+        .streak-chip .icon { color: var(--cyan); }
+        .streak-chip.bump img { animation: kHop .7s cubic-bezier(.3, 1.6, .5, 1); }
+        @keyframes kHop { 0% { transform: scale(1); } 35% { transform: translateY(-6px) scale(1.25) rotate(-8deg); } 100% { transform: none; } }
+        html.hc { --text-dim: #cfdcf3; --panel: rgba(12, 24, 52, 0.9); --panel-strong: rgba(9, 18, 40, 0.96); }
+        html.hc :focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+        html.hc .msg { border-color: #fff; }
 
         .msg h1, .msg h2, .msg h3 { margin: 12px 0 8px; font-weight: 700; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.3px; }
         .msg h1 { font-size: 1.2em; } .msg h2 { font-size: 1.08em; } .msg h3 { font-size: 1em; }
@@ -264,7 +290,7 @@
 
         .pb-input {
             display: block; width: 100%; padding: 2px 0; border: 0; background: transparent; color: var(--text);
-            font-size: 16px; /* 16px stops iOS Safari auto-zooming on focus */
+            font-size: calc(16px * var(--kw-text, 1)); /* 16px stops iOS Safari auto-zooming on focus */
             font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden;
         }
         .pb-input::placeholder { color: var(--text-dim); }

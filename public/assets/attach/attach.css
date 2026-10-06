@@ -34,6 +34,7 @@
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .att-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.att-toast.ok { background: rgba(9, 30, 62, 0.97); color: #d6f3ff; }
 .pb-attach { flex: none; }
 
 /* phone sheet: Photos / Camera / Files */

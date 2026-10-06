@@ -479,7 +479,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
         .msg {
             position: relative; padding: 14px 20px; border-radius: 14px; max-width: 80%;
-            font-size: 15px; line-height: 1.65; animation: fadeInUp 0.16s ease-out;
+            font-size: calc(15px * var(--kw-text, 1)); line-height: 1.65; animation: fadeInUp 0.16s ease-out;
             word-wrap: break-word; min-width: 0;
             border: 2.5px solid var(--ink);
             box-shadow: var(--shadow-sm);
@@ -491,13 +491,39 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             margin-left: 34px;
         }
         .ai::before {
-            content: 'K'; position: absolute; left: -34px; top: 0;
+            content: ''; position: absolute; left: -34px; top: 0;
             width: 26px; height: 26px; border-radius: 7px;
-            background: var(--cyan); border: 2px solid var(--ink);
-            color: #001018; font-weight: 800; font-size: 12px;
-            display: flex; align-items: center; justify-content: center;
+            background: var(--cyan) url(/assets/brand/k-mark.svg) center / 74% no-repeat; border: 2px solid var(--ink);
             box-shadow: 2px 2px 0 var(--ink);
         }
+
+
+        /* ─── STUDY MODE, REPLY TOOLS, FOLLOW-UPS, STREAK, ACCESSIBILITY ─── */
+        .reply-tools { display: flex; align-items: center; gap: 6px; margin: -4px 0 4px 34px; align-self: flex-start; }
+        .reply-tools button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 2px solid var(--ink); border-radius: 8px; background: var(--panel-strong); color: var(--text-dim); cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .reply-tools button:hover { color: var(--cyan); }
+        .reply-tools button.on { color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
+        .reply-tools .icon { width: 16px; height: 16px; }
+        .followups { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
+        .followups button { padding: 7px 12px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 13px; text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .followups button:hover { color: var(--cyan); }
+        .study-strip { display: none; align-items: center; gap: 10px; margin: 0 0 8px; padding: 6px 8px 6px 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(34, 229, 255, 0.1); box-shadow: var(--shadow-sm); font-size: 12.5px; line-height: 1.35; }
+        .study-strip.on { display: flex; }
+        .study-strip img { width: 36px; height: 36px; flex: none; border-radius: 50%; }
+        .study-strip b { color: var(--cyan); }
+        .study-strip button { margin-left: auto; flex: none; padding: 5px 9px; border: 2px solid var(--ink); border-radius: 8px; background: var(--panel-strong); color: var(--text); font-size: 12px; cursor: pointer; }
+        .pb-pick.on { color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
+        .study-home { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+        .study-home:empty { display: none; }
+        .streak-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 2.5px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 13px; font-weight: 700; box-shadow: var(--shadow-sm); }
+        button.streak-chip { cursor: pointer; }
+        .streak-chip img { width: 22px; height: 22px; padding: 2px; border-radius: 6px; background: var(--cyan); }
+        .streak-chip .icon { color: var(--cyan); }
+        .streak-chip.bump img { animation: kHop .7s cubic-bezier(.3, 1.6, .5, 1); }
+        @keyframes kHop { 0% { transform: scale(1); } 35% { transform: translateY(-6px) scale(1.25) rotate(-8deg); } 100% { transform: none; } }
+        html.hc { --text-dim: #cfdcf3; --panel: rgba(12, 24, 52, 0.9); --panel-strong: rgba(9, 18, 40, 0.96); }
+        html.hc :focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+        html.hc .msg { border-color: #fff; }
 
         .msg h1, .msg h2, .msg h3 { margin: 12px 0 8px; font-weight: 700; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.3px; }
         .msg h1 { font-size: 1.2em; } .msg h2 { font-size: 1.08em; } .msg h3 { font-size: 1em; }
@@ -779,7 +805,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
         .pb-input {
             display: block; width: 100%; padding: 2px 0; border: 0; background: transparent; color: var(--text);
-            font-size: 16px; /* 16px stops iOS Safari auto-zooming on focus */
+            font-size: calc(16px * var(--kw-text, 1)); /* 16px stops iOS Safari auto-zooming on focus */
             font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden;
         }
         .pb-input::placeholder { color: var(--text-dim); }
@@ -1691,13 +1717,17 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             <symbol id="icon-phone" viewBox="0 0 32 32"><path fill="currentColor" d="M30.48 18.29l-9.15 0 0 3.04 1.53 0 0 1.53 7.62 0 0 3.04 1.52 0 0 -10.66 -1.52 0 0 3.05zM28.95 25.9h1.53v1.53h-1.53ZM28.95 13.71h1.53v1.53h-1.53ZM27.43 12.19h1.52v1.52h-1.52ZM27.43 25.9l-1.53 0 0 1.53 -1.52 0 0 1.52 4.57 0 0 -1.52 -1.52 0 0 -1.53zM24.38 24.38h1.52v1.52h-1.52ZM24.38 1.52h1.52v1.53h-1.52ZM22.86 25.9h1.52v1.53h-1.52ZM22.86 3.05h1.52v1.52h-1.52ZM19.81 28.95h4.57v1.53h-4.57ZM21.33 4.57h1.53V6.1h-1.53ZM10.67 16.76h10.66v1.53H10.67ZM15.24 1.52h1.52V6.1h-1.52ZM9.14 4.57h1.53V6.1H9.14ZM1.52 18.29l0 -3.05 -1.52 0 0 6.09 1.52 0 0 1.53 7.62 0 0 -1.53 1.53 0 0 -3.04 -9.15 0zM7.62 3.05h1.52v1.52H7.62ZM4.57 10.67h22.86v1.52H4.57ZM6.09 1.52h1.53v1.53H6.09ZM3.05 12.19h1.52v1.52H3.05ZM1.52 13.71h1.53v1.53H1.52Z"/></symbol>
             <symbol id="icon-play" viewBox="0 0 32 32"><path fill="currentColor" d="M7.62 4.57h1.52v1.52h-1.52zM7.62 6.1h4.57v1.52h-4.57zM7.62 7.62h7.62v1.52h-7.62zM7.62 9.14h10.67v1.52h-10.67zM7.62 10.67h12.19v1.52h-12.19zM7.62 12.19h15.24v1.52h-15.24zM7.62 13.71h18.29v1.52h-18.29zM7.62 15.24h19.81v1.52h-19.81zM7.62 16.76h18.29v1.52h-18.29zM7.62 18.29h15.24v1.52h-15.24zM7.62 19.81h12.19v1.52h-12.19zM7.62 21.33h10.67v1.52h-10.67zM7.62 22.86h7.62v1.52h-7.62zM7.62 24.38h4.57v1.52h-4.57zM7.62 25.9h1.52v1.52h-1.52z"/></symbol>
             <symbol id="icon-plus" viewBox="0 0 32 32"><path fill="currentColor" d="M13.71 4.57h4.57v1.52h-4.57zM13.71 6.1h4.57v1.52h-4.57zM13.71 7.62h4.57v1.52h-4.57zM13.71 9.14h4.57v1.52h-4.57zM13.71 10.67h4.57v1.52h-4.57zM13.71 12.19h4.57v1.52h-4.57zM4.57 13.71h22.86v1.52h-22.86zM4.57 15.24h22.86v1.52h-22.86zM4.57 16.76h22.86v1.52h-22.86zM13.71 18.29h4.57v1.52h-4.57zM13.71 19.81h4.57v1.52h-4.57zM13.71 21.33h4.57v1.52h-4.57zM13.71 22.86h4.57v1.52h-4.57zM13.71 24.38h4.57v1.52h-4.57zM13.71 25.9h4.57v1.52h-4.57z"/></symbol>
+            <symbol id="icon-refresh" viewBox="0 0 32 32"><path fill="currentColor" d="M18.29 3.05h10.67v1.52h-10.67zM13.71 4.57h3.05v1.52h-3.05zM18.29 4.57h10.67v1.52h-10.67zM10.67 6.1h6.1v1.52h-6.1zM25.9 6.1h3.05v1.52h-3.05zM7.62 7.62h9.14v1.52h-9.14zM25.9 7.62h3.05v1.52h-3.05zM6.1 9.14h6.1v1.52h-6.1zM25.9 9.14h3.05v1.52h-3.05zM6.1 10.67h3.05v1.52h-3.05zM25.9 10.67h3.05v1.52h-3.05zM4.57 12.19h4.57v1.52h-4.57zM25.9 12.19h3.05v1.52h-3.05zM4.57 13.71h3.05v1.52h-3.05zM4.57 15.24h3.05v1.52h-3.05zM24.38 15.24h3.05v1.52h-3.05zM4.57 16.76h3.05v1.52h-3.05zM24.38 16.76h3.05v1.52h-3.05zM4.57 18.29h3.05v1.52h-3.05zM24.38 18.29h3.05v1.52h-3.05zM4.57 19.81h4.57v1.52h-4.57zM22.86 19.81h4.57v1.52h-4.57zM6.1 21.33h3.05v1.52h-3.05zM22.86 21.33h3.05v1.52h-3.05zM6.1 22.86h6.1v1.52h-6.1zM19.81 22.86h6.1v1.52h-6.1zM7.62 24.38h16.76v1.52h-16.76zM10.67 25.9h10.67v1.52h-10.67zM13.71 27.43h4.57v1.52h-4.57z"/></symbol>
             <symbol id="icon-search" viewBox="0 0 32 32"><path fill="currentColor" d="M9.14 1.52h7.62v1.52h-7.62zM6.1 3.05h13.71v1.52h-13.71zM4.57 4.57h6.1v1.52h-6.1zM15.24 4.57h6.1v1.52h-6.1zM3.05 6.1h4.57v1.52h-4.57zM18.29 6.1h4.57v1.52h-4.57zM3.05 7.62h3.05v1.52h-3.05zM19.81 7.62h3.05v1.52h-3.05zM1.52 9.14h4.57v1.52h-4.57zM19.81 9.14h4.57v1.52h-4.57zM1.52 10.67h3.05v1.52h-3.05zM21.33 10.67h3.05v1.52h-3.05zM1.52 12.19h3.05v1.52h-3.05zM21.33 12.19h3.05v1.52h-3.05zM1.52 13.71h3.05v1.52h-3.05zM21.33 13.71h3.05v1.52h-3.05zM1.52 15.24h4.57v1.52h-4.57zM19.81 15.24h4.57v1.52h-4.57zM3.05 16.76h3.05v1.52h-3.05zM19.81 16.76h3.05v1.52h-3.05zM3.05 18.29h4.57v1.52h-4.57zM18.29 18.29h4.57v1.52h-4.57zM4.57 19.81h6.1v1.52h-6.1zM15.24 19.81h7.62v1.52h-7.62zM6.1 21.33h18.29v1.52h-18.29zM9.14 22.86h7.62v1.52h-7.62zM21.33 22.86h4.57v1.52h-4.57zM22.86 24.38h4.57v1.52h-4.57zM24.38 25.9h4.57v1.52h-4.57zM25.9 27.43h1.52v1.52h-1.52z"/></symbol>
             <symbol id="icon-settings" viewBox="0 0 32 32"><path fill="currentColor" d="M29.715 14.48l0 3.05 -1.52 0 0 1.52 3.04 0 0 -6.1 -3.04 0 0 1.53 1.52 0zM26.665 23.62h1.53v1.52h-1.53ZM26.665 19.05h1.53v3.05h-1.53ZM26.665 9.91h1.53v3.04h-1.53ZM26.665 6.86h1.53v1.52h-1.53ZM25.145 25.14h1.52v1.53h-1.52ZM25.145 22.1h1.52v1.52h-1.52ZM25.145 8.38h1.52v1.53h-1.52ZM25.145 5.34h1.52v1.52h-1.52ZM23.615 26.67h1.53v1.52h-1.53ZM23.615 12.95h1.53v6.1h-1.53ZM23.615 3.81h1.53v1.53h-1.53ZM22.095 25.14h1.52v1.53h-1.52ZM22.095 19.05h1.52v3.05h-1.52ZM22.095 9.91h1.52v3.04h-1.52ZM22.095 5.34h1.52v1.52h-1.52ZM19.045 26.67h3.05v1.52h-3.05ZM19.045 22.1h3.05v1.52h-3.05ZM19.045 8.38h3.05v1.53h-3.05ZM19.045 3.81h3.05v1.53h-3.05ZM17.525 29.72l-3.05 0 0 -1.53 -1.52 0 0 3.05 6.09 0 0 -3.05 -1.52 0 0 1.53zM12.955 23.62h6.09v1.52h-6.09ZM14.475 19.05l3.05 0 0 -1.52 1.52 0 0 -3.05 -1.52 0 0 -1.53 -3.05 0 0 1.53 -1.52 0 0 3.05 1.52 0 0 1.52zM12.955 6.86h6.09v1.52h-6.09ZM14.475 2.29l3.05 0 0 1.52 1.52 0 0 -3.05 -6.09 0 0 3.05 1.52 0 0 -1.52zM9.905 26.67h3.05v1.52h-3.05ZM9.905 22.1h3.05v1.52h-3.05ZM9.905 8.38h3.05v1.53h-3.05ZM9.905 3.81h3.05v1.53h-3.05ZM8.385 25.14h1.52v1.53h-1.52ZM8.385 19.05h1.52v3.05h-1.52ZM8.385 9.91h1.52v3.04h-1.52ZM8.385 5.34h1.52v1.52h-1.52ZM6.855 26.67h1.53v1.52h-1.53ZM6.855 12.95h1.53v6.1h-1.53ZM6.855 3.81h1.53v1.53h-1.53ZM5.335 25.14h1.52v1.53h-1.52ZM5.335 22.1h1.52v1.52h-1.52ZM5.335 8.38h1.52v1.53h-1.52ZM5.335 5.34h1.52v1.52h-1.52ZM3.815 23.62h1.52v1.52h-1.52ZM3.815 19.05h1.52v3.05h-1.52ZM3.815 9.91h1.52v3.04h-1.52ZM3.815 6.86h1.52v1.52h-1.52ZM3.815 17.53l-1.53 0 0 -3.05 1.53 0 0 -1.53 -3.05 0 0 6.1 3.05 0 0 -1.52z"/></symbol>
             <symbol id="icon-share" viewBox="0 0 32 32"><path fill="currentColor" d="M20.565 9.14l1.53 0 0 1.53 4.57 0 0 -1.53 1.52 0 0 -1.52 -1.52 0 0 -3.05 -1.53 0 0 -1.52 1.53 0 0 1.52 1.52 0 0 3.05 1.53 0 0 -4.57 -1.53 0 0 -1.53 -1.52 0 0 -1.52 -4.57 0 0 1.52 -1.53 0 0 1.53 -1.52 0 0 4.57 1.52 0 0 1.52zM19.045 28.95l1.52 0 0 1.53 1.53 0 0 1.52 4.57 0 0 -1.52 1.52 0 0 -1.53 -1.52 0 0 -3.05 -1.53 0 0 -1.52 1.53 0 0 1.52 1.52 0 0 3.05 1.53 0 0 -4.57 -1.53 0 0 -1.52 -1.52 0 0 -1.53 -4.57 0 0 1.53 -1.53 0 0 1.52 -1.52 0 0 4.57zM17.525 22.86h1.52v1.52h-1.52ZM17.525 7.62h1.52v1.52h-1.52ZM15.995 21.33h1.53v1.53h-1.53ZM15.995 9.14h1.53v1.53h-1.53ZM14.475 19.81h1.52v1.52h-1.52ZM14.475 10.67h1.52v1.52h-1.52ZM12.945 18.29h1.53v1.52h-1.53ZM12.945 12.19h1.53v1.52h-1.53ZM5.335 10.67l0 1.52 -1.53 0 0 1.52 -1.52 0 0 4.58 1.52 0 0 1.52 1.53 0 0 1.52 4.57 0 0 -1.52 1.52 0 0 -1.52 1.52 0 0 -4.58 -1.52 0 0 -1.52 -1.52 0 0 -1.52 -4.57 0z"/></symbol>
             <symbol id="icon-sidebar" viewBox="0 0 32 32"><path fill="currentColor" d="M3.05 4.57h25.9v1.52h-25.9zM3.05 6.1h25.9v1.52h-25.9zM3.05 7.62h3.05v1.52h-3.05zM10.67 7.62h3.05v1.52h-3.05zM25.9 7.62h3.05v1.52h-3.05zM3.05 9.14h3.05v1.52h-3.05zM10.67 9.14h3.05v1.52h-3.05zM25.9 9.14h3.05v1.52h-3.05zM3.05 10.67h3.05v1.52h-3.05zM10.67 10.67h3.05v1.52h-3.05zM25.9 10.67h3.05v1.52h-3.05zM3.05 12.19h3.05v1.52h-3.05zM10.67 12.19h3.05v1.52h-3.05zM25.9 12.19h3.05v1.52h-3.05zM3.05 13.71h3.05v1.52h-3.05zM10.67 13.71h3.05v1.52h-3.05zM25.9 13.71h3.05v1.52h-3.05zM3.05 15.24h3.05v1.52h-3.05zM10.67 15.24h3.05v1.52h-3.05zM25.9 15.24h3.05v1.52h-3.05zM3.05 16.76h3.05v1.52h-3.05zM10.67 16.76h3.05v1.52h-3.05zM25.9 16.76h3.05v1.52h-3.05zM3.05 18.29h3.05v1.52h-3.05zM10.67 18.29h3.05v1.52h-3.05zM25.9 18.29h3.05v1.52h-3.05zM3.05 19.81h3.05v1.52h-3.05zM10.67 19.81h3.05v1.52h-3.05zM25.9 19.81h3.05v1.52h-3.05zM3.05 21.33h3.05v1.52h-3.05zM10.67 21.33h3.05v1.52h-3.05zM25.9 21.33h3.05v1.52h-3.05zM3.05 22.86h3.05v1.52h-3.05zM10.67 22.86h3.05v1.52h-3.05zM25.9 22.86h3.05v1.52h-3.05zM3.05 24.38h25.9v1.52h-25.9zM3.05 25.9h25.9v1.52h-25.9z"/></symbol>
             <symbol id="icon-skip-back" viewBox="0 0 32 32"><path fill="currentColor" d="M6.1 4.57h3.05v1.52h-3.05zM25.9 4.57h1.52v1.52h-1.52zM6.1 6.1h3.05v1.52h-3.05zM22.86 6.1h4.57v1.52h-4.57zM6.1 7.62h3.05v1.52h-3.05zM21.33 7.62h6.1v1.52h-6.1zM6.1 9.14h3.05v1.52h-3.05zM18.29 9.14h9.14v1.52h-9.14zM6.1 10.67h3.05v1.52h-3.05zM16.76 10.67h10.67v1.52h-10.67zM6.1 12.19h3.05v1.52h-3.05zM15.24 12.19h12.19v1.52h-12.19zM6.1 13.71h3.05v1.52h-3.05zM12.19 13.71h15.24v1.52h-15.24zM6.1 15.24h3.05v1.52h-3.05zM10.67 15.24h16.76v1.52h-16.76zM6.1 16.76h3.05v1.52h-3.05zM12.19 16.76h15.24v1.52h-15.24zM6.1 18.29h3.05v1.52h-3.05zM15.24 18.29h12.19v1.52h-12.19zM6.1 19.81h3.05v1.52h-3.05zM16.76 19.81h10.67v1.52h-10.67zM6.1 21.33h3.05v1.52h-3.05zM18.29 21.33h9.14v1.52h-9.14zM6.1 22.86h3.05v1.52h-3.05zM21.33 22.86h6.1v1.52h-6.1zM6.1 24.38h3.05v1.52h-3.05zM22.86 24.38h4.57v1.52h-4.57zM6.1 25.9h3.05v1.52h-3.05zM25.9 25.9h1.52v1.52h-1.52z"/></symbol>
             <symbol id="icon-skip-forward" viewBox="0 0 32 32"><path fill="currentColor" d="M4.57 4.57h1.52v1.52h-1.52zM22.86 4.57h3.05v1.52h-3.05zM4.57 6.1h4.57v1.52h-4.57zM22.86 6.1h3.05v1.52h-3.05zM4.57 7.62h6.1v1.52h-6.1zM22.86 7.62h3.05v1.52h-3.05zM4.57 9.14h9.14v1.52h-9.14zM22.86 9.14h3.05v1.52h-3.05zM4.57 10.67h10.67v1.52h-10.67zM22.86 10.67h3.05v1.52h-3.05zM4.57 12.19h12.19v1.52h-12.19zM22.86 12.19h3.05v1.52h-3.05zM4.57 13.71h15.24v1.52h-15.24zM22.86 13.71h3.05v1.52h-3.05zM4.57 15.24h16.76v1.52h-16.76zM22.86 15.24h3.05v1.52h-3.05zM4.57 16.76h15.24v1.52h-15.24zM22.86 16.76h3.05v1.52h-3.05zM4.57 18.29h12.19v1.52h-12.19zM22.86 18.29h3.05v1.52h-3.05zM4.57 19.81h10.67v1.52h-10.67zM22.86 19.81h3.05v1.52h-3.05zM4.57 21.33h9.14v1.52h-9.14zM22.86 21.33h3.05v1.52h-3.05zM4.57 22.86h6.1v1.52h-6.1zM22.86 22.86h3.05v1.52h-3.05zM4.57 24.38h4.57v1.52h-4.57zM22.86 24.38h3.05v1.52h-3.05zM4.57 25.9h1.52v1.52h-1.52zM22.86 25.9h3.05v1.52h-3.05z"/></symbol>
+            <symbol id="icon-study" viewBox="0 0 32 32"><path fill="currentColor" d="M15.24 3.05h1.52v1.52h-1.52zM12.19 4.57h7.62v1.52h-7.62zM9.14 6.1h13.71v1.52h-13.71zM6.1 7.62h19.81v1.52h-19.81zM3.05 9.14h25.9v1.52h-25.9zM3.05 10.67h27.43v1.52h-27.43zM6.1 12.19h19.81v1.52h-19.81zM27.43 12.19h3.05v1.52h-3.05zM9.14 13.71h13.71v1.52h-13.71zM27.43 13.71h3.05v1.52h-3.05zM12.19 15.24h7.62v1.52h-7.62zM27.43 15.24h3.05v1.52h-3.05zM7.62 16.76h16.76v1.52h-16.76zM27.43 16.76h3.05v1.52h-3.05zM7.62 18.29h4.57v1.52h-4.57zM19.81 18.29h4.57v1.52h-4.57zM27.43 18.29h3.05v1.52h-3.05zM7.62 19.81h16.76v1.52h-16.76zM27.43 19.81h3.05v1.52h-3.05zM7.62 21.33h16.76v1.52h-16.76zM27.43 21.33h3.05v1.52h-3.05zM7.62 22.86h16.76v1.52h-16.76z"/></symbol>
             <symbol id="icon-tag" viewBox="0 0 32 32"><path fill="currentColor" d="M30.47 18.29H32v1.52h-1.53ZM28.95 19.81h1.52v1.52h-1.52ZM28.95 16.76h1.52v1.53h-1.52ZM27.43 21.33h1.52v1.53h-1.52ZM27.43 15.24h1.52v1.52h-1.52ZM25.9 22.86h1.53v1.52H25.9ZM25.9 13.72h1.53v1.52H25.9ZM24.38 24.38h1.52v1.53h-1.52ZM24.38 12.19h1.52v1.53h-1.52ZM22.86 25.91h1.52v1.52h-1.52ZM22.86 10.67h1.52v1.52h-1.52ZM21.33 27.43h1.53v1.52h-1.53ZM21.33 21.33h1.53v1.53h-1.53ZM21.33 16.76h1.53v3.05h-1.53ZM21.33 9.14h1.53v1.53h-1.53ZM19.81 28.95h1.52v1.53h-1.52ZM19.81 19.81h1.52v1.52h-1.52ZM18.28 15.24h3.05v1.52h-3.05ZM19.81 7.62h1.52v1.52h-1.52ZM18.28 30.48h1.53V32h-1.53ZM18.28 18.29h1.53v1.52h-1.53ZM18.28 6.1h1.53v1.52h-1.53ZM16.76 28.95h1.52v1.53h-1.52ZM16.76 21.33h3.05v1.53h-3.05ZM16.76 16.76h1.52v1.53h-1.52ZM15.24 12.19h3.04v1.53h-3.04ZM16.76 4.57h1.52V6.1h-1.52ZM15.24 27.43h1.52v1.52h-1.52ZM15.24 15.24h1.52v1.52h-1.52ZM15.24 3.05h1.52v1.52h-1.52ZM13.71 25.91h1.53v1.52h-1.53ZM13.71 18.29h3.05v1.52h-3.05ZM13.71 13.72h1.53v1.52h-1.53ZM12.19 24.38h1.52v1.53h-1.52ZM12.19 15.24h1.52v3.05h-1.52ZM12.19 12.19h1.52v1.53h-1.52ZM10.66 22.86h1.53v1.52h-1.53ZM9.14 21.33h1.52v1.53H9.14ZM9.14 7.62l-1.52 0 0 1.52 -1.53 0 0 -1.52 -1.52 0 0 3.05 6.09 0 0 -6.1 -3.04 0 0 1.53 1.52 0 0 1.52zM7.62 19.81h1.52v1.52H7.62ZM6.09 18.29h1.53v1.52H6.09ZM6.09 6.1h1.53v1.52H6.09ZM4.57 1.52h10.67v1.53H4.57ZM4.57 16.76h1.52v1.53H4.57ZM4.57 4.57h1.52V6.1H4.57ZM3.05 15.24h1.52v1.52H3.05ZM3.05 3.05h1.52v1.52H3.05ZM1.52 4.57h1.53v10.67H1.52ZM1.52 1.52h1.53v1.53H1.52ZM0 0h1.52v1.52H0Z"/></symbol>
+            <symbol id="icon-thumb-down" viewBox="0 0 32 32"><path fill="currentColor" d="M3.05 3.05h6.1v1.52h-6.1zM10.67 3.05h18.29v1.52h-18.29zM3.05 4.57h6.1v1.52h-6.1zM10.67 4.57h18.29v1.52h-18.29zM3.05 6.1h6.1v1.52h-6.1zM10.67 6.1h18.29v1.52h-18.29zM3.05 7.62h6.1v1.52h-6.1zM10.67 7.62h18.29v1.52h-18.29zM3.05 9.14h6.1v1.52h-6.1zM10.67 9.14h18.29v1.52h-18.29zM3.05 10.67h6.1v1.52h-6.1zM10.67 10.67h18.29v1.52h-18.29zM3.05 12.19h6.1v1.52h-6.1zM10.67 12.19h18.29v1.52h-18.29zM3.05 13.71h6.1v1.52h-6.1zM10.67 13.71h18.29v1.52h-18.29zM3.05 15.24h6.1v1.52h-6.1zM10.67 15.24h18.29v1.52h-18.29zM3.05 16.76h6.1v1.52h-6.1zM10.67 16.76h18.29v1.52h-18.29zM13.71 18.29h9.14v1.52h-9.14zM13.71 19.81h9.14v1.52h-9.14zM13.71 21.33h9.14v1.52h-9.14zM13.71 22.86h6.1v1.52h-6.1zM13.71 24.38h6.1v1.52h-6.1zM13.71 25.9h6.1v1.52h-6.1z"/></symbol>
+            <symbol id="icon-thumb-up" viewBox="0 0 32 32"><path fill="currentColor" d="M13.71 4.57h6.1v1.52h-6.1zM13.71 6.1h6.1v1.52h-6.1zM13.71 7.62h6.1v1.52h-6.1zM13.71 9.14h9.14v1.52h-9.14zM13.71 10.67h9.14v1.52h-9.14zM13.71 12.19h9.14v1.52h-9.14zM3.05 13.71h6.1v1.52h-6.1zM10.67 13.71h18.29v1.52h-18.29zM3.05 15.24h6.1v1.52h-6.1zM10.67 15.24h18.29v1.52h-18.29zM3.05 16.76h6.1v1.52h-6.1zM10.67 16.76h18.29v1.52h-18.29zM3.05 18.29h6.1v1.52h-6.1zM10.67 18.29h18.29v1.52h-18.29zM3.05 19.81h6.1v1.52h-6.1zM10.67 19.81h18.29v1.52h-18.29zM3.05 21.33h6.1v1.52h-6.1zM10.67 21.33h18.29v1.52h-18.29zM3.05 22.86h6.1v1.52h-6.1zM10.67 22.86h18.29v1.52h-18.29zM3.05 24.38h6.1v1.52h-6.1zM10.67 24.38h18.29v1.52h-18.29zM3.05 25.9h6.1v1.52h-6.1zM10.67 25.9h18.29v1.52h-18.29zM3.05 27.43h6.1v1.52h-6.1zM10.67 27.43h18.29v1.52h-18.29z"/></symbol>
             <symbol id="icon-trash" viewBox="0 0 32 32"><path fill="currentColor" d="M25.905 8.38l0 16.76 1.53 0 0 -16.76 3.04 0 0 -1.52 -1.52 0 0 -1.53 -6.1 0 0 -3.05 -1.52 0 0 3.05 -10.67 0 0 -3.05 -1.52 0 0 3.05 -6.09 0 0 1.53 -1.53 0 0 1.52 3.05 0 0 16.76 1.52 0 0 -16.76 19.81 0zM24.385 25.14h1.52v4.57h-1.52ZM7.625 29.71h16.76v1.53H7.625ZM21.335 11.43h1.52v12.19h-1.52ZM19.815 23.62h1.52v3.04h-1.52ZM15.245 11.43h1.52v15.23h-1.52ZM10.665 0.76h10.67v1.52h-10.67ZM10.665 23.62h1.53v3.04h-1.53ZM9.145 11.43h1.52v12.19h-1.52ZM6.095 25.14h1.53v4.57h-1.53Z"/></symbol>
             <symbol id="icon-unlock" viewBox="0 0 32 32"><path fill="currentColor" d="M12.19 3.05h7.62v1.52h-7.62zM9.14 4.57h3.05v1.52h-3.05zM19.81 4.57h3.05v1.52h-3.05zM9.14 6.1h3.05v1.52h-3.05zM19.81 6.1h3.05v1.52h-3.05zM9.14 7.62h3.05v1.52h-3.05zM19.81 7.62h3.05v1.52h-3.05zM9.14 9.14h3.05v1.52h-3.05zM9.14 10.67h3.05v1.52h-3.05zM9.14 12.19h3.05v1.52h-3.05zM9.14 13.71h3.05v1.52h-3.05zM6.1 15.24h19.81v1.52h-19.81zM6.1 16.76h19.81v1.52h-19.81zM6.1 18.29h3.05v1.52h-3.05zM22.86 18.29h3.05v1.52h-3.05zM6.1 19.81h3.05v1.52h-3.05zM15.24 19.81h1.52v1.52h-1.52zM22.86 19.81h3.05v1.52h-3.05zM6.1 21.33h3.05v1.52h-3.05zM15.24 21.33h1.52v1.52h-1.52zM22.86 21.33h3.05v1.52h-3.05zM6.1 22.86h3.05v1.52h-3.05zM15.24 22.86h1.52v1.52h-1.52zM22.86 22.86h3.05v1.52h-3.05zM6.1 24.38h3.05v1.52h-3.05zM22.86 24.38h3.05v1.52h-3.05zM6.1 25.9h19.81v1.52h-19.81zM6.1 27.43h19.81v1.52h-19.81z"/></symbol>
             <symbol id="icon-volume" viewBox="0 0 32 32"><path fill="currentColor" d="M30.47 9.905H32v12.19h-1.53ZM28.95 22.095h1.52v1.52h-1.52ZM28.95 8.375h1.52v1.53h-1.52ZM27.43 23.615h1.52v1.52h-1.52ZM27.43 12.945h1.52v6.1h-1.52ZM27.43 6.855h1.52v1.52h-1.52ZM25.9 19.045h1.53v1.52H25.9ZM25.9 11.425h1.53v1.52H25.9ZM24.38 14.475h1.52v3.05h-1.52ZM21.33 5.335h1.52v21.33h-1.52ZM19.81 26.665h1.52v1.52h-1.52ZM19.81 3.805h1.52v1.53h-1.52ZM15.24 28.185h4.57v1.53h-4.57ZM16.76 22.095h1.52v1.52h-1.52ZM16.76 8.375h1.52v1.53h-1.52ZM15.24 2.285h4.57v1.52h-4.57ZM15.24 9.905h1.52v12.19h-1.52ZM13.71 26.665h1.53v1.52h-1.53ZM13.71 3.805h1.53v1.53h-1.53ZM12.19 25.135h1.52v1.53h-1.52ZM12.19 5.335h1.52v1.52h-1.52ZM10.66 23.615h1.53v1.52h-1.53ZM10.66 6.855h1.53v1.52h-1.53ZM9.14 22.095h1.52v1.52H9.14ZM9.14 8.375h1.52v1.53H9.14ZM7.62 20.565h1.52v1.53H7.62ZM7.62 9.905h1.52v1.52H7.62ZM7.62 11.425h-6.1v1.52H0v6.1h1.52v1.52h6.1Zm-3.05 3.05H3.05v3.05H1.52v-3.05h1.53v-1.53h1.52Z"/></symbol>
@@ -1792,11 +1822,13 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                             <div class="pb-field" id="pbField">
                                 <div id="attBar" class="att-bar" hidden aria-label="Attachments"></div>
                                 <canvas id="pbSparks" class="pb-sparks" aria-hidden="true"></canvas>
+                                <div id="studyStrip" class="study-strip" role="status"><img src="assets/images/bloub-cercle-neutre-bleu.gif" alt="" width="36" height="36" loading="lazy"><span><b>Study mode</b> I'll guide you step by step instead of just giving answers.</span><button type="button" onclick="toggleStudyMode()">Turn off</button></div>
                                 <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt"></textarea>
                                 <div class="pb-bar">
                                     <button type="button" id="pbAttachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture" onclick="attachPick()"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg></button>
                                     <button type="button" id="pbModelBtn" class="pb-pick" aria-label="Choose model" onclick="togglePbMenu('model')"><svg class="icon"><use href="#icon-cpu"/></svg><span id="pbModelLabel">Model</span><svg class="icon"><use href="#icon-chevron-down"/></svg></button>
                                     <button type="button" id="pbEffortBtn" class="pb-pick" aria-label="Choose effort" onclick="togglePbMenu('effort')"><svg class="icon"><use href="#icon-bolt"/></svg><span id="pbEffortLabel">Medium</span></button>
+                                    <button type="button" id="pbStudyBtn" class="pb-pick" aria-label="Study mode" aria-pressed="false" onclick="toggleStudyMode()"><svg class="icon"><use href="#icon-study"/></svg><span>Study</span></button>
                                     <span class="pb-spacer"></span>
                                     <button type="button" id="sendBtn" class="pb-send" onclick="handleSendClick()">
                                         <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none" shape-rendering="crispEdges"><path id="pbGlyphPath" d="M11 3L13 3L13 5L15 5L15 7L17 7L17 9L19 9L19 11L14 11L14 20L10 20L10 11L5 11L5 9L7 9L7 7L9 7L9 5L11 5Z"/></svg>
@@ -1968,6 +2000,19 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                     <span class="choice-hint">All effects, for capable devices</span>
                 </button>
             </div>
+            <div class="settings-section">
+                <div class="settings-label">Chat text size</div>
+                <button class="choice-pill" data-group="textScale" data-value="100" onclick="setTextScale('100')"><span class="choice-row"><span class="choice-dot"></span>Normal</span></button>
+                <button class="choice-pill" data-group="textScale" data-value="115" onclick="setTextScale('115')"><span class="choice-row"><span class="choice-dot"></span>Large</span></button>
+                <button class="choice-pill" data-group="textScale" data-value="130" onclick="setTextScale('130')"><span class="choice-row"><span class="choice-dot"></span>Extra large</span></button>
+            </div>
+            <div class="settings-section">
+                <div class="settings-label">Contrast</div>
+                <button class="choice-pill" data-group="contrast" data-value="normal" onclick="setContrast('normal')"><span class="choice-row"><span class="choice-dot"></span>Standard</span></button>
+                <button class="choice-pill" data-group="contrast" data-value="high" onclick="setContrast('high')"><span class="choice-row"><span class="choice-dot"></span>High contrast</span><span class="choice-hint">Brighter text, solid panels and strong focus outlines</span></button>
+                <button type="button" class="menu-item" style="margin-top:8px;" onclick="showShortcuts()"><svg class="icon"><use href="#icon-info"/></svg> Keyboard shortcuts</button>
+            </div>
+
 
             </div>
 
@@ -2218,7 +2263,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
     // ─── SETTINGS ─────────────────────────────────────────────────────────────
 
-    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', assistantModel: '', haptics: 'on', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto' };
+    const DEFAULT_SETTINGS = { voiceMode: 'seamless', wakeWord: 'voice', memoryEnabled: true, glassOpacity: 40, captionsEnabled: true, sidebarCollapsed: false, modelChoice: 'openai/gpt-oss-20b', assistantModel: '', haptics: 'on', resumeChat: 'new', effortLevel: 'medium', perfMode: 'auto', studyMode: false, textScale: '100', contrast: 'normal' };
 
     function loadSettings() {
         try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('knowura_settings') || '{}') }; }
@@ -3373,6 +3418,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (limitBlocked('message')) { showLimit(limitState); return; } // still counting down: don't send a doomed request
         finishTyping();
         if (performance.now() - lastSendHaptic > 400) haptic('send'); // Enter key / suggestion chips (the send button already buzzed on touch)
+        clearReplyTools();
         addBubble((atts.length ? KnowuraAttach.bubbleHTML(atts) : '') + userBubbleHTML(text), 'user', true);
         if (providedText === undefined) { input.value = ''; attachCtl?.take(); updateSendBtnUI(); }
         // Captured now (not later) so a background chat-title generation always
@@ -3426,7 +3472,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     token: userToken,
                     ultraThink: ultraThinkMode,
                     model: settings.modelChoice,
-                    effort: settings.effortLevel
+                    effort: settings.effortLevel,
+                    studyMode: !!settings.studyMode
                 }),
                 signal: controller.signal
             });
@@ -3484,6 +3531,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     maybeSummarize();
                 }
 
+                if (!opts.fromVoice) addReplyTools(thinking, text, reply, atts.length > 0);
                 if (opts.speak) speakReply(reply);
                 return reply;
             } else {
@@ -3656,7 +3704,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
         const meta = studyEl('div', 'study-meta');
         meta.append(studyEl('span', '', `Question ${study.i + 1} of ${total}`));
-        const right = studyEl('span'); right.innerHTML = study.streak >= 2 ? `<b>🔥 ${study.streak} in a row</b>` : `Score ${study.score}`;
+        const right = studyEl('span'); right.innerHTML = study.streak >= 2 ? `<b><svg class="icon"><use href="#icon-bolt"/></svg> ${study.streak} in a row</b>` : `Score ${study.score}`;
         meta.append(right);
         body.append(meta, studyEl('h2', 'q-text', q.question));
 
@@ -3678,7 +3726,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const q = study.data.questions[study.i], total = study.data.questions.length;
         const correct = idx === q.answer;
         if (correct) { study.score++; study.streak++; study.best = Math.max(study.best, study.streak); haptic('success'); }
-        else { study.streak = 0; study.missed.push({ q, chosen: idx }); haptic('error'); }
+        else { study.streak = 0; study.missed.push({ q, chosen: idx }); weakAdd(q); haptic('error'); }
 
         document.querySelectorAll('#studyBody .q-opt').forEach((b, i) => {
             b.disabled = true;
@@ -3710,11 +3758,12 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function renderQuizResult() {
         const total = study.data.questions.length, pct = study.score / total;
+        markStudyDay();
         const body = document.getElementById('studyBody');
         body.innerHTML = '';
         body.classList.add('study-result');
         setStudyProgress(1);
-        const [head, sub] = pct === 1 ? ['Perfect score! 🎉', 'You nailed every question.']
+        const [head, sub] = pct === 1 ? ['Perfect score!', 'You nailed every question.']
             : pct >= 0.8 ? ['Excellent work!', 'You really know this.']
             : pct >= 0.6 ? ['Nice job!', 'A little more practice and you\'ve got it.']
             : pct >= 0.4 ? ['Getting there', 'Review the misses below and try again.']
@@ -3722,7 +3771,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const ring = studyEl('div', 'score-ring');
         ring.innerHTML = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="54"/><circle class="fill" cx="60" cy="60" r="54"/></svg>`
             + `<div class="num">${study.score}/${total}<small>${Math.round(pct * 100)}%</small></div>`;
-        body.append(ring, studyEl('div', 'result-head', head), studyEl('div', 'result-sub', study.best >= 3 ? `${sub} Best streak: ${study.best} 🔥` : sub));
+        body.append(ring, studyEl('div', 'result-head', head), studyEl('div', 'result-sub', study.best >= 3 ? `${sub} Best streak: ${study.best}` : sub));
         requestAnimationFrame(() => requestAnimationFrame(() => { ring.querySelector('.fill').style.strokeDashoffset = String(339.3 * (1 - pct)); }));
 
         const actions = studyEl('div', 'study-actions');
@@ -3812,17 +3861,20 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!study || !study.queue.length) return;
         study.reviews++;
         const idx = study.queue.shift();
+        const card = study.data.cards[idx];
+        if (study.data.review && card?.wid) { study.rated = study.rated || new Set(); if (!study.rated.has(card.wid)) { study.rated.add(card.wid); weakRate(card.wid, knewIt); } }
         if (knewIt) { study.known++; haptic('success'); }
         else { study.queue.push(idx); haptic('nav'); }
         renderCard();
     }
     function renderDeckDone() {
         const total = study.data.cards.length;
+        markStudyDay();
         const body = document.getElementById('studyBody');
         body.classList.add('study-result');
         setStudyProgress(1);
         body.innerHTML = '';
-        body.append(studyEl('div', 'result-head', 'Deck complete! 🎉'),
+        body.append(studyEl('div', 'result-head', 'Deck complete!'),
             studyEl('div', 'result-sub', `You learned all ${total} cards in ${study.reviews} review${study.reviews === 1 ? '' : 's'}.`));
         const actions = studyEl('div', 'study-actions'); actions.style.width = '100%';
         const again = studyEl('button', 'btn-ui', 'Study again'); again.type = 'button';
@@ -4213,6 +4265,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         { icon: 'icon-info', label: 'Quiz me', prompt: 'Make me a quick multiple-choice quiz on a topic I\'m studying — ask me which topic first.' },
         { icon: 'icon-tag', label: 'Flashcards', prompt: 'Make me a set of flashcards on a topic I\'m studying — ask me which topic first.' },
         { icon: 'icon-edit', label: 'Help me plan', prompt: 'Help me build a study schedule — ask what I\'m preparing for and by when.' },
+        { icon: 'icon-camera', label: 'Quiz from a photo', action: 'photo' },
         { icon: 'icon-search', label: "What's new today", prompt: "What's the latest news today?" }
     ];
 
@@ -4225,13 +4278,15 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 <p class="empty-sub">${incognito ? 'This chat isn\'t saved and nothing is remembered.' : 'What do you want to know?'}</p>
                 <div class="empty-suggestions">
                     ${SUGGESTIONS.map(s => `
-                        <button class="suggestion-chip" onclick="useSuggestion('${s.prompt.replace(/'/g, "\\'")}')">
+                        <button class="suggestion-chip" onclick="${s.action === 'photo' ? 'quizFromPhoto()' : `useSuggestion('${s.prompt.replace(/'/g, "\\'")}')`}">
                             <svg class="icon"><use href="#${s.icon}"/></svg> ${escapeHtml(s.label)}
                         </button>
                     `).join('')}
                 </div>
+                <div class="study-home" id="studyHome"></div>
             </div>
         `;
+        refreshStudyHome();
     }
 
     function useSuggestion(text) {
@@ -5824,6 +5879,192 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         setInterval(() => { if (!document.hidden) check(false); }, 5 * 60 * 1000);
         window.__kwCheckUpdate = check;   // for tests
     })();
+
+
+    // ─── STUDY MODE · REPLY TOOLS · FOLLOW-UPS · STREAKS · WEAK SPOTS · A11Y · SHORTCUTS ─────────
+    const store = {
+        get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } },
+        set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
+    };
+    const say = (m) => window.KnowuraAttach?.toast?.(m, 'ok');
+
+    // Study mode: the server swaps in a tutor prompt; the strip shows the voice-mode avatar.
+    function applyStudyMode() {
+        const on = !!settings.studyMode;
+        const b = document.getElementById('pbStudyBtn');
+        b?.classList.toggle('on', on); b?.setAttribute('aria-pressed', String(on));
+        document.getElementById('studyStrip')?.classList.toggle('on', on);
+    }
+    function toggleStudyMode() {
+        settings.studyMode = !settings.studyMode;
+        saveSettings(); applyStudyMode(); haptic('select');
+        say(settings.studyMode ? 'Study mode on: I will guide you step by step' : 'Study mode off');
+    }
+
+    // Reply tools (regenerate, thumbs, copy) and follow-up chips, on the latest answer only.
+    function clearReplyTools() { document.querySelectorAll('#chat-box .reply-tools, #chat-box .followups').forEach((n) => n.remove()); }
+    let followSeq = 0;
+    function addReplyTools(bubble, question, reply, hadFiles) {
+        clearReplyTools();
+        const row = document.createElement('div');
+        row.className = 'reply-tools'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Reply actions');
+        const mk = (label, icon, fn) => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.title = label; b.setAttribute('aria-label', label);
+            b.innerHTML = `<svg class="icon"><use href="#icon-${icon}"/></svg>`;
+            b.addEventListener('click', () => fn(b));
+            return b;
+        };
+        const rate = (b, up) => {
+            const was = b.classList.contains('on');
+            row.querySelectorAll('.rate').forEach((x) => x.classList.remove('on'));
+            if (!was) {
+                b.classList.add('on');
+                const fb = store.get('knowura_feedback', { up: 0, down: 0 });   // kept on this device only
+                fb[up ? 'up' : 'down']++; store.set('knowura_feedback', fb);
+                say(up ? 'Glad that helped!' : 'Thanks, noted. Try Regenerate for another go.');
+            }
+            haptic('select');
+        };
+        const up = mk('Good answer', 'thumb-up', (b) => rate(b, true)), down = mk('Not helpful', 'thumb-down', (b) => rate(b, false));
+        up.classList.add('rate'); down.classList.add('rate');
+        const copy = mk('Copy answer', 'copy', (b) => {
+            navigator.clipboard?.writeText(reply).then(() => { b.classList.add('on'); say('Copied'); setTimeout(() => b.classList.remove('on'), 1200); }).catch(() => say("Couldn't copy"));
+        });
+        row.append(up, down, copy);
+        if (!hadFiles) row.append(mk('Regenerate', 'refresh', regenerateLast));
+        bubble.after(row);
+        loadFollowups(row, question, reply);
+    }
+    function regenerateLast() {
+        if (pbBusy) return;
+        const chat = getActiveChat();
+        const n = chat ? chat.messages.length : 0;
+        if (n < 2 || chat.messages[n - 1].type !== 'ai' || chat.messages[n - 2].type !== 'user') return;
+        const text = htmlToText(chat.messages[n - 2].text.replace(/<br\s*\/?>/gi, '\n')).trim();
+        if (!text) return;
+        haptic('nav');
+        chat.messages = chat.messages.slice(0, n - 2); chat.updatedAt = Date.now();
+        saveChatStore(); renderActiveChat(); renderChatList();
+        ask(text);
+    }
+    async function loadFollowups(row, question, reply) {
+        const seq = ++followSeq;
+        if (reply.length < 80) return;
+        try {
+            const res = await fetch('/.netlify/functions/ask-ai', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kind: 'aux', ownerToken, token: userToken, memory: {}, messages: [{ role: 'user', content: `A student asked: ${question.slice(0, 300)}\n\nThe tutor answered: ${reply.slice(0, 1200)}\n\nWrite 3 short follow-up questions the student might ask next, at most 8 words each, one per line, with no numbering, no quotes and no other text.` }] })
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            const lines = String(data?.choices?.[0]?.message?.content || '').split('\n')
+                .map((l) => l.replace(/^[\s\-*•\d.)]+/, '').replace(/^["“]|["”]$/g, '').trim()).filter((l) => l.length > 3 && l.length <= 80).slice(0, 3);
+            if (seq !== followSeq || !lines.length || !row.isConnected) return;
+            const box = document.createElement('div');
+            box.className = 'followups'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Suggested follow-up questions');
+            lines.forEach((t) => {
+                const b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+                b.addEventListener('click', () => ask(t));
+                box.append(b);
+            });
+            row.after(box);
+            const chatBox = document.getElementById('chat-box');
+            if (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 200) chatBox.scrollTop = chatBox.scrollHeight;
+        } catch (e) { /* follow-ups are a bonus: stay quiet */ }
+    }
+
+    // Photo to quiz: pick or take a picture, the prompt is already filled in.
+    function quizFromPhoto() {
+        const input = document.getElementById('userInput');
+        if (!input.value.trim()) input.value = 'Make a quiz from this photo.';
+        updateSendBtnUI(); input.focus(); attachPick();
+    }
+
+    // Streaks (days you finished a quiz, a deck or a review) and weak spots (missed quiz questions come back later).
+    const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    function streakInfo() {
+        const days = new Set(store.get('knowura_days', []));
+        const d = new Date(); let n = 0;
+        if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+        while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+        return n;
+    }
+    function markStudyDay() {
+        if (incognito) return;
+        const days = store.get('knowura_days', []), t = dayKey(new Date());
+        if (days.includes(t)) return;
+        days.push(t); store.set('knowura_days', days.slice(-120));
+        refreshStudyHome(true);
+    }
+    const WEAK_DAYS = [1, 3, 7, 14];
+    const weakList = () => store.get('knowura_weak', []);
+    function weakAdd(q) {
+        if (incognito) return;
+        const id = 'w' + [...q.question].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
+        const list = weakList().filter((w) => w.id !== id);
+        list.push({ id, front: q.question, back: q.options[q.answer] + (q.explanation ? ' (' + q.explanation + ')' : ''), box: 0, due: Date.now() });
+        store.set('knowura_weak', list.slice(-80));
+    }
+    function weakRate(wid, knew) {
+        let list = weakList();
+        const w = list.find((x) => x.id === wid);
+        if (!w) return;
+        if (knew) { w.box++; if (w.box >= WEAK_DAYS.length + 1) list = list.filter((x) => x.id !== wid); else w.due = Date.now() + WEAK_DAYS[w.box - 1] * 864e5; }
+        else { w.box = 0; w.due = Date.now() + 864e5; }
+        store.set('knowura_weak', list);
+    }
+    const weakDue = () => weakList().filter((w) => w.due <= Date.now());
+    function startWeakReview() {
+        const due = weakDue().sort((a, b) => a.due - b.due).slice(0, 12);
+        if (!due.length) { say('Nothing to review right now'); return; }
+        openStudy({ type: 'flashcards', title: 'Weak-spot review', review: true, cards: due.map((w) => ({ front: w.front, back: w.back, wid: w.id })) });
+    }
+    function refreshStudyHome(bump) {
+        const el = document.getElementById('studyHome');
+        if (!el) return;
+        el.innerHTML = '';
+        const streak = streakInfo(), due = weakDue().length;
+        if (streak > 0) {
+            const c = document.createElement('span'); c.className = 'streak-chip' + (bump ? ' bump' : '');
+            c.innerHTML = '<img src="assets/brand/k-mark.svg" alt=""> ';
+            c.append(document.createTextNode(streak + '-day streak'));
+            el.append(c);
+        }
+        if (due > 0) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'streak-chip';
+            b.innerHTML = '<svg class="icon"><use href="#icon-study"/></svg> ';
+            b.append(document.createTextNode('Review weak spots (' + due + ')'));
+            b.addEventListener('click', startWeakReview);
+            el.append(b);
+        }
+    }
+
+    // Accessibility: chat text size, high contrast, keyboard shortcuts.
+    function applyA11y() {
+        document.documentElement.style.setProperty('--kw-text', String(Number(settings.textScale || 100) / 100));
+        document.documentElement.classList.toggle('hc', settings.contrast === 'high');
+    }
+    function setTextScale(v) { settings.textScale = v; saveSettings(); applyA11y(); updateSettingsUI(); }
+    function setContrast(v) { settings.contrast = v; saveSettings(); applyA11y(); updateSettingsUI(); }
+    function showShortcuts() {
+        toggleHamburgerMenu?.();
+        showAlert('/  focus the message box\nAlt + N  new chat\nAlt + S  show or hide chats\nAlt + M  study mode on or off\n?  this list\nEsc  close pop-ups\n\nQuizzes: 1 to 4 pick an answer, → next.\nFlashcards: Space flips, ← again, → got it.', 'Keyboard shortcuts');
+    }
+    document.addEventListener('keydown', (e) => {
+        if (study && document.getElementById('studyOverlay')?.classList.contains('open')) return;
+        const t = e.target, typing = t && (t.matches?.('input, textarea, select') || t.isContentEditable);
+        const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
+        if (e.key === '/' && plain && !typing) { e.preventDefault(); document.getElementById('userInput')?.focus(); }
+        else if (e.key === '?' && !e.ctrlKey && !e.metaKey && !typing) { e.preventDefault(); showShortcuts(); }
+        else if (e.altKey && !e.ctrlKey && !e.metaKey) {
+            const k = e.key.toLowerCase();
+            if (k === 'n') { e.preventDefault(); newChat(); }
+            else if (k === 's') { e.preventDefault(); toggleSidebar(); }
+            else if (k === 'm') { e.preventDefault(); toggleStudyMode(); }
+        }
+    });
+    applyA11y(); applyStudyMode();
 
     window.kwBootDone?.(); // app is wired up — drop the instant loader
 

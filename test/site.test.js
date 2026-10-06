@@ -476,3 +476,22 @@ test('boot counter: once per session, main page only, waits for the app, never t
     assert.doesNotMatch(h, /kw-boot|kwb-/);
     assert.equal(fs.readFileSync(path.join(__dirname, '..', 'public/sw.js'), 'utf8').includes('boot'), false, 'service worker untouched (nothing is cached)');
 });
+
+test('study mode, reply tools, follow-ups, streaks, weak spots and accessibility are wired', () => {
+    const h = pub('index.html'), st = fs.readFileSync(path.join(__dirname, '..', 'functions/_study.js'), 'utf8'), ai = fs.readFileSync(path.join(__dirname, '..', 'functions/ask-ai.js'), 'utf8');
+    // the AI reply badge is the Knowura logo, not a letter
+    assert.match(h, /\.ai::before \{[^}]*url\(\/assets\/brand\/k-mark\.svg\)/); assert.doesNotMatch(h, /content: 'K'/);
+    assert.match(pub('assets/ui/app-ui.css'), /k-mark\.svg/, 'the assistant panel gets the same badge');
+    // study mode: the voice-mode orb is the avatar, the server gets the flag and only trusts a real boolean
+    assert.match(h, /id="studyStrip"[^>]*>[^]*?bloub-cercle-neutre-bleu\.gif/); assert.match(h, /studyMode: !!settings\.studyMode/);
+    assert.match(st, /STUDY_MODE_PROMPT/); assert.match(ai, /body\.studyMode === true \? STUDY_MODE_PROMPT/);
+    // reply tools and follow-ups
+    for (const f of ['regenerateLast', 'addReplyTools', 'loadFollowups', 'clearReplyTools']) assert.match(h, new RegExp('function ' + f));
+    assert.match(h, /addReplyTools\(thinking, text, reply, atts\.length > 0\)/);
+    // streaks + spaced weak spots + photo to quiz
+    for (const f of ['markStudyDay', 'weakAdd', 'weakRate', 'startWeakReview', 'refreshStudyHome', 'quizFromPhoto']) assert.match(h, new RegExp('function ' + f));
+    assert.match(h, /const WEAK_DAYS = \[1, 3, 7, 14\]/); assert.match(h, /weakAdd\(q\);/); assert.match(h, /label: 'Quiz from a photo'/);
+    // accessibility
+    assert.match(h, /data-group="textScale"/); assert.match(h, /data-group="contrast"/); assert.match(h, /function showShortcuts/); assert.match(h, /e\.altKey && !e\.ctrlKey/);
+    for (const id of ['refresh', 'thumb-up', 'thumb-down', 'study']) assert.match(h, new RegExp('<symbol id="icon-' + id + '"'));
+});

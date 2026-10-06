@@ -336,11 +336,11 @@
     }
 
     // ── the picker / drop / paste / chips UI ──
-    function toast(msg) {
+    function toast(msg, kind) {
         let t = document.getElementById('attToast');
         if (!t) { t = document.createElement('div'); t.id = 'attToast'; t.className = 'att-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
-        t.textContent = msg; t.classList.add('show');
-        clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 5000);
+        t.textContent = msg; t.classList.toggle('ok', kind === 'ok'); t.classList.add('show');
+        clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), kind === 'ok' ? 2200 : 5000);
     }
     function mount(opts) {
         const pending = [];   // { id, name, size, state: 'working'|'ready', att }
