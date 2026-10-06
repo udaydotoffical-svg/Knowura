@@ -9,6 +9,73 @@
     // ─── STUDY TOOLS: quiz + flashcard pop-up (the AI creates these via tool calls) ─────────
     let study = null; // { data, ...state } while the overlay is open
 
+    // Study progress shared with the assistant panel: streak days, weak spots and their spaced review.
+    const kwStore = {
+        get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } },
+        set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
+    };
+    const kwSay = (m) => window.KnowuraAttach?.toast?.(m, 'ok');
+
+    // Streaks (days you finished a quiz, a deck or a review) and weak spots (missed quiz questions come back later).
+    const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    function streakInfo() {
+        const days = new Set(kwStore.get('knowura_days', []));
+        const d = new Date(); let n = 0;
+        if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+        while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+        return n;
+    }
+    function markStudyDay() {
+        if (typeof incognito !== 'undefined' && incognito) return;
+        const days = kwStore.get('knowura_days', []), t = dayKey(new Date());
+        if (days.includes(t)) return;
+        days.push(t); kwStore.set('knowura_days', days.slice(-120));
+        refreshStudyHome(true);
+    }
+    const WEAK_DAYS = [1, 3, 7, 14];
+    const weakList = () => kwStore.get('knowura_weak', []);
+    function weakAdd(q) {
+        if (typeof incognito !== 'undefined' && incognito) return;
+        const id = 'w' + [...q.question].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
+        const list = weakList().filter((w) => w.id !== id);
+        list.push({ id, front: q.question, back: q.options[q.answer] + (q.explanation ? ' (' + q.explanation + ')' : ''), box: 0, due: Date.now() });
+        kwStore.set('knowura_weak', list.slice(-80));
+    }
+    function weakRate(wid, knew) {
+        let list = weakList();
+        const w = list.find((x) => x.id === wid);
+        if (!w) return;
+        if (knew) { w.box++; if (w.box >= WEAK_DAYS.length + 1) list = list.filter((x) => x.id !== wid); else w.due = Date.now() + WEAK_DAYS[w.box - 1] * 864e5; }
+        else { w.box = 0; w.due = Date.now() + 864e5; }
+        kwStore.set('knowura_weak', list);
+    }
+    const weakDue = () => weakList().filter((w) => w.due <= Date.now());
+    function startWeakReview() {
+        const due = weakDue().sort((a, b) => a.due - b.due).slice(0, 12);
+        if (!due.length) { kwSay('Nothing to review right now'); return; }
+        openStudy({ type: 'flashcards', title: 'Weak-spot review', review: true, cards: due.map((w) => ({ front: w.front, back: w.back, wid: w.id })) });
+    }
+    function refreshStudyHome(bump) {
+        const el = document.getElementById('studyHome');
+        if (!el) return;
+        el.innerHTML = '';
+        const streak = streakInfo(), due = weakDue().length;
+        if (streak > 0) {
+            const c = document.createElement('span'); c.className = 'streak-chip' + (bump ? ' bump' : '');
+            c.innerHTML = '<img src="assets/brand/k-mark.svg" alt=""> ';
+            c.append(document.createTextNode(streak + '-day streak'));
+            el.append(c);
+        }
+        if (due > 0) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'streak-chip';
+            b.innerHTML = '<svg class="icon"><use href="#icon-study"/></svg> ';
+            b.append(document.createTextNode('Review weak spots (' + due + ')'));
+            b.addEventListener('click', startWeakReview);
+            el.append(b);
+        }
+    }
+
+
     function studyEl(tag, cls, text) {
         const e = document.createElement(tag);
         if (cls) e.className = cls;

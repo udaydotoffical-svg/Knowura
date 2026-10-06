@@ -495,3 +495,13 @@ test('study mode, reply tools, follow-ups, streaks, weak spots and accessibility
     assert.match(h, /data-group="textScale"/); assert.match(h, /data-group="contrast"/); assert.match(h, /function showShortcuts/); assert.match(h, /e\.altKey && !e\.ctrlKey/);
     for (const id of ['refresh', 'thumb-up', 'thumb-down', 'study']) assert.match(h, new RegExp('<symbol id="icon-' + id + '"'));
 });
+
+test('the assistant panel has the same study features, and the shared quiz code never calls helpers the panel lacks', () => {
+    const a = pub('assistant.html'), ui = pub('assets/ui/app-ui.js');
+    // quiz/flashcard code is shared with the panel, so everything it calls must ship in the same file
+    for (const f of ['weakAdd', 'weakRate', 'markStudyDay', 'refreshStudyHome', 'startWeakReview']) assert.match(ui, new RegExp('function ' + f), f + ' ships with the shared UI');
+    assert.doesNotMatch(ui, /const store =/, 'no clash with the panel\'s own store()');
+    assert.match(a, /id="studyBtn"/); assert.match(a, /id="studyStrip"[^>]*>[^]*?bloub-cercle-neutre-bleu\.gif/); assert.match(a, /studyMode: studyOn/);
+    for (const f of ['regenerate', 'loadFollowups', 'rate', 'applyA11y', 'toggleStudy']) assert.match(a, new RegExp('function ' + f));
+    assert.match(a, /id="aaBtn"/); assert.match(a, /id="hcBtn"/); assert.match(a, /Quiz from a photo/); assert.match(a, /id="studyHome"/);
+});

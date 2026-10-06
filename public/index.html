@@ -3644,6 +3644,73 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // ─── STUDY TOOLS: quiz + flashcard pop-up (the AI creates these via tool calls) ─────────
     let study = null; // { data, ...state } while the overlay is open
 
+    // Study progress shared with the assistant panel: streak days, weak spots and their spaced review.
+    const kwStore = {
+        get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } },
+        set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
+    };
+    const kwSay = (m) => window.KnowuraAttach?.toast?.(m, 'ok');
+
+    // Streaks (days you finished a quiz, a deck or a review) and weak spots (missed quiz questions come back later).
+    const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    function streakInfo() {
+        const days = new Set(kwStore.get('knowura_days', []));
+        const d = new Date(); let n = 0;
+        if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+        while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+        return n;
+    }
+    function markStudyDay() {
+        if (typeof incognito !== 'undefined' && incognito) return;
+        const days = kwStore.get('knowura_days', []), t = dayKey(new Date());
+        if (days.includes(t)) return;
+        days.push(t); kwStore.set('knowura_days', days.slice(-120));
+        refreshStudyHome(true);
+    }
+    const WEAK_DAYS = [1, 3, 7, 14];
+    const weakList = () => kwStore.get('knowura_weak', []);
+    function weakAdd(q) {
+        if (typeof incognito !== 'undefined' && incognito) return;
+        const id = 'w' + [...q.question].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
+        const list = weakList().filter((w) => w.id !== id);
+        list.push({ id, front: q.question, back: q.options[q.answer] + (q.explanation ? ' (' + q.explanation + ')' : ''), box: 0, due: Date.now() });
+        kwStore.set('knowura_weak', list.slice(-80));
+    }
+    function weakRate(wid, knew) {
+        let list = weakList();
+        const w = list.find((x) => x.id === wid);
+        if (!w) return;
+        if (knew) { w.box++; if (w.box >= WEAK_DAYS.length + 1) list = list.filter((x) => x.id !== wid); else w.due = Date.now() + WEAK_DAYS[w.box - 1] * 864e5; }
+        else { w.box = 0; w.due = Date.now() + 864e5; }
+        kwStore.set('knowura_weak', list);
+    }
+    const weakDue = () => weakList().filter((w) => w.due <= Date.now());
+    function startWeakReview() {
+        const due = weakDue().sort((a, b) => a.due - b.due).slice(0, 12);
+        if (!due.length) { kwSay('Nothing to review right now'); return; }
+        openStudy({ type: 'flashcards', title: 'Weak-spot review', review: true, cards: due.map((w) => ({ front: w.front, back: w.back, wid: w.id })) });
+    }
+    function refreshStudyHome(bump) {
+        const el = document.getElementById('studyHome');
+        if (!el) return;
+        el.innerHTML = '';
+        const streak = streakInfo(), due = weakDue().length;
+        if (streak > 0) {
+            const c = document.createElement('span'); c.className = 'streak-chip' + (bump ? ' bump' : '');
+            c.innerHTML = '<img src="assets/brand/k-mark.svg" alt=""> ';
+            c.append(document.createTextNode(streak + '-day streak'));
+            el.append(c);
+        }
+        if (due > 0) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'streak-chip';
+            b.innerHTML = '<svg class="icon"><use href="#icon-study"/></svg> ';
+            b.append(document.createTextNode('Review weak spots (' + due + ')'));
+            b.addEventListener('click', startWeakReview);
+            el.append(b);
+        }
+    }
+
+
     function studyEl(tag, cls, text) {
         const e = document.createElement(tag);
         if (cls) e.className = cls;
@@ -5882,12 +5949,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
 
     // ─── STUDY MODE · REPLY TOOLS · FOLLOW-UPS · STREAKS · WEAK SPOTS · A11Y · SHORTCUTS ─────────
-    const store = {
-        get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } },
-        set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
-    };
-    const say = (m) => window.KnowuraAttach?.toast?.(m, 'ok');
-
     // Study mode: the server swaps in a tutor prompt; the strip shows the voice-mode avatar.
     function applyStudyMode() {
         const on = !!settings.studyMode;
@@ -5898,7 +5959,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function toggleStudyMode() {
         settings.studyMode = !settings.studyMode;
         saveSettings(); applyStudyMode(); haptic('select');
-        say(settings.studyMode ? 'Study mode on: I will guide you step by step' : 'Study mode off');
+        kwSay(settings.studyMode ? 'Study mode on: I will guide you step by step' : 'Study mode off');
     }
 
     // Reply tools (regenerate, thumbs, copy) and follow-up chips, on the latest answer only.
@@ -5920,16 +5981,16 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             row.querySelectorAll('.rate').forEach((x) => x.classList.remove('on'));
             if (!was) {
                 b.classList.add('on');
-                const fb = store.get('knowura_feedback', { up: 0, down: 0 });   // kept on this device only
-                fb[up ? 'up' : 'down']++; store.set('knowura_feedback', fb);
-                say(up ? 'Glad that helped!' : 'Thanks, noted. Try Regenerate for another go.');
+                const fb = kwStore.get('knowura_feedback', { up: 0, down: 0 });   // kept on this device only
+                fb[up ? 'up' : 'down']++; kwStore.set('knowura_feedback', fb);
+                kwSay(up ? 'Glad that helped!' : 'Thanks, noted. Try Regenerate for another go.');
             }
             haptic('select');
         };
         const up = mk('Good answer', 'thumb-up', (b) => rate(b, true)), down = mk('Not helpful', 'thumb-down', (b) => rate(b, false));
         up.classList.add('rate'); down.classList.add('rate');
         const copy = mk('Copy answer', 'copy', (b) => {
-            navigator.clipboard?.writeText(reply).then(() => { b.classList.add('on'); say('Copied'); setTimeout(() => b.classList.remove('on'), 1200); }).catch(() => say("Couldn't copy"));
+            navigator.clipboard?.writeText(reply).then(() => { b.classList.add('on'); kwSay('Copied'); setTimeout(() => b.classList.remove('on'), 1200); }).catch(() => kwSay("Couldn't copy"));
         });
         row.append(up, down, copy);
         if (!hadFiles) row.append(mk('Regenerate', 'refresh', regenerateLast));
@@ -5979,65 +6040,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const input = document.getElementById('userInput');
         if (!input.value.trim()) input.value = 'Make a quiz from this photo.';
         updateSendBtnUI(); input.focus(); attachPick();
-    }
-
-    // Streaks (days you finished a quiz, a deck or a review) and weak spots (missed quiz questions come back later).
-    const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    function streakInfo() {
-        const days = new Set(store.get('knowura_days', []));
-        const d = new Date(); let n = 0;
-        if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
-        while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
-        return n;
-    }
-    function markStudyDay() {
-        if (incognito) return;
-        const days = store.get('knowura_days', []), t = dayKey(new Date());
-        if (days.includes(t)) return;
-        days.push(t); store.set('knowura_days', days.slice(-120));
-        refreshStudyHome(true);
-    }
-    const WEAK_DAYS = [1, 3, 7, 14];
-    const weakList = () => store.get('knowura_weak', []);
-    function weakAdd(q) {
-        if (incognito) return;
-        const id = 'w' + [...q.question].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
-        const list = weakList().filter((w) => w.id !== id);
-        list.push({ id, front: q.question, back: q.options[q.answer] + (q.explanation ? ' (' + q.explanation + ')' : ''), box: 0, due: Date.now() });
-        store.set('knowura_weak', list.slice(-80));
-    }
-    function weakRate(wid, knew) {
-        let list = weakList();
-        const w = list.find((x) => x.id === wid);
-        if (!w) return;
-        if (knew) { w.box++; if (w.box >= WEAK_DAYS.length + 1) list = list.filter((x) => x.id !== wid); else w.due = Date.now() + WEAK_DAYS[w.box - 1] * 864e5; }
-        else { w.box = 0; w.due = Date.now() + 864e5; }
-        store.set('knowura_weak', list);
-    }
-    const weakDue = () => weakList().filter((w) => w.due <= Date.now());
-    function startWeakReview() {
-        const due = weakDue().sort((a, b) => a.due - b.due).slice(0, 12);
-        if (!due.length) { say('Nothing to review right now'); return; }
-        openStudy({ type: 'flashcards', title: 'Weak-spot review', review: true, cards: due.map((w) => ({ front: w.front, back: w.back, wid: w.id })) });
-    }
-    function refreshStudyHome(bump) {
-        const el = document.getElementById('studyHome');
-        if (!el) return;
-        el.innerHTML = '';
-        const streak = streakInfo(), due = weakDue().length;
-        if (streak > 0) {
-            const c = document.createElement('span'); c.className = 'streak-chip' + (bump ? ' bump' : '');
-            c.innerHTML = '<img src="assets/brand/k-mark.svg" alt=""> ';
-            c.append(document.createTextNode(streak + '-day streak'));
-            el.append(c);
-        }
-        if (due > 0) {
-            const b = document.createElement('button'); b.type = 'button'; b.className = 'streak-chip';
-            b.innerHTML = '<svg class="icon"><use href="#icon-study"/></svg> ';
-            b.append(document.createTextNode('Review weak spots (' + due + ')'));
-            b.addEventListener('click', startWeakReview);
-            el.append(b);
-        }
     }
 
     // Accessibility: chat text size, high contrast, keyboard shortcuts.

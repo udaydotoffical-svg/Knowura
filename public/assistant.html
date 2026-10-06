@@ -230,7 +230,7 @@
     <!-- TEXT CHAT -->
     <section id="textView" class="sheet" hidden aria-label="Text chat">
         <div class="sheet-head">
-            <div class="left"><button type="button" class="btn-ui" id="newBtn" title="New chat" aria-label="New chat"><svg class="icon"><use href="#icon-edit"/></svg></button></div>
+            <div class="left"><button type="button" class="btn-ui" id="newBtn" title="New chat" aria-label="New chat"><svg class="icon"><use href="#icon-edit"/></svg></button><button type="button" class="btn-ui" id="aaBtn" title="Text size" aria-label="Change text size">Aa</button><button type="button" class="btn-ui" id="hcBtn" title="High contrast" aria-label="Toggle high contrast" aria-pressed="false"><svg class="icon"><use href="#icon-eye"/></svg></button></div>
             <div class="grab-zone" id="grab" title="Swipe up to open in the app" aria-label="Swipe up to open in the app"><div class="grab"></div></div>
             <div class="right"><button type="button" class="btn-ui" id="acctBtn">Sign in</button></div>
         </div>
@@ -243,10 +243,12 @@
             <div id="promptGlow" class="aura-glow prompt-glow" style="--aura-radius:22px; --aura-spread:22px;">
                 <div class="pb-inner">
                     <div class="pb-field" id="pbField">
+                        <div id="studyStrip" class="study-strip" role="status"><img src="/assets/images/bloub-cercle-neutre-bleu.gif" alt="" width="36" height="36" loading="lazy"><span><b>Study mode</b> I'll guide you instead of just answering.</span><button type="button" id="studyOff">Off</button></div>
                         <div id="attBar" class="att-bar" hidden aria-label="Attachments"></div>
                         <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt" enterkeyhint="send"></textarea>
                         <div class="pb-bar">
                             <button type="button" id="attachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg></button>
+                            <button type="button" id="studyBtn" class="pb-pick" aria-label="Study mode" aria-pressed="false" title="Study mode: guide me step by step"><svg class="icon"><use href="#icon-study"/></svg></button>
                             <span class="pb-spacer"></span>
                             <button type="button" id="sendBtn" class="pb-send mic-mode" title="Talk to Knowura live" aria-label="Talk to Knowura live">
                                 <svg class="pb-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none" shape-rendering="crispEdges"><path id="pbGlyphPath" d="M11 3L13 3L13 5L15 5L15 7L17 7L17 9L19 9L19 11L14 11L14 20L10 20L10 11L5 11L5 9L7 9L7 7L9 7L9 5L11 5Z"/></svg>
@@ -409,8 +411,8 @@ function showAlert(message) { window.__note && window.__note(message); }
     const ORB_INTRO = '/assets/images/bloub-circle-starting-ai.gif';
     const VAD = { rms: 0.025, silenceMs: 900, maxMs: 20000, minBytes: 3000 };
     const GREETING = '<p>Hello! How can I help you today?</p><small>Knowura isn\'t human. It can make mistakes, so double check it.</small>';
-    const SUGGEST = ['Explain something simply', 'Quiz me', 'Summarize this', 'Help me with code'];
-    const suggestHTML = () => '<div class="suggest">' + SUGGEST.map((q) => '<button type="button" data-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>').join('') + '</div>';
+    const SUGGEST = ['Explain something simply', 'Quiz me', 'Quiz from a photo', 'Summarize this', 'Help me with code'];
+    const suggestHTML = () => '<div class="suggest">' + SUGGEST.map((q) => '<button type="button" data-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>').join('') + '</div><div class="study-home" id="studyHome"></div>';
 
     let view = 'voice', msgs = [], chat = null, busy = false, ctrl = null, call = null, captionsOn = true, speakingAudio = null, lastReplyText = '';
     window.__note = (m) => addBubble('<p>' + escapeHtml(String(m)) + '</p>', 'ai', { err: true });
@@ -463,6 +465,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         chat = { id: 'a' + now.toString(36) + Math.random().toString(36).slice(2, 7), title: 'Assistant chat', createdAt: now, updatedAt: now, messages: [] };
         $('chat-box').innerHTML = '';
         addBubble(GREETING + suggestHTML(), 'ai', { greet: true });
+        refreshStudyHome();
         setSend();
     }
     function addBubble(html, type, o = {}) {
@@ -524,7 +527,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (msgs.length > 10) msgs.shift();
         ctrl = new AbortController();
         try {
-            const res = await post('ask-ai', { messages: forServer(), memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel }, { signal: ctrl.signal });
+            const res = await post('ask-ai', { messages: forServer(), memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel, studyMode: studyOn }, { signal: ctrl.signal });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; e.blocked = !!data.blocked; e.unchecked = !!data.unchecked; throw e; }
             let reply = String(data.choices[0].message && data.choices[0].message.content || '');
@@ -568,6 +571,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (chat.messages.length === 1) chat.title = (text || (atts[0] && atts[0].name) || 'Assistant chat').slice(0, 40);
         const think = addBubble('<span class="typing"><span class="dots"><i></i><i></i><i></i></span> Thinking</span>', 'ai');
         try {
+            lastQuestion = text;
             const { reply, study } = await askModel(text, { content: atts.length ? KnowuraAttach.build(text, atts).content : undefined });
             finishReply(think, reply, study);
         } catch (e) {
@@ -618,8 +622,73 @@ function showAlert(message) { window.__note && window.__note(message); }
             mk('Share', S('share'), () => shareText(lastReplyText)),
             mk('Read aloud', S('volume'), (b) => { if (speakingAudio) { stopSpeaking(); b.classList.remove('on'); } else { b.classList.add('on'); speak(lastReplyText).finally(() => b.classList.remove('on')); } })
         );
+        row.append(
+            mk('Good answer', S('thumb-up'), (b) => rate(row, b, true)),
+            mk('Not helpful', S('thumb-down'), (b) => rate(row, b, false))
+        );
+        row.querySelectorAll('button').forEach((b, i) => { if (i >= 3) b.classList.add('rate'); });
+        if (!/att-row/.test((chat.messages[chat.messages.length - 2] || {}).text || '')) row.append(mk('Regenerate', S('refresh'), regenerate));
         bubble.after(row); scrollChat();
+        loadFollowups(row, lastQuestion, lastReplyText);
     }
+    // thumbs stay on this device; regenerate re-asks the last question; follow-up chips come from a quiet helper call
+    let lastQuestion = '', followSeq = 0;
+    function rate(row, b, up) {
+        const was = b.classList.contains('on');
+        row.querySelectorAll('.rate').forEach((x) => x.classList.remove('on'));
+        if (!was) { b.classList.add('on'); const fb = load('knowura_feedback') || { up: 0, down: 0 }; fb[up ? 'up' : 'down']++; store('knowura_feedback', fb); toast(up ? 'Glad that helped!' : 'Thanks, noted. Try Regenerate.'); }
+        haptic('tick');
+    }
+    function regenerate() {
+        if (busy) return;
+        const ms = chat.messages, n = ms.length;
+        if (n < 2 || ms[n - 1].type !== 'ai' || ms[n - 2].type !== 'user' || /att-row/.test(ms[n - 2].text)) return;
+        const text = toText(ms[n - 2].text.replace(/<br\s*\/?>/gi, '\n')).trim();
+        if (!text) return;
+        const box = $('chat-box');
+        box.querySelectorAll('.msg-actions, .followups').forEach((x) => x.remove());
+        [...box.querySelectorAll('.msg.ai')].pop()?.remove(); [...box.querySelectorAll('.msg.user')].pop()?.remove();
+        ms.splice(n - 2, 2); msgs.splice(-2, 2); persist();
+        $('userInput').value = text; sendText();
+    }
+    async function loadFollowups(row, question, reply) {
+        const seq = ++followSeq;
+        if (!question || reply.length < 80) return;
+        try {
+            const res = await post('ask-ai', { kind: 'aux', ownerToken, token: tok(), memory: {}, messages: [{ role: 'user', content: 'A student asked: ' + question.slice(0, 300) + '\n\nThe tutor answered: ' + reply.slice(0, 1200) + '\n\nWrite 3 short follow-up questions the student might ask next, at most 8 words each, one per line, with no numbering, no quotes and no other text.' }] });
+            if (!res.ok) return;
+            const data = await res.json();
+            const lines = String(data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '').split('\n')
+                .map((l) => l.replace(/^[\s\-*•\d.)]+/, '').replace(/^["“]|["”]$/g, '').trim()).filter((l) => l.length > 3 && l.length <= 80).slice(0, 3);
+            if (seq !== followSeq || !lines.length || !row.isConnected) return;
+            const fu = document.createElement('div'); fu.className = 'followups'; fu.setAttribute('role', 'group'); fu.setAttribute('aria-label', 'Suggested follow-up questions');
+            lines.forEach((t) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.onclick = () => { if (busy) return; $('userInput').value = t; sendText(); }; fu.append(b); });
+            row.after(fu); scrollChat();
+        } catch (e) { /* follow-ups are a bonus: stay quiet */ }
+    }
+
+    // ── study mode, text size, contrast, keyboard shortcuts ──
+    let studyOn = !!load('knowura_assistant_study');
+    function applyStudy() { $('studyBtn').classList.toggle('on', studyOn); $('studyBtn').setAttribute('aria-pressed', String(studyOn)); $('studyStrip').classList.toggle('on', studyOn); }
+    function toggleStudy() { studyOn = !studyOn; store('knowura_assistant_study', studyOn || null); applyStudy(); haptic('tick'); toast(studyOn ? 'Study mode on' : 'Study mode off'); }
+    $('studyBtn').addEventListener('click', toggleStudy); $('studyOff').addEventListener('click', toggleStudy);
+    const a11y = Object.assign({ text: 100, hc: false }, load('knowura_assistant_a11y') || {});
+    function applyA11y() {
+        document.documentElement.style.setProperty('--kw-text', String(a11y.text / 100)); document.documentElement.classList.toggle('hc', !!a11y.hc);
+        $('hcBtn').setAttribute('aria-pressed', String(!!a11y.hc)); $('hcBtn').classList.toggle('on', !!a11y.hc); store('knowura_assistant_a11y', a11y);
+    }
+    $('aaBtn').addEventListener('click', () => { a11y.text = a11y.text >= 130 ? 100 : a11y.text + 15; applyA11y(); toast('Text size ' + (a11y.text === 100 ? 'normal' : a11y.text === 115 ? 'large' : 'extra large')); });
+    $('hcBtn').addEventListener('click', () => { a11y.hc = !a11y.hc; applyA11y(); toast(a11y.hc ? 'High contrast on' : 'High contrast off'); });
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('studyOverlay') && document.getElementById('studyOverlay').classList.contains('open')) return;
+        const t = e.target, typing = t && ((t.matches && t.matches('input, textarea, select')) || t.isContentEditable);
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !typing && !$('textView').hidden) { e.preventDefault(); $('userInput').focus(); }
+        else if (e.altKey && !e.ctrlKey && !e.metaKey) {
+            const k = e.key.toLowerCase();
+            if (k === 'n') { e.preventDefault(); showText(true); newChat(); } else if (k === 'm') { e.preventDefault(); toggleStudy(); }
+        }
+    });
+    applyStudy(); applyA11y();
 
     // ── prompt box behaviour (same morphing send/mic button as the app) ──
     const ARROW = 'M11 3L13 3L13 5L15 5L15 7L17 7L17 9L19 9L19 11L14 11L14 20L10 20L10 11L5 11L5 9L7 9L7 7L9 7L9 5L11 5Z', SQUARE = 'M11 6L13 6L15 6L18 6L18 8L18 10L18 13L18 16L18 18L15 18L13 18L11 18L9 18L6 18L6 15L6 12L6 9L6 6L8 6L9.5 6Z';
@@ -634,6 +703,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     }
     $('chat-box').addEventListener('click', (e) => {
         const q = e.target.closest('.suggest button'); if (!q || busy) return;
+        if (q.dataset.q === 'Quiz from a photo') { $('userInput').value = 'Make a quiz from this photo.'; setSend(); $('userInput').focus(); if (attachCtl) attachCtl.pick(); return; }
         $('userInput').value = q.dataset.q + ': '; setSend(); $('userInput').focus();
     });
     $('userInput').addEventListener('input', () => { setSend(); store('knowura_assistant_draft', $('userInput').value || null); });
