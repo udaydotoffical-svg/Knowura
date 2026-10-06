@@ -58,6 +58,16 @@ const DRAWN = {
     code: (o) => { for (let i = 0; i <= 5; i++) { o.set(8 - i, 4 + i).set(7 - i, 4 + i).set(8 - i, 16 - i).set(7 - i, 16 - i); o.set(12 + i, 4 + i).set(13 + i, 4 + i).set(12 + i, 16 - i).set(13 + i, 16 - i); } o.set(2, 10).set(3, 10).set(17, 10).set(18, 10); },
     unlock: (o) => { o.frame(4, 10, 16, 18); o.rect(10, 13, 10, 15); o.rect(8, 2, 12, 2).rect(6, 3, 7, 9).rect(13, 3, 14, 5); },
     incognito: (o) => { o.rect(5, 3, 15, 7).rect(1, 8, 19, 9).rect(3, 12, 9, 16).rect(11, 12, 17, 16).rect(9, 13, 11, 13); },
+    refresh: (o) => {
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const dx = x + 0.5 - 10.5, dy = y + 0.5 - 11, d = Math.hypot(dx, dy); if (d >= 5.4 && d <= 7.6 && !(dx > 0.5 && dy < -1)) o.set(x, y); }
+        o.rect(12, 2, 18, 3).rect(17, 2, 18, 8);   // arrowhead corner
+    },
+    'thumb-up': (o) => { o.rect(2, 9, 5, 18).rect(7, 9, 18, 18).rect(9, 3, 12, 8).rect(13, 6, 14, 8); },
+    'thumb-down': (o) => { o.rect(2, 2, 5, 11).rect(7, 2, 18, 11).rect(9, 12, 12, 17).rect(13, 12, 14, 14); },
+    study: (o) => {
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (Math.abs(x + 0.5 - 10.5) / 9.5 + Math.abs(y + 0.5 - 7) / 4.5 <= 1) o.set(x, y);
+        o.rect(5, 11, 15, 15); o.rect(8, 11, 12, 12, false).rect(8, 11, 12, 11); o.rect(18, 7, 19, 14);
+    },
     file: (o) => { o.frame(4, 2, 16, 18); o.rect(12, 2, 16, 6, false); for (let i = 0; i <= 4; i++) o.set(12 + i, 2 + i).set(11, 2 + i).set(11 + i, 7 - 0 * i); o.rect(7, 10, 13, 10).rect(7, 13, 13, 13).rect(7, 16, 10, 16); },
     sidebar: (o) => { o.frame(2, 3, 18, 17); o.rect(7, 3, 8, 17); }
 };

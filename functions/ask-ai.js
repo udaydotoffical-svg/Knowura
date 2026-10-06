@@ -3,7 +3,7 @@ const { getChatModels, getGuardModels, DEFAULT_MODEL } = require('./_models');
 const safety = require('./_safety');
 const { json, guard, readJson } = require('./_util');
 const { whoIs, usageGate } = require('./_limits');
-const { STUDY_TOOLS, STUDY_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_study');
+const { STUDY_TOOLS, STUDY_PROMPT, STUDY_MODE_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_study');
 
 const MAX_MESSAGES = 60;
 const MAX_MESSAGE_CHARS = 16000;      // assistant turns
@@ -229,7 +229,7 @@ exports.handler = async (event, context) => {
         const ultraPrompt = `\n\nTake your time: break the problem into parts, check your own logic, then give a well-justified answer.`;
 
         const offerStudy = !isAux && wantsStudyTools(messages);
-        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
+        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (!isAux && body.studyMode === true ? STUDY_MODE_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
 
         // The picker sends a real Groq model id (from the live /models list). Only
         // ids Groq currently offers for chat are accepted; anything else — including

@@ -106,4 +106,7 @@ function studyBlurb(study) {
 
 const STUDY_PROMPT = ` When asked, you can build a quiz (create_quiz) or flashcards (create_flashcards) that pop up for the user; get the topic first if it's missing, then reply with one short friendly line.`;
 
-module.exports = { STUDY_TOOLS, STUDY_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb };
+// Study mode: the student turned on guided learning, so teach instead of just answering.
+const STUDY_MODE_PROMPT = ` STUDY MODE is on: you are a patient tutor. For homework-style questions do not just hand over the final answer: give the key idea or a hint, then ask ONE short guiding question and wait. When they answer, say what is right, gently fix what is not, and set the next small step. If they are stuck or ask you to just explain, explain it clearly. Keep replies short (under about 120 words) unless they asked to learn a concept. After a topic is done, ask one quick check question.`;
+
+module.exports = { STUDY_TOOLS, STUDY_PROMPT, STUDY_MODE_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb };
