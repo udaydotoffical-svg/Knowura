@@ -68,6 +68,7 @@ const DRAWN = {
         for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (Math.abs(x + 0.5 - 10.5) / 9.5 + Math.abs(y + 0.5 - 7) / 4.5 <= 1) o.set(x, y);
         o.rect(5, 11, 15, 15); o.rect(8, 11, 12, 12, false).rect(8, 11, 12, 11); o.rect(18, 7, 19, 14);
     },
+    sun: (o) => { o.rect(8, 7, 12, 13).rect(7, 8, 13, 12).rect(9, 1, 11, 3).rect(9, 17, 11, 19).rect(1, 9, 3, 11).rect(17, 9, 19, 11).rect(4, 4, 5, 5).rect(15, 4, 16, 5).rect(4, 15, 5, 16).rect(15, 15, 16, 16); },
     file: (o) => { o.frame(4, 2, 16, 18); o.rect(12, 2, 16, 6, false); for (let i = 0; i <= 4; i++) o.set(12 + i, 2 + i).set(11, 2 + i).set(11 + i, 7 - 0 * i); o.rect(7, 10, 13, 10).rect(7, 13, 13, 13).rect(7, 16, 10, 16); },
     sidebar: (o) => { o.frame(2, 3, 18, 17); o.rect(7, 3, 8, 17); }
 };

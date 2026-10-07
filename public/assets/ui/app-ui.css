@@ -98,7 +98,7 @@
         /* ─── RETRO PACK: press-into-shadow buttons, CRT scanlines, pixel burst, green terminal mode (Konami code) ─── */
         .btn-ui:not(:disabled):active, .pb-pick:not(:disabled):active, .suggestion-chip:active, .menu-item:active, .menu-nav:active, .choice-pill:active, .chip:active,
         .followups button:active, .reply-tools button:active, button.streak-chip:active, .q-opt:not(:disabled):active, .suggest button:active, .msg-actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
-        html.crt::after, html.term::after { content: ''; position: fixed; inset: 0; z-index: 2147483100; pointer-events: none;
+        html.crt::after { content: ''; position: fixed; inset: 0; z-index: 2147483100; pointer-events: none;
             background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.16) 3px), radial-gradient(120% 100% at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.35) 100%); }
         html.crt:not(.term) body { text-shadow: 0 0 6px rgba(34, 229, 255, 0.18); }
         html.lite.crt:not(.term)::after, html.lite.crt:not(.term) body { display: none; text-shadow: none; }
@@ -106,15 +106,23 @@
         .pxburst i { position: absolute; width: 8px; height: 8px; background: var(--c, #22e5ff); box-shadow: 2px 2px 0 #000; animation: pxFly .95s steps(9) forwards; }
         @keyframes pxFly { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
         @media (prefers-reduced-motion: reduce) { .pxburst { display: none; } }
-        /* green phosphor terminal: a half-finished project on purpose */
-        html.term { --dark: #000; --blue: #1fa84a; --blue-deep: #052b12; --cyan: #39ff6a; --text: #a8ffbf; --text-dim: #2fbf5c; --panel: rgba(0, 28, 8, 0.86); --panel-strong: rgba(0, 20, 6, 0.95); --owner: #ffb000; }
-        html.term { filter: grayscale(1) sepia(1) hue-rotate(78deg) saturate(2.6) brightness(1.08) contrast(1.2); }   /* everything, logos and photos included, goes phosphor green */
-        html.term body { background: #000 !important; background-image: none !important; }
-        html.term * { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace !important; text-shadow: 0 0 5px rgba(57, 255, 106, 0.4); }
-        html.term .msg, html.term button, html.term .prompt-bar, html.term .pb-inner, html.term input, html.term textarea, html.term .sheet, html.term .study-card { border-radius: 0 !important; }
-        html.term img.orb-gif, html.term .study-strip img { filter: hue-rotate(-60deg) saturate(1.4); }
-        html.term::before { content: 'knowura@alpha:~$ ./learn --wip   # TODO: finish this project'; position: fixed; top: 0; left: 0; right: 0; z-index: 2147483200; padding: 3px 10px; font: 11px ui-monospace, Menlo, Consolas, monospace; color: #39ff6a; background: #000; border-bottom: 1px solid #1fa84a; pointer-events: none; white-space: nowrap; overflow: hidden; }
-        html.term body::after { content: '\2588'; position: fixed; right: 12px; bottom: 6px; z-index: 2147483200; color: #39ff6a; font-size: 14px; pointer-events: none; animation: termBlink 1s steps(1) infinite; }
+        /* ─── THEMES: dark (default) · light · terminal (unlocked with the Konami code). Colours come from the :root variables. ─── */
+        html.light { --dark: #eaf1fc; --text: #0b1530; --text-dim: #4a5f85; --cyan: #0b7f9e; --blue: #2f6bff; --blue-deep: #1f4fd6; --panel: rgba(255, 255, 255, 0.72); --panel-strong: rgba(255, 255, 255, 0.94); --owner: #d4143a; color-scheme: light; }
+        html.light body { background: linear-gradient(180deg, #f4f8ff, #d8e5fa) !important; }
+        html.light .msg.user, html.light .choice-pill.selected, html.light .choice-pill.selected .choice-hint, html.light .btn-ui.cta, html.light .new-chat-btn, html.light .cookie-btn { color: #fff; }
+        html.light .empty-logo, html.light .sidebar-logo, html.light .credits-logo { background: #0b1530; border-radius: 12px; padding: 8px 14px; }
+        html.term { --dark: #000; --blue: #19a64a; --blue-deep: #063d1a; --cyan: #39ff6a; --text: #c9ffd6; --text-dim: #3fbf68; --panel: rgba(0, 28, 8, 0.9); --panel-strong: rgba(0, 20, 6, 0.96); --owner: #ffb000; }
+        html.term body { background: #000 !important; }
+        html.term *:not(svg):not(svg *):not(img) { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace !important; }
+        html.term .msg, html.term button, html.term .prompt-bar, html.term .pb-inner, html.term input, html.term textarea, html.term .sheet, html.term .study-card { border-radius: 2px !important; }
+        html.term img.orb-gif, html.term .study-strip img, html.term .empty-logo, html.term .sidebar-logo, html.term .credits-logo, html.term .ai::before, html.term .streak-chip img { filter: grayscale(1) sepia(1) hue-rotate(78deg) saturate(3) brightness(1.1) !important; }
+        @media (min-width: 701px) {   /* the "unfinished project" dressing is desktop-only: it would crowd a phone */
+            html.term::before { content: 'knowura@alpha:~$ ./learn --wip   # TODO: finish this project'; position: fixed; top: 0; left: 0; right: 0; z-index: 2147483200; padding: 3px 10px; font: 11px ui-monospace, Menlo, Consolas, monospace; color: #39ff6a; background: #000; border-bottom: 1px solid #1fa84a; pointer-events: none; white-space: nowrap; overflow: hidden; }
+            html.term body { padding-top: 22px; }
+            html.term::after { content: ''; position: fixed; inset: 0; z-index: 2147483100; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.16) 3px); }
+            html.term * { text-shadow: 0 0 4px rgba(57, 255, 106, 0.3); }
+            html.term body::after { content: '\2588'; position: fixed; right: 12px; bottom: 6px; z-index: 2147483200; color: #39ff6a; font-size: 14px; pointer-events: none; animation: termBlink 1s steps(1) infinite; }
+        }
         @keyframes termBlink { 50% { opacity: 0; } }
         @media (prefers-reduced-motion: reduce) { html.term body::after { animation: none; } }
 
