@@ -236,7 +236,7 @@
     <!-- TEXT CHAT -->
     <section id="textView" class="sheet" hidden aria-label="Text chat">
         <div class="sheet-head">
-            <div class="left"><button type="button" class="btn-ui" id="newBtn" title="New chat" aria-label="New chat"><svg class="icon"><use href="#icon-edit"/></svg></button><button type="button" class="btn-ui" id="aaBtn" title="Text size" aria-label="Change text size">Aa</button><button type="button" class="btn-ui" id="themeBtn" title="Theme" aria-label="Change theme"><svg class="icon"><use href="#icon-sun"/></svg></button><button type="button" class="btn-ui" id="hcBtn" title="High contrast" aria-label="Toggle high contrast" aria-pressed="false"><svg class="icon"><use href="#icon-eye"/></svg></button></div>
+            <div class="left"><button type="button" class="btn-ui" id="newBtn" title="New chat" aria-label="New chat"><svg class="icon"><use href="#icon-edit"/></svg></button></div>
             <div class="grab-zone" id="grab" title="Swipe up to open in the app" aria-label="Swipe up to open in the app"><div class="grab"></div></div>
             <div class="right"><button type="button" class="btn-ui" id="acctBtn">Sign in</button></div>
         </div>
@@ -678,13 +678,19 @@ function showAlert(message) { window.__note && window.__note(message); }
     function applyStudy() { $('studyBtn').classList.toggle('on', studyOn); $('studyBtn').setAttribute('aria-pressed', String(studyOn)); $('studyStrip').classList.toggle('on', studyOn); }
     function toggleStudy() { studyOn = !studyOn; store('knowura_assistant_study', studyOn || null); applyStudy(); haptic('tick'); toast(studyOn ? 'Study mode on' : 'Study mode off'); }
     $('studyBtn').addEventListener('click', toggleStudy); $('studyOff').addEventListener('click', toggleStudy);
-    const a11y = Object.assign({ text: 100, hc: false }, load('knowura_assistant_a11y') || {});
-    function applyA11y() {
-        document.documentElement.style.setProperty('--kw-text', String(a11y.text / 100)); document.documentElement.classList.toggle('hc', !!a11y.hc);
-        $('hcBtn').setAttribute('aria-pressed', String(!!a11y.hc)); $('hcBtn').classList.toggle('on', !!a11y.hc); store('knowura_assistant_a11y', a11y);
+    // Look & feel (theme, text size, contrast, retro options) follows the main app through the device link; the last
+    // values are remembered so the panel opens looking right before the link answers.
+    function applyLook(p) {
+        if (!p || typeof p !== 'object') return;
+        if (p.termUnlocked) store('knowura_term_unlocked', '1');
+        document.documentElement.style.setProperty('--kw-text', String(Number(p.textScale || 100) / 100));
+        document.documentElement.classList.toggle('hc', p.contrast === 'high');
+        if (kwRetro.crt !== (p.crt === 'on' ? 'on' : 'off')) kwRetroSet('crt', p.crt === 'on' ? 'on' : 'off');
+        if (kwRetro.sfx !== (p.sfx === 'on' ? 'on' : 'off')) kwRetroSet('sfx', p.sfx === 'on' ? 'on' : 'off');
+        kwSetTheme(p.theme || 'dark');
+        store('knowura_assistant_look', p);
     }
-    $('aaBtn').addEventListener('click', () => { a11y.text = a11y.text >= 130 ? 100 : a11y.text + 15; applyA11y(); toast('Text size ' + (a11y.text === 100 ? 'normal' : a11y.text === 115 ? 'large' : 'extra large')); });
-    $('hcBtn').addEventListener('click', () => { a11y.hc = !a11y.hc; applyA11y(); toast(a11y.hc ? 'High contrast on' : 'High contrast off'); });
+    applyLook(load('knowura_assistant_look'));
     document.addEventListener('keydown', (e) => {
         if (document.getElementById('studyOverlay') && document.getElementById('studyOverlay').classList.contains('open')) return;
         const t = e.target, typing = t && ((t.matches && t.matches('input, textarea, select')) || t.isContentEditable);
@@ -694,8 +700,7 @@ function showAlert(message) { window.__note && window.__note(message); }
             if (k === 'n') { e.preventDefault(); showText(true); newChat(); } else if (k === 'm') { e.preventDefault(); toggleStudy(); }
         }
     });
-    $('themeBtn').addEventListener('click', () => { const list = kwThemeList(), next = list[(list.indexOf(kwTheme()) + 1) % list.length]; kwSetTheme(next); toast('Theme: ' + next); });
-    applyStudy(); applyA11y();
+    applyStudy();
 
     // ── prompt box behaviour (same morphing send/mic button as the app) ──
     const ARROW = 'M11 3L13 3L13 5L15 5L15 7L17 7L17 9L19 9L19 11L14 11L14 20L10 20L10 11L5 11L5 9L7 9L7 7L9 7L9 5L11 5Z', SQUARE = 'M11 6L13 6L15 6L18 6L18 8L18 10L18 13L18 16L18 18L15 18L13 18L11 18L9 18L6 18L6 15L6 12L6 9L6 6L8 6L9.5 6Z';
@@ -953,6 +958,7 @@ function showAlert(message) { window.__note && window.__note(message); }
             if (!r.ok) return;
             const d = await r.json();
             prefs = d.prefs || prefs;
+            applyLook(prefs);
             const wasIn = signedIn();
             if (d.linked && d.token) {
                 session = { user: d.profile.given_name, savedAt: Date.now(), sub: d.profile.sub, email: d.profile.email, picture: d.profile.picture, sessionToken: d.token };

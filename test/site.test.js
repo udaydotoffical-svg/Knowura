@@ -502,8 +502,8 @@ test('the assistant panel has the same study features, and the shared quiz code 
     for (const f of ['weakAdd', 'weakRate', 'markStudyDay', 'refreshStudyHome', 'startWeakReview']) assert.match(ui, new RegExp('function ' + f), f + ' ships with the shared UI');
     assert.doesNotMatch(ui, /const store =/, 'no clash with the panel\'s own store()');
     assert.match(a, /id="studyBtn"/); assert.match(a, /id="studyStrip"[^>]*>[^]*?bloub-cercle-neutre-bleu\.gif/); assert.match(a, /studyMode: studyOn/);
-    for (const f of ['regenerate', 'loadFollowups', 'rate', 'applyA11y', 'toggleStudy']) assert.match(a, new RegExp('function ' + f));
-    assert.match(a, /id="aaBtn"/); assert.match(a, /id="hcBtn"/); assert.match(a, /Quiz from a photo/); assert.match(a, /id="studyHome"/);
+    for (const f of ['regenerate', 'loadFollowups', 'rate', 'applyLook', 'toggleStudy']) assert.match(a, new RegExp('function ' + f));
+    assert.doesNotMatch(a, /id="(aaBtn|hcBtn|themeBtn)"/, 'no display settings in the panel: it follows the main app'); assert.match(a, /function applyLook/); assert.match(a, /applyLook\(prefs\)/); assert.match(a, /Quiz from a photo/); assert.match(a, /id="studyHome"/);
 });
 
 test('retro pack: Konami green terminal, CRT scanlines, 8-bit sounds, pixel burst and press-into-shadow buttons', () => {
@@ -531,5 +531,6 @@ test('themes: dark is the default, light is generated from the real styles, term
     for (const f of ['kwSetTheme', 'kwTheme', 'kwTermUnlocked', 'kwTerminal']) assert.match(ui, new RegExp('function ' + f));
     assert.match(ui, /\|\| 'dark'/); assert.match(ui, /knowura_term_unlocked/);
     assert.match(h, /data-group="theme" data-value="dark"/); assert.match(h, /id="themeTermPill"[^>]*hidden/); assert.match(h, /function setTheme/);
-    assert.match(a, /id="themeBtn"/);
+    assert.match(a, /kwSetTheme\(p\.theme/);
+    assert.match(h, /theme: settings\.theme, textScale: settings\.textScale, contrast: settings\.contrast/); // the main app sends its look to the panel
 });

@@ -3,7 +3,7 @@
 
 const { sign } = require('./_userToken');
 const { json, guard, readJson, rateLimit, tooMany } = require('./_util');
-const { store, idOk, keyOf, LINK_TTL_MS } = require('./_devices');
+const { store, idOk, keyOf, LINK_TTL_MS, lookOf } = require('./_devices');
 
 exports.handler = async (event) => {
     const early = guard(event);
@@ -17,7 +17,7 @@ exports.handler = async (event) => {
         if (!idOk(body.installId)) return json(400, { error: 'Bad install id' });
 
         const rec = await store().get(keyOf(body.installId), { type: 'json' });
-        const prefs = { assistantModel: rec?.prefs?.assistantModel || '' };
+        const prefs = { assistantModel: rec?.prefs?.assistantModel || '', ...lookOf(rec?.prefs) };
         const revokeBefore = Number(process.env.KNOWURA_TOKEN_REVOKE_BEFORE || 0);
         const live = rec?.sub && rec.linkedAt && Date.now() - rec.linkedAt < LINK_TTL_MS && !(revokeBefore && rec.linkedAt < revokeBefore);
         if (!live) return json(200, { linked: false, prefs });

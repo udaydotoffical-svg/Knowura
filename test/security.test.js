@@ -327,7 +327,7 @@ test('device link: the app links an install to an account and prefs; the panel g
     const body = (o) => ev(JSON.stringify(o), { headers: { 'x-forwarded-for': '9.9.9.' + Math.floor(Math.random() * 200) } });
     // nothing linked yet -> not linked, no prefs
     let r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
-    assert.deepEqual(r, { linked: false, prefs: { assistantModel: '' } });
+    assert.deepEqual(r, { linked: false, prefs: { assistantModel: '', theme: 'dark', textScale: '100', contrast: 'normal', crt: 'off', sfx: 'off', termUnlocked: false } });
     // a bad token can't link
     assert.equal((await deviceLink.handler(body({ installId: id, token: 'nope' }))).statusCode, 401);
     // a real session token links it, with the chosen assistant model
@@ -342,6 +342,13 @@ test('device link: the app links an install to an account and prefs; the panel g
     await deviceLink.handler(body({ installId: id, prefs: { assistantModel: 'bad model!' } }));
     r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
     assert.equal(r.linked, true); assert.equal(r.prefs.assistantModel, ''); // invalid ids are dropped
+    // the look of the main app travels with the link, and anything unexpected falls back to the defaults
+    await deviceLink.handler(body({ installId: id, prefs: { theme: 'light', textScale: '115', contrast: 'high', crt: 'on', sfx: 'on', termUnlocked: true } }));
+    r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
+    assert.deepEqual([r.prefs.theme, r.prefs.textScale, r.prefs.contrast, r.prefs.crt, r.prefs.sfx, r.prefs.termUnlocked], ['light', '115', 'high', 'on', 'on', true]);
+    await deviceLink.handler(body({ installId: id, prefs: { theme: '<script>', textScale: '9999', contrast: 'x', crt: 1, sfx: {}, termUnlocked: 'yes' } }));
+    r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);
+    assert.deepEqual([r.prefs.theme, r.prefs.textScale, r.prefs.contrast, r.prefs.crt, r.prefs.sfx, r.prefs.termUnlocked], ['dark', '100', 'normal', 'off', 'off', false]);
     // sign out in the app -> the panel is signed out too
     await deviceLink.handler(body({ installId: id, unlink: true }));
     r = JSON.parse((await deviceSession.handler(body({ installId: id }))).body);

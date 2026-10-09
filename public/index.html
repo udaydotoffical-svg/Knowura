@@ -2345,7 +2345,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
     function syncAssistantLink({ unlink = false } = {}) {
         const id = installId();
         if (!id || typeof fetch !== 'function') return;
-        const body = { installId: id, prefs: { assistantModel: settings.assistantModel || '' } };
+        const body = { installId: id, prefs: { assistantModel: settings.assistantModel || '', theme: settings.theme, textScale: settings.textScale, contrast: settings.contrast, crt: settings.crt, sfx: settings.sfx, termUnlocked: kwTermUnlocked() } };
         if (unlink) body.unlink = true;
         else if (isCloudUser()) body.token = userToken, body.profile = { given_name: userProfile?.given_name, email: userProfile?.email, picture: userProfile?.picture };
         fetch('/.netlify/functions/device-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => { /* retried on the next launch */ });
@@ -6184,13 +6184,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         document.documentElement.style.setProperty('--kw-text', String(Number(settings.textScale || 100) / 100));
         document.documentElement.classList.toggle('hc', settings.contrast === 'high');
     }
-    function setTheme(t) { settings.theme = kwSetTheme(t); saveSettings(); updateSettingsUI(); }
-    window.kwOnTheme = (t) => { settings.theme = t; saveSettings(); document.getElementById('themeTermPill')?.toggleAttribute('hidden', !kwTermUnlocked()); updateSettingsUI(); };
+    function setTheme(t) { settings.theme = kwSetTheme(t); saveSettings(); updateSettingsUI(); syncAssistantLink(); }
+    window.kwOnTheme = (t) => { settings.theme = t; saveSettings(); document.getElementById('themeTermPill')?.toggleAttribute('hidden', !kwTermUnlocked()); updateSettingsUI(); syncAssistantLink(); };
     settings.theme = kwTheme(); document.getElementById('themeTermPill')?.toggleAttribute('hidden', !kwTermUnlocked());
-    function setRetro(k, v) { kwRetroSet(k, v); settings[k] = v; saveSettings(); updateSettingsUI(); }
+    function setRetro(k, v) { kwRetroSet(k, v); settings[k] = v; saveSettings(); updateSettingsUI(); syncAssistantLink(); }
     settings.crt = kwRetro.crt; settings.sfx = kwRetro.sfx; updateSettingsUI();
-    function setTextScale(v) { settings.textScale = v; saveSettings(); applyA11y(); updateSettingsUI(); }
-    function setContrast(v) { settings.contrast = v; saveSettings(); applyA11y(); updateSettingsUI(); }
+    function setTextScale(v) { settings.textScale = v; saveSettings(); applyA11y(); updateSettingsUI(); syncAssistantLink(); }
+    function setContrast(v) { settings.contrast = v; saveSettings(); applyA11y(); updateSettingsUI(); syncAssistantLink(); }
     function showShortcuts() {
         toggleHamburgerMenu?.();
         showAlert('/  focus the message box\nAlt + N  new chat\nAlt + S  show or hide chats\nAlt + M  study mode on or off\n?  this list\nEsc  close pop-ups\n\nQuizzes: 1 to 4 pick an answer, → next.\nFlashcards: Space flips, ← again, → got it.', 'Keyboard shortcuts');
