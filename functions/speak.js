@@ -3,8 +3,8 @@
 // Uses Node's built-in fetch (no dependency). Counts against the daily voice limit
 // (owner mode is exempt).
 
-const { json, guard, readJson, cleanStr } = require('./_util');
-const { whoIs, usageGate } = require('./_limits');
+const { json, guard, readJson, cleanStr } = require('./_lib/_util');
+const { whoIs, usageGate } = require('./_lib/_limits');
 
 // Groq's Orpheus voices — anything else is ignored so callers can't inject arbitrary values.
 const VOICES = new Set(["autumn", "diana", "hannah", "austin", "daniel", "troy"]);

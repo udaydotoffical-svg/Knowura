@@ -1,9 +1,9 @@
 const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
-const { getPlatformStore } = require('./_store');
-const { sign } = require('./_ownerToken');
-const { json, guard, readJson } = require('./_util');
-const { authAttempt } = require('./_limits');
-const { cleanCredentialResponse } = require('./_webauthnInput');
+const { getPlatformStore } = require('./_lib/_store');
+const { sign } = require('./_lib/_ownerToken');
+const { json, guard, readJson } = require('./_lib/_util');
+const { authAttempt } = require('./_lib/_limits');
+const { cleanCredentialResponse } = require('./_lib/_webauthnInput');
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 

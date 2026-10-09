@@ -11,18 +11,18 @@ process.env.LIMIT_USER = '5';
 // here ever touches a real Blob store.
 const makeFake = () => { const m = new Map(); return { async get(k) { return m.get(k) ?? null; }, async setJSON(k, v) { m.set(k, JSON.parse(JSON.stringify(v))); } }; };
 const stores = {};
-require('../functions/_store').getPlatformStore = (name) => (stores[name] ||= makeFake());
+require('../functions/_lib/_store').getPlatformStore = (name) => (stores[name] ||= makeFake());
 
-const util = require('../functions/_util');
-const limits = require('../functions/_limits');
-const owner = require('../functions/_ownerToken');
-const user = require('../functions/_userToken');
+const util = require('../functions/_lib/_util');
+const limits = require('../functions/_lib/_limits');
+const owner = require('../functions/_lib/_ownerToken');
+const user = require('../functions/_lib/_userToken');
 const askAi = require('../functions/ask-ai');
 const chatSave = require('../functions/chat-save');
 const deviceLink = require('../functions/device-link');
 const deviceSession = require('../functions/device-session');
 const pwVerify = require('../functions/owner-password-verify');
-const { cleanCredentialResponse } = require('../functions/_webauthnInput');
+const { cleanCredentialResponse } = require('../functions/_lib/_webauthnInput');
 
 // tiny in-memory stand-in for the Blob store so limits are tested exactly as they'd persist
 const fakeStore = makeFake;
@@ -228,7 +228,7 @@ test('Redis counters are atomic: a burst of parallel requests cannot exceed the 
 });
 
 test('owner Google login: verified owner email only', async () => {
-    const o = require('../functions/_owner');
+    const o = require('../functions/_lib/_owner');
     o.setStoreForTests(fakeStore());
     const good = { email: 'Uday.Dot.Offical@gmail.com', email_verified: 'true', sub: '111' };
     assert.equal(o.isOwnerLogin(good), true);                                        // case-insensitive
@@ -251,7 +251,7 @@ test('owner Google login: verified owner email only', async () => {
 
 test('owner mode is never switched on by signing in: chat-load only says whether the account is the owner\'s', async () => {
     const chatLoad = require('../functions/chat-load');
-    const o = require('../functions/_owner');
+    const o = require('../functions/_lib/_owner');
     o.setStoreForTests(fakeStore());
     await o.rememberOwner('owner-sub', 'uday.dot.offical@gmail.com');
     const call = async (sub) => JSON.parse((await chatLoad.handler(ev({ token: user.sign(sub, 'user-secret') }))).body);
@@ -264,7 +264,7 @@ test('owner mode is never switched on by signing in: chat-load only says whether
 
 test('owner-enable gives an owner token (no password) only to a signed-in owner Google account', async () => {
     const enable = require('../functions/owner-enable');
-    const o = require('../functions/_owner');
+    const o = require('../functions/_lib/_owner');
     o.setStoreForTests(fakeStore());
     await o.rememberOwner('owner-sub', 'uday.dot.offical@gmail.com');
     const call = async (token) => enable.handler(ev({ token }));
@@ -396,7 +396,7 @@ test('ask-ai attachments: only small data-URL images from users, newest 3 kept, 
 });
 
 test('safety check: Llama Guard blocks unsafe pictures and text, self-harm gets care, failures fail safe', async () => {
-    const safety = require('../functions/_safety');
+    const safety = require('../functions/_lib/_safety');
     const realFetch = global.fetch;
     const reply = (text) => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: text } }] }) });
     const img = { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } };

@@ -11,6 +11,36 @@
   SECRETS_SCAN_OMIT_KEYS = "GOOGLE_CLIENT_ID"
 
 [[redirects]]
+  from = "/favicon-48x48.png"
+  to = "/assets/icons/favicon-48x48.png"
+  status = 301
+
+[[redirects]]
+  from = "/icon-192.png"
+  to = "/assets/icons/icon-192.png"
+  status = 301
+
+[[redirects]]
+  from = "/icon-512.png"
+  to = "/assets/icons/icon-512.png"
+  status = 301
+
+[[redirects]]
+  from = "/icon-maskable-192.png"
+  to = "/assets/icons/icon-maskable-192.png"
+  status = 301
+
+[[redirects]]
+  from = "/icon-maskable-512.png"
+  to = "/assets/icons/icon-maskable-512.png"
+  status = 301
+
+[[redirects]]
+  from = "/mstile-150x150.png"
+  to = "/assets/icons/mstile-150x150.png"
+  status = 301
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
@@ -134,37 +164,7 @@
     Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
 
 [[headers]]
-  for = "/favicon-48x48.png"
-  [headers.values]
-    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
-
-[[headers]]
   for = "/apple-touch-icon.png"
-  [headers.values]
-    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
-
-[[headers]]
-  for = "/icon-192.png"
-  [headers.values]
-    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
-
-[[headers]]
-  for = "/icon-512.png"
-  [headers.values]
-    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
-
-[[headers]]
-  for = "/icon-maskable-192.png"
-  [headers.values]
-    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
-
-[[headers]]
-  for = "/icon-maskable-512.png"
-  [headers.values]
-    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
-
-[[headers]]
-  for = "/mstile-150x150.png"
   [headers.values]
     Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
 
@@ -190,6 +190,11 @@
 
 [[headers]]
   for = "/assets/vendor/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/assets/icons/*"
   [headers.values]
     Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
 

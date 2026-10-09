@@ -7,9 +7,9 @@
 // loaded/saved) and if the stored doc is newer (another device saved in between) we answer
 // 409 with the stored doc instead of silently overwriting it; the client merges and retries.
 
-const { getPlatformStore } = require('./_store');
-const { verify } = require('./_userToken');
-const { json, guard, readJson, cleanStr, isPlainObject, rateLimit, tooMany } = require('./_util');
+const { getPlatformStore } = require('./_lib/_store');
+const { verify } = require('./_lib/_userToken');
+const { json, guard, readJson, cleanStr, isPlainObject, rateLimit, tooMany } = require('./_lib/_util');
 
 const MAX_BODY_BYTES = 4.3 * 1024 * 1024;  // under Vercel's 4.5MB request cap
 const MAX_DOC_BYTES = 4 * 1024 * 1024;

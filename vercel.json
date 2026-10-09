@@ -2,6 +2,14 @@
   "buildCommand": "npm run build",
   "outputDirectory": "public",
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/favicon-48x48.png", "destination": "/assets/icons/favicon-48x48.png", "permanent": true },
+    { "source": "/icon-192.png", "destination": "/assets/icons/icon-192.png", "permanent": true },
+    { "source": "/icon-512.png", "destination": "/assets/icons/icon-512.png", "permanent": true },
+    { "source": "/icon-maskable-192.png", "destination": "/assets/icons/icon-maskable-192.png", "permanent": true },
+    { "source": "/icon-maskable-512.png", "destination": "/assets/icons/icon-maskable-512.png", "permanent": true },
+    { "source": "/mstile-150x150.png", "destination": "/assets/icons/mstile-150x150.png", "permanent": true }
+  ],
   "rewrites": [
     {
       "source": "/.netlify/functions/device-link",
@@ -114,7 +122,7 @@
       ]
     },
     {
-      "source": "/(favicon.ico|favicon.svg|favicon-16x16.png|favicon-32x32.png|favicon-48x48.png|apple-touch-icon.png|icon-192.png|icon-512.png|icon-maskable-192.png|icon-maskable-512.png|mstile-150x150.png|site.webmanifest|og-image.png)",
+      "source": "/(favicon.ico|favicon.svg|favicon-16x16.png|favicon-32x32.png|apple-touch-icon.png|site.webmanifest|og-image.png)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -123,7 +131,7 @@
       ]
     },
     {
-      "source": "/assets/(images|audio|vendor|brand)/(.*)",
+      "source": "/assets/(images|audio|vendor|brand|icons)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

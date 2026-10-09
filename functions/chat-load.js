@@ -2,10 +2,10 @@
 // Google `sub`. Requires a valid user token from google-signin-verify.js — nothing is ever
 // looked up from a client-supplied id directly, only from what the signature already proved.
 
-const { getPlatformStore } = require('./_store');
-const { verify } = require('./_userToken');
-const { isOwnerSub } = require('./_owner');
-const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_util');
+const { getPlatformStore } = require('./_lib/_store');
+const { verify } = require('./_lib/_userToken');
+const { isOwnerSub } = require('./_lib/_owner');
+const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_lib/_util');
 
 function store() {
     return getPlatformStore("knowura-chats");

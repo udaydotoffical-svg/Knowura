@@ -2,9 +2,9 @@
 // session token, and the server only hands back an owner token if that verified account is the owner's. Owner mode is
 // never switched on by signing in: this is the explicit "turn it on" step.
 
-const { verify } = require('./_userToken');
-const { isOwnerSub, issueOwnerToken } = require('./_owner');
-const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_util');
+const { verify } = require('./_lib/_userToken');
+const { isOwnerSub, issueOwnerToken } = require('./_lib/_owner');
+const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_lib/_util');
 
 exports.handler = async (event) => {
     const early = guard(event);

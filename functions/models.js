@@ -1,6 +1,6 @@
 // Returns the live list of chat models Groq currently offers, for the model picker.
-const { getChatModels, DEFAULT_MODEL } = require('./_models');
-const { json, guard, readJson, rateLimit, tooMany } = require('./_util');
+const { getChatModels, DEFAULT_MODEL } = require('./_lib/_models');
+const { json, guard, readJson, rateLimit, tooMany } = require('./_lib/_util');
 
 exports.handler = async (event) => {
     const early = guard(event, ["GET", "POST"]);

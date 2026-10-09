@@ -1,9 +1,9 @@
 // Called by the assistant panel with the install id. If the app has linked this install to an account, hands
 // back a fresh session token + profile (so the panel is signed in as the same person) and the assistant prefs.
 
-const { sign } = require('./_userToken');
-const { json, guard, readJson, rateLimit, tooMany } = require('./_util');
-const { store, idOk, keyOf, LINK_TTL_MS, lookOf } = require('./_devices');
+const { sign } = require('./_lib/_userToken');
+const { json, guard, readJson, rateLimit, tooMany } = require('./_lib/_util');
+const { store, idOk, keyOf, LINK_TTL_MS, lookOf } = require('./_lib/_devices');
 
 exports.handler = async (event) => {
     const early = guard(event);

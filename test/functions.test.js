@@ -5,11 +5,11 @@ const assert = require('node:assert/strict');
 process.env.OWNER_TOKEN_SECRET = 'owner-secret';
 process.env.KNOWURA_USER_TOKEN_SECRET = 'user-secret';
 
-const owner = require('../functions/_ownerToken');
-const user = require('../functions/_userToken');
+const owner = require('../functions/_lib/_ownerToken');
+const user = require('../functions/_lib/_userToken');
 const { _test: ask } = require('../functions/ask-ai');
-const { rateLimit } = require('../functions/_util');
-const { checkRegistrationAllowed } = require('../functions/_webauthnAuth');
+const { rateLimit } = require('../functions/_lib/_util');
+const { checkRegistrationAllowed } = require('../functions/_lib/_webauthnAuth');
 
 test('owner token: valid, tampered and wrong-secret', () => {
     const t = owner.sign('owner-secret');
