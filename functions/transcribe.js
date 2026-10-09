@@ -3,8 +3,8 @@
 // fetch/FormData/Blob (no extra dependency). Counts against the person's daily voice limit
 // (owner mode is exempt).
 
-const { json, guard, readJson, cleanStr } = require('./_util');
-const { whoIs, usageGate } = require('./_limits');
+const { json, guard, readJson, cleanStr } = require('./_lib/_util');
+const { whoIs, usageGate } = require('./_lib/_limits');
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;        // Vercel functions cap requests at 4.5MB
 const AUDIO_TYPES = /^audio\/(webm|ogg|mp4|mpeg|mp3|wav|x-wav|aac|x-m4a|m4a)(;.*)?$/i;

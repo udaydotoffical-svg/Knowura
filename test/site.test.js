@@ -478,7 +478,7 @@ test('boot counter: once per session, main page only, waits for the app, never t
 });
 
 test('study mode, reply tools, follow-ups, streaks, weak spots and accessibility are wired', () => {
-    const h = pub('index.html'), st = fs.readFileSync(path.join(__dirname, '..', 'functions/_study.js'), 'utf8'), ai = fs.readFileSync(path.join(__dirname, '..', 'functions/ask-ai.js'), 'utf8');
+    const h = pub('index.html'), st = fs.readFileSync(path.join(__dirname, '..', 'functions/_lib/_study.js'), 'utf8'), ai = fs.readFileSync(path.join(__dirname, '..', 'functions/ask-ai.js'), 'utf8');
     // the AI reply badge is the Knowura logo, not a letter
     assert.match(h, /\.ai::before \{[^}]*url\(\/assets\/brand\/k-mark\.svg\)/); assert.doesNotMatch(h, /content: 'K'/);
     assert.match(pub('assets/ui/app-ui.css'), /k-mark\.svg/, 'the assistant panel gets the same badge');
@@ -533,4 +533,21 @@ test('themes: dark is the default, light is generated from the real styles, term
     assert.match(h, /data-group="theme" data-value="dark"/); assert.match(h, /id="themeTermPill"[^>]*hidden/); assert.match(h, /function setTheme/);
     assert.match(a, /kwSetTheme\(p\.theme/);
     assert.match(h, /theme: settings\.theme, textScale: settings\.textScale, contrast: settings\.contrast/); // the main app sends its look to the panel
+});
+
+test('repo layout: helpers live in functions/_lib, moved icons are redirected, and nothing points at a missing file', () => {
+    const root = path.join(__dirname, '..');
+    assert.ok(fs.existsSync(path.join(root, 'functions/_lib/_util.js')) && !fs.existsSync(path.join(root, 'functions/_util.js')));
+    const loose = fs.readdirSync(path.join(root, 'functions')).filter(f => f.startsWith('_') && f.endsWith('.js'));
+    assert.deepEqual(loose, [], 'helpers belong in functions/_lib so the folder only holds endpoints');
+    const vercel = require('../vercel.json'), netlify = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
+    for (const f of ['icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'mstile-150x150.png', 'favicon-48x48.png']) {
+        assert.ok(fs.existsSync(path.join(root, 'public/assets/icons', f)), f + ' is in assets/icons');
+        assert.ok(vercel.redirects.some(r => r.source === '/' + f && r.destination === '/assets/icons/' + f && r.permanent), 'vercel redirect for ' + f);
+        assert.match(netlify, new RegExp('from = "/' + f.replace('.', '\\.') + '"\\n  to = "/assets/icons/' + f.replace('.', '\\.') + '"\\n  status = 301'));
+    }
+    // every icon the manifest and the pages name exists on disk
+    for (const m of JSON.parse(pub('site.webmanifest')).icons) assert.ok(fs.existsSync(path.join(root, 'public', m.src)), m.src);
+    for (const f of ['index.html', 'terms.html', 'privacy.html', 'eula.html', 'dmca.html', '404.html'])
+        for (const m of pub(f).matchAll(/(?:href|content)="(\/[^"?#]+\.(?:png|svg|ico))/g)) assert.ok(fs.existsSync(path.join(root, 'public', m[1])), f + ' -> ' + m[1]);
 });

@@ -1,8 +1,8 @@
 const { generateRegistrationOptions } = require('@simplewebauthn/server');
-const { getPlatformStore } = require('./_store');
-const { json, guard, readJson } = require('./_util');
-const { authAttempt } = require('./_limits');
-const { checkRegistrationAllowed } = require('./_webauthnAuth');
+const { getPlatformStore } = require('./_lib/_store');
+const { json, guard, readJson } = require('./_lib/_util');
+const { authAttempt } = require('./_lib/_limits');
+const { checkRegistrationAllowed } = require('./_lib/_webauthnAuth');
 
 function store() {
     return getPlatformStore("webauthn");

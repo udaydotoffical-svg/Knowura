@@ -6,10 +6,10 @@
 // counted, so a shared school network doesn't lock everyone out).
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const { sign } = require('./_userToken');
-const { isOwnerLogin, rememberOwner } = require('./_owner');
-const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_util');
-const { authBlocked, authFailure } = require('./_limits');
+const { sign } = require('./_lib/_userToken');
+const { isOwnerLogin, rememberOwner } = require('./_lib/_owner');
+const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_lib/_util');
+const { authBlocked, authFailure } = require('./_lib/_limits');
 
 const JWT_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/;
 

@@ -1,9 +1,9 @@
 // Called by the website (inside the Android app) to link this install to the signed-in account, to
 // unlink it on sign-out, and to save the assistant preferences. Needs a valid user token to link.
 
-const { verify } = require('./_userToken');
-const { json, guard, readJson, cleanStr, isPlainObject, rateLimit, tooMany } = require('./_util');
-const { store, idOk, keyOf, modelOk, lookOf } = require('./_devices');
+const { verify } = require('./_lib/_userToken');
+const { json, guard, readJson, cleanStr, isPlainObject, rateLimit, tooMany } = require('./_lib/_util');
+const { store, idOk, keyOf, modelOk, lookOf } = require('./_lib/_devices');
 
 exports.handler = async (event) => {
     const early = guard(event);

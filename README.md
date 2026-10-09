@@ -5,6 +5,8 @@ Functions backend. Sign in with Google (or continue as a guest), chat with
 an LLM that remembers facts about you across sessions, and — if you're the
 owner — unlock an uncensored "owner mode" with a hardware security key.
 
+> **Repo map:** see [`docs/STRUCTURE.md`](docs/STRUCTURE.md) for what lives where.
+
 ## Features
 
 - **Chat** powered by Groq (`openai/gpt-oss-20b`), with Markdown rendering
@@ -130,7 +132,7 @@ Knowura runs on either platform from this same repo, unmodified:
   `/api/*` on Vercel, so both deployments respond to identical URLs.
 - **Storage is fully independent per platform, by design** — the two
   deployments do not share WebAuthn credentials or cloud chat data.
-  `functions/_store.js` picks the backend automatically at runtime via
+  `functions/_lib/_store.js` picks the backend automatically at runtime via
   `process.env.VERCEL` (set only on Vercel): Netlify uses `@netlify/blobs`
   as before, Vercel uses a **private** Vercel Blob store (`access: 'private'`
   — reads require the store's own token, not just a guessable URL, same

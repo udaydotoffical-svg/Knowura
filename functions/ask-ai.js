@@ -1,9 +1,9 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const { getChatModels, getGuardModels, DEFAULT_MODEL } = require('./_models');
-const safety = require('./_safety');
-const { json, guard, readJson } = require('./_util');
-const { whoIs, usageGate } = require('./_limits');
-const { STUDY_TOOLS, STUDY_PROMPT, STUDY_MODE_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_study');
+const { getChatModels, getGuardModels, DEFAULT_MODEL } = require('./_lib/_models');
+const safety = require('./_lib/_safety');
+const { json, guard, readJson } = require('./_lib/_util');
+const { whoIs, usageGate } = require('./_lib/_limits');
+const { STUDY_TOOLS, STUDY_PROMPT, STUDY_MODE_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_lib/_study');
 
 const MAX_MESSAGES = 60;
 const MAX_MESSAGE_CHARS = 16000;      // assistant turns

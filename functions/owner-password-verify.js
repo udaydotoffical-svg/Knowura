@@ -4,9 +4,9 @@
 // the WebAuthn path produces. Max 5 attempts per 15 minutes per IP.
 
 const crypto = require('crypto');
-const { sign } = require('./_ownerToken');
-const { json, guard, readJson, cleanStr } = require('./_util');
-const { authAttempt } = require('./_limits');
+const { sign } = require('./_lib/_ownerToken');
+const { json, guard, readJson, cleanStr } = require('./_lib/_util');
+const { authAttempt } = require('./_lib/_limits');
 
 exports.handler = async (event) => {
     const early = guard(event);
