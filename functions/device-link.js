@@ -3,7 +3,7 @@
 
 const { verify } = require('./_userToken');
 const { json, guard, readJson, cleanStr, isPlainObject, rateLimit, tooMany } = require('./_util');
-const { store, idOk, keyOf, modelOk } = require('./_devices');
+const { store, idOk, keyOf, modelOk, lookOf } = require('./_devices');
 
 exports.handler = async (event) => {
     const early = guard(event);
@@ -35,7 +35,7 @@ exports.handler = async (event) => {
             };
         }
         if (isPlainObject(body.prefs)) {
-            rec.prefs = { assistantModel: modelOk(body.prefs.assistantModel) ? body.prefs.assistantModel : '' };
+            rec.prefs = { assistantModel: modelOk(body.prefs.assistantModel) ? body.prefs.assistantModel : '', ...lookOf(body.prefs) };
         }
         rec.updatedAt = Date.now();
         await store().setJSON(key, rec);

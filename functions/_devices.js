@@ -16,4 +16,17 @@ const idOk = (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{22,64}$/.test(v);
 const keyOf = (id) => crypto.createHash('sha256').update(`install|${id}`).digest('hex').slice(0, 40);
 const modelOk = (v) => typeof v === 'string' && /^[\w.\-\/:]{1,120}$/.test(v);
 
-module.exports = { LINK_TTL_MS, store, setStoreForTests, idOk, keyOf, modelOk };
+// the look of the app (theme, text size, contrast, retro options) so the assistant panel can follow the main app
+const lookOf = (p) => {
+    const o = (p && typeof p === 'object') ? p : {};
+    return {
+        theme: ['dark', 'light', 'terminal'].includes(o.theme) ? o.theme : 'dark',
+        textScale: ['100', '115', '130'].includes(String(o.textScale)) ? String(o.textScale) : '100',
+        contrast: o.contrast === 'high' ? 'high' : 'normal',
+        crt: o.crt === 'on' ? 'on' : 'off',
+        sfx: o.sfx === 'on' ? 'on' : 'off',
+        termUnlocked: o.termUnlocked === true
+    };
+};
+
+module.exports = { lookOf, LINK_TTL_MS, store, setStoreForTests, idOk, keyOf, modelOk };
