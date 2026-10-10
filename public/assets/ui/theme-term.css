@@ -97,6 +97,7 @@ html.term .chip { background: rgb(7, 29, 14); }
 html.term #voiceView.live-panel { background: radial-gradient(80% 55% at 50% 38%, rgba(24, 135, 61, 0.16), transparent 70%), linear-gradient(180deg, rgb(3, 14, 7), rgb(2, 7, 4)); }
 html.term #voiceView.live-panel::before { background: conic-gradient(from 0deg at 50% 45%, rgba(24, 135, 61, 0), rgba(27, 155, 70, 0.22), rgba(25, 142, 64, 0.1), rgba(24, 135, 61, 0) 70%); }
 html.term .mic-card { background: rgb(4, 23, 11); }
+html.term .pc-task { background: rgba(24, 135, 61, 0.1); }
 html.term .suggest button { background: rgb(7, 29, 14); }
 html.term .sheet { background: linear-gradient(180deg, rgb(6, 26, 12), rgb(4, 17, 8)); }
 html.term .grab { background: linear-gradient(90deg, rgb(24, 135, 61), rgb(27, 155, 70)); }
