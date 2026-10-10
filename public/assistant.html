@@ -131,6 +131,8 @@
         .sheet-head .left { display: flex; flex-wrap: nowrap; gap: 6px; }
         .sheet-head .left .btn-ui { min-width: 0; padding: 7px 9px; font-size: 12px; }
         .sheet-head .left .btn-ui .icon { width: 16px; height: 16px; }
+        .pc-task { margin-top: 10px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 10px; background: rgba(34, 229, 255, 0.1); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+        .pc-task b { color: var(--cyan); }
         .suggest { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
         .suggest button { border: 2px solid var(--ink); border-radius: 999px; background: #0d1a3a; color: var(--text); font-size: 13px; font-weight: 700; padding: 7px 12px; cursor: pointer; box-shadow: var(--shadow-sm); }
         .suggest button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
@@ -526,6 +528,10 @@ function showAlert(message) { window.__note && window.__note(message); }
         }
     }
 
+    // ── PC action: hand a task to Mochi through the Coucou desktop app (window.KnowuraDesk) ──
+    const pcAvailable = () => { try { return typeof window.KnowuraDesk?.pcTask === 'function' && !!window.KnowuraDesk.pcEnabled(); } catch (e) { return false; } };
+    const pcInDesktopApp = () => typeof window.KnowuraDesk?.pcTask === 'function';   // there, but switched off -> the model tells the user how to turn it on
+
     // ── asking the model (shared by text and voice) ──
     async function askModel(text, { voice = false, content } = {}) {
         await Promise.race([linkReady, new Promise((ok) => setTimeout(ok, 3000))]); // pick up the app's sign-in + model first
@@ -533,13 +539,14 @@ function showAlert(message) { window.__note && window.__note(message); }
         if (msgs.length > 10) msgs.shift();
         ctrl = new AbortController();
         try {
-            const res = await post('ask-ai', { messages: forServer(), memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel, studyMode: studyOn }, { signal: ctrl.signal });
+            const res = await post('ask-ai', { messages: forServer(), memory: {}, ownerToken, token: tok(), model: prefs.assistantModel || settings.modelChoice, effort: settings.effortLevel, studyMode: studyOn, pc: pcAvailable() ? 'on' : (pcInDesktopApp() ? 'off' : undefined) }, { signal: ctrl.signal });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.choices || !data.choices[0]) { const e = new Error(data.error || 'Something went wrong. Please try again.'); e.limit = !!data.limitReached; e.audience = data.audience; e.blocked = !!data.blocked; e.unchecked = !!data.unchecked; throw e; }
             let reply = String(data.choices[0].message && data.choices[0].message.content || '');
             reply = reply.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i, '').trim() || 'I came back empty. Could you ask that again?';
-            msgs.push({ role: 'assistant', content: reply });
-            return { reply, study: data.study || null };
+            const pcTask = typeof data.pcTask === 'string' && data.pcTask ? data.pcTask : null;
+            msgs.push({ role: 'assistant', content: pcTask ? reply + '\n[Handed to Mochi: ' + pcTask + ']' : reply });
+            return { reply, study: data.study || null, pcTask };
         } catch (e) { msgs.pop(); throw e; } finally { ctrl = null; }
     }
     // only the newest 3 pictures go to the server; older ones become a note
@@ -578,8 +585,8 @@ function showAlert(message) { window.__note && window.__note(message); }
         const think = addBubble('<span class="typing"><span class="dots"><i></i><i></i><i></i></span> Thinking</span>', 'ai');
         try {
             lastQuestion = text;
-            const { reply, study } = await askModel(text, { content: atts.length ? KnowuraAttach.build(text, atts).content : undefined });
-            finishReply(think, reply, study);
+            const { reply, study, pcTask } = await askModel(text, { content: atts.length ? KnowuraAttach.build(text, atts).content : undefined });
+            finishReply(think, reply, study, pcTask);
         } catch (e) {
             think.remove(); chat.messages.pop();
             if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } // a refused message is not kept
@@ -588,15 +595,19 @@ function showAlert(message) { window.__note && window.__note(message); }
         }
         finally { busy = false; setSend(); }
     }
-    function finishReply(bubble, reply, study) {
+    function finishReply(bubble, reply, study, pcTask) {
         lastReplyText = reply;
         let html = renderMd(reply);
         if (study) html += studyChipHTML(study);
+        const pcGo = !!pcTask && pcAvailable();   // checked again right now: it only runs if PC control is still switched on
+        if (pcGo) html += '<div class="pc-task"><b>Mochi:</b> ' + escapeHtml(pcTask) + '</div>';
         bubble.innerHTML = html; bubble.classList.add('reveal');
         chat.messages.push({ text: html, type: 'ai' });
         addReplyActions(bubble);
         persist(); scrollChat();
         if (study) setTimeout(() => openStudy(study), 900);
+        // fire-and-forget; the panel closes itself when this is called, so the chat is already saved above
+        if (pcGo) setTimeout(() => { try { window.KnowuraDesk.pcTask(pcTask); } catch (e) { toast('Could not reach Mochi', true); } }, 150);
     }
     async function copyText(text, btn) {
         let ok = false;
@@ -882,8 +893,8 @@ function showAlert(message) { window.__note && window.__note(message); }
             $('liveTranscript').textContent = '\u201c' + text.slice(0, 120) + '\u201d'; status('Thinking…');
             addBubble(userHTML(text), 'user'); chat.messages.push({ text: userHTML(text), type: 'user' });
             if (chat.messages.length === 1) chat.title = text.slice(0, 40);
-            const { reply, study } = await askModel(text, { voice: true });
-            finishReply(addBubble('', 'ai'), reply, study);
+            const { reply, study, pcTask } = await askModel(text, { voice: true });
+            finishReply(addBubble('', 'ai'), reply, study, pcTask);
             if (c.dead) return;
             await speakInCall(c, reply);
         } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); $('liveTranscript').textContent = String(e.message || 'Something went wrong.').slice(0, 140); setTimeout(() => { if (!c.dead) $('liveTranscript').textContent = ''; backToListening(c); }, 4500); return; }

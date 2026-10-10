@@ -551,3 +551,12 @@ test('repo layout: helpers live in functions/_lib, moved icons are redirected, a
     for (const f of ['index.html', 'terms.html', 'privacy.html', 'eula.html', 'dmca.html', '404.html'])
         for (const m of pub(f).matchAll(/(?:href|content)="(\/[^"?#]+\.(?:png|svg|ico))/g)) assert.ok(fs.existsSync(path.join(root, 'public', m[1])), f + ' -> ' + m[1]);
 });
+
+test('assistant PC action: feature-detected, sent only on "on"/"off", runs the desktop bridge after saving the chat', () => {
+    const a = pub('assistant.html');
+    assert.match(a, /typeof window\.KnowuraDesk\?\.pcTask === 'function' && !!window\.KnowuraDesk\.pcEnabled\(\)/);
+    assert.match(a, /pc: pcAvailable\(\) \? 'on' : \(pcInDesktopApp\(\) \? 'off' : undefined\)/);
+    assert.match(a, /<div class="pc-task"><b>Mochi:<\/b> ' \+ escapeHtml\(pcTask\)/);
+    assert.match(a, /window\.KnowuraDesk\.pcTask\(pcTask\)/); assert.match(a, /const pcGo = !!pcTask && pcAvailable\(\)/);
+    assert.ok(a.indexOf('persist(); scrollChat();') < a.indexOf('window.KnowuraDesk.pcTask(pcTask)'), 'the chat is saved before the panel closes');
+});

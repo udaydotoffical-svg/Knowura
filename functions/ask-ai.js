@@ -3,6 +3,7 @@ const { getChatModels, getGuardModels, DEFAULT_MODEL } = require('./_lib/_models
 const safety = require('./_lib/_safety');
 const { json, guard, readJson } = require('./_lib/_util');
 const { whoIs, usageGate } = require('./_lib/_limits');
+const { PC_TOOL, PC_PROMPT, PC_OFF_PROMPT, PC_DEFAULT_REPLY, pcDecision, pcFromCalls } = require('./_lib/_pc');
 const { STUDY_TOOLS, STUDY_PROMPT, STUDY_MODE_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_lib/_study');
 
 const MAX_MESSAGES = 60;
@@ -229,7 +230,9 @@ exports.handler = async (event, context) => {
         const ultraPrompt = `\n\nTake your time: break the problem into parts, check your own logic, then give a well-justified answer.`;
 
         const offerStudy = !isAux && wantsStudyTools(messages);
-        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (!isAux && body.studyMode === true ? STUDY_MODE_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
+        // PC action: see _lib/_pc.js (only when the desktop app says it is on, never on content someone else wrote)
+        const { offerPc, pcOffNote } = pcDecision({ pc: body.pc, isAux, searchBlock, hasImages, messages, textOf });
+        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (offerPc ? PC_PROMPT : "") + (pcOffNote ? PC_OFF_PROMPT : "") + (!isAux && body.studyMode === true ? STUDY_MODE_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
 
         // The picker sends a real Groq model id (from the live /models list). Only
         // ids Groq currently offers for chat are accepted; anything else — including
@@ -270,8 +273,8 @@ exports.handler = async (event, context) => {
             payload.reasoning_effort = effort;
         }
 
-        if (offerStudy) {
-            payload.tools = STUDY_TOOLS; payload.tool_choice = "auto";
+        if (offerStudy || offerPc) {
+            payload.tools = [...(offerStudy ? STUDY_TOOLS : []), ...(offerPc ? [PC_TOOL] : [])]; payload.tool_choice = "auto";
             // building a quiz is formatting, not hard thinking: keep gpt-oss quick so it finishes in time
             if (isGptOss && !isUltra && !payload.reasoning_effort) payload.reasoning_effort = "low";
         }
@@ -325,19 +328,26 @@ exports.handler = async (event, context) => {
 
         // If the model called a study tool, validate it and hand the client a `study` payload
         // plus a short text reply (the tool call itself never reaches the UI).
-        let study = null;
+        let study = null, pcTask = null;
         const msg = data?.choices?.[0]?.message;
-        const call = msg?.tool_calls?.[0]?.function;
-        if (call) {
-            study = sanitizeStudy(call.name, call.arguments);
-            if (study) {
-                msg.content = (msg.content && msg.content.trim()) || studyBlurb(study);
+        const calls = (msg?.tool_calls || []).map(c => c?.function).filter(Boolean);
+        if (calls.length) {
+            const pcr = pcFromCalls(msg, offerPc);
+            if (pcr.called) {
+                pcTask = pcr.task;
+                msg.content = (msg.content && msg.content.trim()) || (pcTask ? PC_DEFAULT_REPLY : "I tried to hand that to Mochi but the instruction was unusable. Could you ask again, a bit shorter?");
             } else {
-                msg.content = (msg.content && msg.content.trim()) || "I tried to build that but it came out garbled — could you ask again?";
+                const call = calls[0];
+                study = sanitizeStudy(call.name, call.arguments);
+                if (study) {
+                    msg.content = (msg.content && msg.content.trim()) || studyBlurb(study);
+                } else {
+                    msg.content = (msg.content && msg.content.trim()) || "I tried to build that but it came out garbled — could you ask again?";
+                }
             }
             delete msg.tool_calls;
         }
-        return json(200, { ...data, study, ownerMode: isOwner, ultraThink: isUltra, model: payload.model, usage: gate.usage });
+        return json(200, { ...data, study, pcTask, ownerMode: isOwner, ultraThink: isUltra, model: payload.model, usage: gate.usage });
     } catch (error) {
         return json(500, { error: "Something went wrong. Please try again." });
     }
