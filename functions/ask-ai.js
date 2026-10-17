@@ -3,7 +3,7 @@ const { getChatModels, getGuardModels, DEFAULT_MODEL } = require('./_lib/_models
 const safety = require('./_lib/_safety');
 const { json, guard, readJson } = require('./_lib/_util');
 const { whoIs, usageGate } = require('./_lib/_limits');
-const { PC_TOOL, PC_PROMPT, PC_OFF_PROMPT, PC_DEFAULT_REPLY, pcDecision, pcFromCalls } = require('./_lib/_pc');
+const { PC_TOOL, PC_PROMPT, PC_PROMPT_OWNER, PC_OFF_PROMPT, PC_DEFAULT_REPLY, pcDecision, pcFromCalls } = require('./_lib/_pc');
 const { STUDY_TOOLS, STUDY_PROMPT, STUDY_MODE_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_lib/_study');
 
 const MAX_MESSAGES = 60;
@@ -231,8 +231,8 @@ exports.handler = async (event, context) => {
 
         const offerStudy = !isAux && wantsStudyTools(messages);
         // PC action: see _lib/_pc.js (only when the desktop app says it is on, never on content someone else wrote)
-        const { offerPc, pcOffNote } = pcDecision({ pc: body.pc, isAux, searchBlock, hasImages, messages, textOf });
-        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (offerPc ? PC_PROMPT : "") + (pcOffNote ? PC_OFF_PROMPT : "") + (!isAux && body.studyMode === true ? STUDY_MODE_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
+        const { offerPc, pcOffNote } = pcDecision({ pc: body.pc, isAux, searchBlock, hasImages, messages, textOf, isOwner });
+        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (offerPc ? (isOwner ? PC_PROMPT_OWNER : PC_PROMPT) : "") + (pcOffNote ? PC_OFF_PROMPT : "") + (!isAux && body.studyMode === true ? STUDY_MODE_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
 
         // The picker sends a real Groq model id (from the live /models list). Only
         // ids Groq currently offers for chat are accepted; anything else — including
