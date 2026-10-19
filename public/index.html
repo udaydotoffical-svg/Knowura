@@ -299,7 +299,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         }
         .cookie-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); background: var(--cyan); color: #001018; }
         .cookie-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .cookie-banner { flex-direction: column; align-items: stretch; text-align: left; bottom: 10px; }
             .cookie-btn { width: 100%; }
         }
@@ -413,7 +413,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             position: fixed; top: auto; right: auto; left: 24px; bottom: 76px; z-index: 160;
             width: min(300px, calc(100vw - 24px));
         }
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             #musicPanel { left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(340px, calc(100vw - 24px)); }
         }
 
@@ -428,7 +428,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         }
         .sidebar-backdrop.show { display: block; }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             #app { gap: 0; }
             .sidebar {
                 position: fixed; top: 14px; left: 14px; bottom: 14px; z-index: 150;
@@ -598,7 +598,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         }
         .suggestion-chip:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .empty-logo { height: 44px; }
             .empty-suggestions { max-width: 100%; }
         }
@@ -704,7 +704,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .codebox.prev .cb-body { display: none; }
         .codebox.prev .cb-frame { display: block; }
         @media (min-width: 681px) and (max-width: 1500px) { #app.cb-open .sidebar { display: none; } }
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .codebox { position: fixed; inset: 8px; z-index: 170; flex: none; }
             .cb-code code { font-size: 12px; }
         }
@@ -840,7 +840,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .pb-input {
             display: block; width: 100%; padding: 2px 0; border: 0; background: transparent; color: var(--text);
             font-size: calc(16px * var(--kw-text, 1)); /* 16px stops iOS Safari auto-zooming on focus */
-            font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden;
+            font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden; min-height: 26px;
         }
         .pb-input::placeholder { color: var(--text-dim); }
 
@@ -942,7 +942,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
         .prompt-bar { --pb-spark: #ff4d6d; }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .input-area { padding: 6px 12px 10px; }
             .pb-pick { max-width: 150px; }
         }
@@ -1039,7 +1039,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         @keyframes eqBounce { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
         .track-item .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .music-panel { width: calc(100vw - 32px); right: -8px; }
         }
 
@@ -1262,7 +1262,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             border-left: 2px solid rgba(148,163,184,0.25); padding-left: 8px; margin-left: 2px;
         }
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .mini-track-title { max-width: 70px; }
         }
 
@@ -1642,11 +1642,11 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .choice-pill.selected .choice-dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
         .choice-pill.selected .choice-hint { color: rgba(255,255,255,0.8); }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .orb-gif { width: min(80vw, 50vh, 380px); height: min(80vw, 50vh, 380px); }
         }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             #app { padding: 8px; }
             .brand-name { font-size: 13px; }
             #chat-box { padding: 16px; padding-top: 56px; }
@@ -1654,6 +1654,68 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             .msg th, .msg td { padding: 5px 8px; font-size: 12px; min-width: 72px; }
             .glass-card { padding: 30px 20px; }
         }
+
+        /* ─── PHONE PASS: full-bleed layout, compact bars, thumb-sized targets, safe areas ─── */
+        html { -webkit-text-size-adjust: 100%; }
+        @media (pointer: coarse) {
+            button, [role="button"], a, select, label, .menu-item, .menu-nav, .suggestion-chip { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+            body { overscroll-behavior: none; }
+        }
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
+            #app { padding: 0; gap: 0; }
+            .chat-container { border: 0; border-radius: 0; box-shadow: none; padding-top: env(safe-area-inset-top); }
+            .chat-container::before {
+                content: ''; position: absolute; top: 0; left: 0; right: 0; z-index: 4; pointer-events: none;
+                height: calc(58px + env(safe-area-inset-top));
+                background: linear-gradient(180deg, var(--panel-strong) 62%, transparent);
+            }
+            .chat-sidebar-toggle { top: calc(8px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); }
+            #chat-box { padding: 12px 10px 14px; padding-top: calc(62px + env(safe-area-inset-top)); gap: 14px; }
+            .msg { max-width: 94%; }
+            .ai { margin-left: 26px; max-width: calc(100% - 26px); }
+            .ai::before { left: -26px; width: 20px; height: 20px; border-radius: 6px; box-shadow: 1px 1px 0 var(--ink); }
+            .reply-tools, .followups { margin-left: 26px; max-width: calc(100% - 26px); }
+            .sidebar {
+                top: 0; left: 0; bottom: 0; width: min(86vw, 320px) !important; max-width: none;
+                border-width: 0 3px 0 0 !important; border-radius: 0 20px 20px 0;
+                padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
+            }
+            .sidebar:not(.open) { box-shadow: none; }
+            .input-area { padding: 6px 8px max(8px, env(safe-area-inset-bottom)); }
+            .prompt-glow { box-shadow: 3px 3px 0 var(--ink), inset 1.5px 1.5px 0 rgba(255,255,255,0.5), inset -1px -1px 0 rgba(255,255,255,0.12), inset 0 0 28px rgba(110,190,255,0.10); }
+            .pb-field { padding: 10px 12px 8px; }
+            .pb-pick { height: 36px; padding: 0 11px 0 10px; flex: 0 1 auto; min-width: 0; }
+            .pb-attach { width: 38px; padding: 0; flex: none; }
+            #pbModelBtn { max-width: 150px; }
+            .tips-bar { padding: 6px 12px; }
+            .cookie-banner {
+                flex-direction: row; align-items: center; gap: 10px; padding: 10px 12px; font-size: 11.5px; line-height: 1.4;
+                width: calc(100vw - 16px); bottom: max(8px, env(safe-area-inset-bottom)); border-width: 2.5px; border-radius: 14px;
+            }
+            .cookie-btn { width: auto; padding: 9px 14px; }
+            .hamburger-panel { padding: 10px; }
+            input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select { font-size: 16px; }
+        }
+        @media (max-width: 420px) {
+            #pbEffortBtn span, #pbStudyBtn span { display: none; }   /* icon-only; the buttons keep their aria-labels */
+            .pb-pick { padding: 0 10px; }
+            #pbEffortBtn, #pbStudyBtn { min-width: 38px; justify-content: center; }
+            .reply-tools button { width: 34px; height: 34px; }
+        }
+        @media (max-height: 500px) and (pointer: coarse) {
+            .pb-field { flex-direction: row; align-items: center; gap: 8px; padding: 6px 8px; }   /* landscape phone: text box and buttons share one row */
+            .pb-field .pb-input { flex: 1 1 auto; min-width: 0; }
+            .pb-bar { flex: none; }
+            .pb-spacer { display: none; }
+            .pb-pick { height: 34px; }
+            #chat-box { padding-top: calc(54px + env(safe-area-inset-top)); }
+        }
+        @media (max-height: 640px) and (pointer: coarse) {
+            .empty-sub { display: none; }
+            .empty-logo { height: 34px; }
+            .empty-suggestions { gap: 8px; }
+        }
+        @media (max-height: 560px) and (pointer: coarse) { .tips-bar { display: none; } }
 
         /* ─── BALANCED MODE (html.balanced): liquid glass without the costly parts ───
            Big panels drop backdrop blur (the expensive bit) and fake the glass with a
@@ -4591,7 +4653,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.getElementById('sidebarBackdrop');
-        if (window.matchMedia('(max-width: 680px)').matches) {
+        if (window.matchMedia('(max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse)').matches) {
             const opening = !sidebar.classList.contains('open');
             sidebar.classList.toggle('open', opening);
             backdrop.classList.toggle('show', opening);
@@ -5006,7 +5068,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         'Tap the mic icon (when the box is empty) to start a live voice call with Knowura.',
         'Mid-call, say "Hey Knowura" to interrupt it and grab its attention.',
         'Ultra Think uses a bigger model with higher reasoning effort — great for hard problems, overkill for small talk.',
-        'Drop any .mp3 into public/assets/audio and it shows up in the music player automatically.',
+        'Open the music player from the sidebar to put some lofi on while you study.',
         'Knowura remembers facts about you across sessions — clear them anytime from the menu.',
         'Switch between Seamless and Push-to-Talk voice modes from Settings.',
         'Ask about anything time-sensitive — Knowura automatically searches the web when it needs to.',
@@ -6016,7 +6078,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const sb = document.getElementById('sidebar');
         function syncSidebarInert() {
             if (!sb) return;
-            const mobile = !!window.matchMedia?.('(max-width: 680px)').matches;
+            const mobile = !!window.matchMedia?.('(max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse)').matches;
             const hidden = mobile ? !sb.classList.contains('open') : sb.classList.contains('collapsed');
             sb.inert = hidden;
         }

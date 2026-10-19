@@ -165,7 +165,7 @@
         }
         .suggestion-chip:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .empty-logo { height: 44px; }
             .empty-suggestions { max-width: 100%; }
         }
@@ -322,7 +322,7 @@
         .pb-input {
             display: block; width: 100%; padding: 2px 0; border: 0; background: transparent; color: var(--text);
             font-size: calc(16px * var(--kw-text, 1)); /* 16px stops iOS Safari auto-zooming on focus */
-            font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden;
+            font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden; min-height: 26px;
         }
         .pb-input::placeholder { color: var(--text-dim); }
 
@@ -424,7 +424,7 @@
 
         .prompt-bar { --pb-spark: #ff4d6d; }
 
-        @media (max-width: 680px) {
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .input-area { padding: 6px 12px 10px; }
             .pb-pick { max-width: 150px; }
         }

@@ -560,3 +560,18 @@ test('assistant PC action: feature-detected, sent only on "on"/"off", runs the d
     assert.match(a, /window\.KnowuraDesk\.pcTask\(pcTask\)/); assert.match(a, /const pcGo = !!pcTask && pcAvailable\(\)/);
     assert.ok(a.indexOf('persist(); scrollChat();') < a.indexOf('window.KnowuraDesk.pcTask(pcTask)'), 'the chat is saved before the panel closes');
 });
+
+test('phone layout: full-bleed app, safe areas, compact cookie bar, landscape phones use the mobile layout', () => {
+    const h = pub('index.html');
+    const mq = '(max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse)';
+    assert.ok(!h.includes('@media (max-width: 680px) {'), 'every 680px rule also covers landscape phones');
+    assert.equal(h.split("window.matchMedia('" + mq + "')").length - 1, 1);
+    assert.equal(h.split("window.matchMedia?.('" + mq + "')").length - 1, 1);
+    const pass = h.slice(h.indexOf('PHONE PASS'));
+    assert.match(pass, /\.chat-container \{ border: 0; border-radius: 0; box-shadow: none; padding-top: env\(safe-area-inset-top\); \}/);
+    assert.match(pass, /\.cookie-banner \{\s*flex-direction: row;/);
+    assert.match(pass, /#pbEffortBtn span, #pbStudyBtn span \{ display: none; \}/);
+    assert.match(pass, /select \{ font-size: 16px; \}/, 'inputs are 16px so iOS does not zoom on focus');
+    assert.match(h, /\.pb-input \{[^}]*min-height: 26px;/);
+    assert.ok(!h.includes('public/assets/audio'), 'no developer-only tip shown to users');
+});
