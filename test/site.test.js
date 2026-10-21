@@ -57,14 +57,14 @@ test('live preview loads pages in a sandboxed /preview page with its own CSP, an
     const mainCsp = main.headers.find(x => x.key === 'Content-Security-Policy').value;
     assert.match(mainCsp, /img-src 'self' data: blob: https:\/\/\*\.googleusercontent\.com;/);
     assert.match(mainCsp, /frame-src 'self' https:\/\/accounts\.google\.com/);
-    assert.match(mainCsp, /frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app https:\/\/udaysingh\.vercel\.app(;|$)/);
+    assert.match(mainCsp, /frame-ancestors 'self' https:\/\/uday\.is-cool\.dev https:\/\/uday3ebsite\.vercel\.app https:\/\/udaysingh\.vercel\.app(;|$)/);
     assert.ok(!main.headers.some(x => x.key === 'X-Frame-Options'), 'main block must not send X-Frame-Options');
     assert.equal(rule.headers.find(x => x.key === 'X-Frame-Options').value, 'SAMEORIGIN');
     const netlify = fs.readFileSync(path.join(__dirname, '..', 'netlify.toml'), 'utf8');
     assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = "default-src 'none'/);
     assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    X-Frame-Options/);
     assert.match(netlify, /for = "\/preview"\n  \[headers\.values\]\n    Content-Security-Policy = [^\n]*\n    X-Frame-Options = "SAMEORIGIN"/);
-    assert.equal((netlify.match(/frame-ancestors 'self' https:\/\/uday3ebsite\.vercel\.app https:\/\/udaysingh\.vercel\.app;/g) || []).length, (netlify.match(/default-src 'self'; script-src/g) || []).length);
+    assert.equal((netlify.match(/frame-ancestors 'self' https:\/\/uday\.is-cool\.dev https:\/\/uday3ebsite\.vercel\.app https:\/\/udaysingh\.vercel\.app;/g) || []).length, (netlify.match(/default-src 'self'; script-src/g) || []).length);
     assert.doesNotMatch(netlify, /for = "\/\*"\n  \[headers\.values\]\n(?:    [^\n]*\n)*    Content-Security-Policy/);
 });
 
@@ -550,4 +550,28 @@ test('repo layout: helpers live in functions/_lib, moved icons are redirected, a
     for (const m of JSON.parse(pub('site.webmanifest')).icons) assert.ok(fs.existsSync(path.join(root, 'public', m.src)), m.src);
     for (const f of ['index.html', 'terms.html', 'privacy.html', 'eula.html', 'dmca.html', '404.html'])
         for (const m of pub(f).matchAll(/(?:href|content)="(\/[^"?#]+\.(?:png|svg|ico))/g)) assert.ok(fs.existsSync(path.join(root, 'public', m[1])), f + ' -> ' + m[1]);
+});
+
+test('assistant PC action: feature-detected, sent only on "on"/"off", runs the desktop bridge after saving the chat', () => {
+    const a = pub('assistant.html');
+    assert.match(a, /typeof window\.KnowuraDesk\?\.pcTask === 'function' && !!window\.KnowuraDesk\.pcEnabled\(\)/);
+    assert.match(a, /pc: pcAvailable\(\) \? 'on' : \(pcInDesktopApp\(\) \? 'off' : undefined\)/);
+    assert.match(a, /<div class="pc-task"><b>Mochi:<\/b> ' \+ escapeHtml\(pcTask\)/);
+    assert.match(a, /window\.KnowuraDesk\.pcTask\(pcTask\)/); assert.match(a, /const pcGo = !!pcTask && pcAvailable\(\)/);
+    assert.ok(a.indexOf('persist(); scrollChat();') < a.indexOf('window.KnowuraDesk.pcTask(pcTask)'), 'the chat is saved before the panel closes');
+});
+
+test('phone layout: full-bleed app, safe areas, compact cookie bar, landscape phones use the mobile layout', () => {
+    const h = pub('index.html');
+    const mq = '(max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse)';
+    assert.ok(!h.includes('@media (max-width: 680px) {'), 'every 680px rule also covers landscape phones');
+    assert.equal(h.split("window.matchMedia('" + mq + "')").length - 1, 1);
+    assert.equal(h.split("window.matchMedia?.('" + mq + "')").length - 1, 1);
+    const pass = h.slice(h.indexOf('PHONE PASS'));
+    assert.match(pass, /\.chat-container \{ border: 0; border-radius: 0; box-shadow: none; padding-top: env\(safe-area-inset-top\); \}/);
+    assert.match(pass, /\.cookie-banner \{\s*flex-direction: row;/);
+    assert.match(pass, /#pbEffortBtn span, #pbStudyBtn span \{ display: none; \}/);
+    assert.match(pass, /select \{ font-size: 16px; \}/, 'inputs are 16px so iOS does not zoom on focus');
+    assert.match(h, /\.pb-input \{[^}]*min-height: 26px;/);
+    assert.ok(!h.includes('public/assets/audio'), 'no developer-only tip shown to users');
 });
