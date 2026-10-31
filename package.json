@@ -14,5 +14,9 @@
     "@simplewebauthn/browser": "^11.0.0",
     "@netlify/blobs": "^8.0.0",
     "@vercel/blob": "^2.8.0"
+  },
+  "overrides": {
+    "undici": "6.29.1",
+    "zod": "4.6.6"
   }
 }

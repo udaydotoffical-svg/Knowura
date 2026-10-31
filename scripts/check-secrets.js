@@ -14,14 +14,21 @@ const PATTERNS = [
     ['AWS access key', /\bAKIA[0-9A-Z]{16}\b/],
     ['Private key block', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
     ['JWT', /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b/],
+    ['Literal Android signing password', /\b(?:storePassword|keyPassword)\s*(?:=|\s)\s*(['"])(?!\$\{)[^'"\r\n]+\1/i],
     ['Secret-looking assignment', /\b(api[_-]?key|secret|password|passwd|token)\b["']?\s*[:=]\s*["'][A-Za-z0-9+/_\-]{16,}["']/i]
 ];
+const SIGNING_FILE = /(?:\.(?:jks|keystore|p12|pfx|p7b|key|pem)$|(?:^|\/)[^/]*(?:signing|release)[-_]?(?:key|keystore)[^/]*)/i;
 const SKIP = /(^|\/)(package-lock\.json|assets\/vendor\/|assets\/(images|audio|video|brand)\/|.*\.(png|jpe?g|gif|ico|mp3|mp4|svg|woff2?))/i;
 
 function scan() {
-    const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(f => f && !SKIP.test(f));
+    const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);
     const found = [];
     for (const f of files) {
+        if (SIGNING_FILE.test(f)) {
+            found.push(`${f} is a tracked Android signing/key file`);
+            continue;
+        }
+        if (SKIP.test(f)) continue;
         let text;
         try { text = fs.readFileSync(f, 'utf8'); } catch (e) { continue; }
         text.split('\n').forEach((line, i) => {

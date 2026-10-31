@@ -14,7 +14,7 @@ function makeEl() {
         style: { setProperty() {}, getPropertyValue() { return ''; }, removeProperty() {} },
         classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
         addEventListener() {}, removeEventListener() {},
-        appendChild() { return el; }, removeChild() {},
+        appendChild() { return el; }, append(...nodes) { el.children.push(...nodes); }, after() {}, removeChild() {},
         querySelectorAll() { return []; },
         querySelector() { return makeEl(); },
         setAttribute() {}, getAttribute() { return null; }, remove() {}, toggleAttribute() {}, removeAttribute() {}, closest() { return null; },

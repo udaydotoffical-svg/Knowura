@@ -7,6 +7,9 @@ node_modules/
 *.pem
 *.key
 *.p12
+*.pfx
+*.jks
+*.keystore
 .DS_Store
 public/version.json
 

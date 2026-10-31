@@ -226,8 +226,8 @@
             <p id="micText">Allow it once and you can just talk. Nothing is recorded until you speak.</p>
             <button type="button" class="btn-ui" id="micAllow"><svg class="icon"><use href="#icon-mic"/></svg> <span id="micBtnText">Allow microphone</span></button>
         </div>
-        <div id="liveStatus" class="live-status">Connecting…</div>
-        <div id="liveTranscript" class="live-transcript"></div>
+        <div id="liveStatus" class="live-status" role="status" aria-live="polite" aria-atomic="true">Connecting…</div>
+        <div id="liveTranscript" class="live-transcript" role="status" aria-live="polite" aria-atomic="true" aria-label="Voice transcript"></div>
         <div class="call-controls">
             <button id="ccBtn" type="button" class="mic-btn cc-btn active" title="Toggle captions">CC</button>
             <button id="muteBtn" type="button" class="mic-btn secondary" title="Mute / unmute microphone"><svg class="icon"><use href="#icon-mic"/></svg></button>

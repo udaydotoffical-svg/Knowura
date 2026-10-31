@@ -46,25 +46,33 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 // ── what the website is allowed to do: its own microphone, nothing else ──
-function hostOf(url) { try { return new URL(url).host; } catch (e) { return ''; } }
+function isTrustedUrl(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === 'https:' && url.host === HOST;
+    } catch (e) { return false; }
+}
+function isHttpsUrl(value) {
+    try { return new URL(value).protocol === 'https:'; } catch (e) { return false; }
+}
 function setupSession(ses) {
     ses.setPermissionRequestHandler((wc, permission, callback, details) => {
-        const mine = hostOf(details && details.requestingUrl ? details.requestingUrl : wc.getURL()) === HOST;
+        const mine = isTrustedUrl(details && details.requestingUrl ? details.requestingUrl : wc.getURL());
         const audioOnly = permission === 'media' && !(details && details.mediaTypes && details.mediaTypes.includes('video'));
         callback(mine && (audioOnly || permission === 'clipboard-sanitized-write'));
     });
-    ses.setPermissionCheckHandler((wc, permission, origin) => hostOf(origin) === HOST && (permission === 'media' || permission === 'clipboard-sanitized-write'));
+    ses.setPermissionCheckHandler((wc, permission, origin) => isTrustedUrl(origin) && (permission === 'media' || permission === 'clipboard-sanitized-write'));
 }
 
 function lockNavigation(win) {
     win.webContents.setWindowOpenHandler(({ url }) => {
-        if (/^https:\/\//i.test(url)) shell.openExternal(url);
+        if (!isTrustedUrl(url) && isHttpsUrl(url)) shell.openExternal(url);
         return { action: 'deny' };
     });
     win.webContents.on('will-navigate', (e, url) => {
-        if (hostOf(url) !== HOST) {
+        if (!isTrustedUrl(url)) {
             e.preventDefault();
-            if (/^https:\/\//i.test(url)) shell.openExternal(url);
+            if (isHttpsUrl(url)) shell.openExternal(url);
         }
     });
 }
@@ -85,19 +93,36 @@ function webPrefs() {
 const iconPath = () => path.join(__dirname, 'assets', 'tray.png');
 
 // ── the popup panel ──
+function panelSize(workArea) {
+    return {
+        width: Math.max(1, Math.min(440, workArea.width - 32)),
+        height: Math.max(1, Math.min(720, workArea.height - 32))
+    };
+}
+
 function placePanel() {
     if (!panel) return;
     const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
     const wa = display.workArea;
-    const [w, h] = panel.getSize();
-    panel.setPosition(Math.round(wa.x + wa.width - w - 16), Math.round(wa.y + wa.height - h - 16));
+    const size = panelSize(wa);
+    const minWidth = Math.min(360, size.width), minHeight = Math.min(420, size.height);
+    panel.setMinimumSize(minWidth, minHeight);
+    panel.setMaximumSize(size.width, size.height);
+    const [currentWidth, currentHeight] = panel.getSize();
+    const w = Math.min(currentWidth, size.width), h = Math.min(currentHeight, size.height);
+    if (w !== currentWidth || h !== currentHeight) panel.setSize(w, h);
+    panel.setPosition(
+        Math.round(wa.x + Math.max(0, wa.width - w - 16)),
+        Math.round(wa.y + Math.max(0, wa.height - h - 16))
+    );
 }
 
 function createPanel(mode) {
-    const wa = screen.getPrimaryDisplay().workArea;
-    const w = 440, h = Math.min(720, wa.height - 32);
+    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const wa = display.workArea;
+    const { width: w, height: h } = panelSize(wa);
     panel = new BrowserWindow({
-        width: w, height: h, minWidth: 360, minHeight: 420,
+        width: w, height: h, minWidth: Math.min(360, w), minHeight: Math.min(420, h),
         show: false, frame: false, alwaysOnTop: true, skipTaskbar: true, fullscreenable: false,
         // transparent: only the panel card shows, floating on your desktop (such windows can't be resized by dragging)
         transparent: !!prefs.transparent, hasShadow: !prefs.transparent, resizable: !prefs.transparent,

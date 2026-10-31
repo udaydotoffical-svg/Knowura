@@ -399,13 +399,20 @@
             camera: '<svg class="icon"><use href="#icon-camera"/></svg>',
             files: '<svg class="icon"><use href="#icon-folder"/></svg>'
         };
-        let sheet = null;
-        function closeSheet() { if (sheet) { sheet.remove(); sheet = null; } }
+        let sheet = null, sheetReturnFocus = null, sheetKeyHandler = null;
+        function closeSheet() {
+            if (!sheet) return;
+            document.removeEventListener('keydown', sheetKeyHandler);
+            sheet.remove(); sheet = null; sheetKeyHandler = null;
+            const returnTo = sheetReturnFocus; sheetReturnFocus = null;
+            if (returnTo?.isConnected) returnTo.focus({ preventScroll: true });
+        }
         function openSheet() {
             closeSheet();
+            sheetReturnFocus = document.activeElement;
             sheet = document.createElement('div');
             sheet.className = 'att-sheet';
-            sheet.innerHTML = '<div class="att-sheet-card" role="dialog" aria-label="Add attachment"><div class="att-sheet-grab"></div>'
+            sheet.innerHTML = '<div class="att-sheet-card" role="dialog" aria-modal="true" aria-label="Add attachment"><div class="att-sheet-grab"></div>'
                 + `<button type="button" data-act="photos"><span>${ico.photos}</span>Photos<small>Pick from your gallery</small></button>`
                 + `<button type="button" data-act="camera"><span>${ico.camera}</span>Camera<small>Opens your camera app</small></button>`
                 + `<button type="button" data-act="files"><span>${ico.files}</span>Files<small>PDF, Word, Excel, code, zip, audio...</small></button>`
@@ -416,7 +423,19 @@
                 const act = b && b.dataset.act; closeSheet();
                 if (act === 'photos') photoInput.click(); else if (act === 'files') anyInput.click(); else if (act === 'camera') camInput.click();   // opens the phone's own camera app
             });
+            sheetKeyHandler = (e) => {
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSheet(); return; }
+                if (e.key !== 'Tab') return;
+                const focusable = [...sheet.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+                    .filter((el) => !el.hidden && el.offsetParent !== null);
+                if (!focusable.length) { e.preventDefault(); return; }
+                const first = focusable[0], last = focusable[focusable.length - 1];
+                if (e.shiftKey && (document.activeElement === first || !sheet.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && (document.activeElement === last || !sheet.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+            };
+            document.addEventListener('keydown', sheetKeyHandler);
             document.body.appendChild(sheet);
+            sheet.querySelector('button[data-act]')?.focus({ preventScroll: true });
         }
 
         const api = {

@@ -1555,6 +1555,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             background: rgba(255,255,255,0.4); border: 2px solid var(--ink);
             box-shadow: 0 0 10px rgba(34,229,255,0.6);
         }
+        input[type="range"]:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; }
         .glass-slider-value {
             font-size: 10px; color: var(--cyan); font-weight: 700; min-width: 32px; text-align: right; flex-shrink: 0;
         }
@@ -1952,8 +1953,8 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                     <div id="ultraBadge" class="ultra-badge" style="display:none;"><svg class="icon"><use href="#icon-bolt"/></svg> Ultra</div>
                     <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
                 </div>
-                <div id="liveStatus" class="live-status">Connecting…</div>
-                <div id="liveTranscript" class="live-transcript"></div>
+                <div id="liveStatus" class="live-status" role="status" aria-live="polite" aria-atomic="true">Connecting…</div>
+                <div id="liveTranscript" class="live-transcript" role="status" aria-live="polite" aria-atomic="true" aria-label="Voice transcript"></div>
                 <div class="call-controls">
                     <button id="ccBtn" class="mic-btn cc-btn active" onclick="toggleCaptions()" title="Toggle captions">CC</button>
                     <button id="muteBtn" class="mic-btn secondary" onclick="toggleMute()" title="Mute / unmute microphone"><svg class="icon"><use href="#icon-mic"/></svg></button>
@@ -2250,7 +2251,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
     </div>
     </div>
 
-    <div id="ownerModal" class="owner-modal" onclick="if (event.target === this) closeOwnerModal()">
+    <div id="ownerModal" class="owner-modal" role="dialog" aria-modal="true" aria-label="Owner Mode" onclick="if (event.target === this) closeOwnerModal()">
     <div class="owner-modal-card">
             <button class="live-close" onclick="closeOwnerModal()" title="Close"><svg class="icon"><use href="#icon-x"/></svg></button>
             <div id="ownerActivePanel" hidden>
@@ -2335,7 +2336,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         </div>
     </div>
 
-    <div id="appDialog" class="owner-modal" onclick="if (event.target === this) dialogCancel()">
+    <div id="appDialog" class="owner-modal" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle" onclick="if (event.target === this) dialogCancel()">
     <div class="owner-modal-card app-dialog-card">
             <div class="app-dialog-icon"><svg class="icon"><use href="#icon-x"/></svg></div>
             <div id="appDialogTitle" class="brand-title" style="font-size:16px;"></div>

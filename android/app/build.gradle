@@ -2,6 +2,34 @@ plugins {
     id 'com.android.application'
 }
 
+// Release signing material is deliberately external to this repository. Set all of:
+// ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+def signingEnv = [
+    storeFile: System.getenv('ANDROID_KEYSTORE_PATH'),
+    storePassword: System.getenv('ANDROID_KEYSTORE_PASSWORD'),
+    keyAlias: System.getenv('ANDROID_KEY_ALIAS'),
+    keyPassword: System.getenv('ANDROID_KEY_PASSWORD')
+]
+def signingConfigured = signingEnv.values().every { it != null && !it.trim().isEmpty() }
+
+tasks.register('validateReleaseSigning') {
+    group = 'verification'
+    description = 'Ensures external Android release-signing inputs are present and usable.'
+    doLast {
+        def missing = signingEnv.findAll { name, value -> value == null || value.trim().isEmpty() }.keySet()
+        if (!missing.isEmpty()) {
+            throw new GradleException("Release signing is not configured. Supply: ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD (missing: ${missing.join(', ')}).")
+        }
+        def keystore = new File(signingEnv.storeFile)
+        if (!keystore.isFile()) {
+            throw new GradleException("ANDROID_KEYSTORE_PATH does not point to a readable keystore file: ${keystore}")
+        }
+        if (!keystore.canRead()) {
+            throw new GradleException("The keystore at ANDROID_KEYSTORE_PATH is not readable: ${keystore}")
+        }
+    }
+}
+
 android {
     namespace 'com.knowura.app'
     compileSdk 35
@@ -14,20 +42,20 @@ android {
         versionName '1.9.3'
     }
 
-    // Sideload-grade key (committed on purpose so every build has the same signature, which the site's
-    // assetlinks.json is tied to). For a Play Store release, make a private key and update assetlinks.json.
     signingConfigs {
         release {
-            storeFile file('../sideload.keystore')
-            storePassword 'knowura-sideload'
-            keyAlias 'knowura'
-            keyPassword 'knowura-sideload'
+            if (signingConfigured) {
+                storeFile new File(signingEnv.storeFile)
+                storePassword signingEnv.storePassword
+                keyAlias signingEnv.keyAlias
+                keyPassword signingEnv.keyPassword
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (signingConfigured) signingConfig signingConfigs.release
             minifyEnabled false
         }
     }
@@ -35,6 +63,14 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Guard the public release entry points, while leaving debug/development builds usable without keys.
+tasks.configureEach { task ->
+    if (task.name == 'assembleRelease' || task.name == 'bundleRelease' ||
+            (task.name.startsWith('package') && task.name.endsWith('Release'))) {
+        task.dependsOn(tasks.named('validateReleaseSigning'))
     }
 }
 

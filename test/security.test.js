@@ -227,6 +227,64 @@ test('Redis counters are atomic: a burst of parallel requests cannot exceed the 
     } finally { global.fetch = realFetch; delete process.env.UPSTASH_REDIS_REST_URL; delete process.env.UPSTASH_REDIS_REST_TOKEN; }
 });
 
+test('production rate limits fail closed when Redis is absent and never consult fallback storage', async () => {
+    const names = ['NODE_ENV', 'VERCEL', 'NETLIFY', 'NETLIFY_LOCAL', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'];
+    const saved = Object.fromEntries(names.map(k => [k, process.env[k]]));
+    let storageCalls = 0;
+    limits.setStoreForTests({
+        async get() { storageCalls++; return null; },
+        async setJSON() { storageCalls++; }
+    });
+    process.env.NODE_ENV = 'production';
+    for (const name of names.slice(1)) delete process.env[name];
+    try {
+        const e = ev({});
+        assert.equal((await limits.authAttempt(e, 'production-missing-redis')).statusCode, 503);
+        assert.equal((await limits.authBlocked(e, 'production-missing-redis')).statusCode, 503);
+        assert.equal((await limits.authFailure(e, 'production-missing-redis')).statusCode, 503);
+        assert.equal((await limits.requestLimit(e, 'production-missing-redis', 10, 60000)).statusCode, 503);
+        const ident = limits.whoIs({}, e);
+        const gate = await limits.usageGate(e, ident);
+        assert.equal(gate.response.statusCode, 503);
+        assert.equal(gate.usage, undefined);
+        assert.equal(storageCalls, 0, 'production must not fall back to Blob or process memory');
+    } finally {
+        for (const name of names) saved[name] === undefined ? delete process.env[name] : process.env[name] = saved[name];
+        limits.setStoreForTests(fakeStore());
+    }
+});
+
+test('production rate limits fail closed on Redis errors without granting or consulting fallback storage', async () => {
+    const names = ['NODE_ENV', 'VERCEL', 'NETLIFY', 'NETLIFY_LOCAL', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'];
+    const saved = Object.fromEntries(names.map(k => [k, process.env[k]]));
+    const realFetch = global.fetch;
+    let storageCalls = 0;
+    limits.setStoreForTests({
+        async get() { storageCalls++; return null; },
+        async setJSON() { storageCalls++; }
+    });
+    process.env.NODE_ENV = 'production';
+    delete process.env.VERCEL; delete process.env.NETLIFY; delete process.env.NETLIFY_LOCAL;
+    process.env.UPSTASH_REDIS_REST_URL = 'https://redis.example';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+    global.fetch = async () => ({ ok: false, status: 503 });
+    try {
+        const e = ev({});
+        assert.equal((await limits.authAttempt(e, 'production-broken-redis')).statusCode, 503);
+        assert.equal((await limits.authBlocked(e, 'production-broken-redis')).statusCode, 503);
+        assert.equal((await limits.authFailure(e, 'production-broken-redis')).statusCode, 503);
+        assert.equal((await limits.requestLimit(e, 'production-broken-redis', 10, 60000)).statusCode, 503);
+        const gate = await limits.usageGate(e, limits.whoIs({}, e));
+        assert.equal(gate.response.statusCode, 503);
+        assert.equal(gate.usage, undefined);
+        assert.equal(storageCalls, 0, 'Redis errors must not fall back to Blob or process memory');
+    } finally {
+        global.fetch = realFetch;
+        for (const name of names) saved[name] === undefined ? delete process.env[name] : process.env[name] = saved[name];
+        limits.setStoreForTests(fakeStore());
+    }
+});
+
 test('owner Google login: verified owner email only', async () => {
     const o = require('../functions/_lib/_owner');
     o.setStoreForTests(fakeStore());

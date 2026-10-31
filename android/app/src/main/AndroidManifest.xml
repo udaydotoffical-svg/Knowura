@@ -76,7 +76,8 @@
             android:permission="android.permission.BIND_VOICE_INTERACTION" />
         <service
             android:name=".KnowuraRecognitionService"
-            android:exported="true">
+            android:exported="true"
+            android:permission="android.permission.BIND_SPEECH_RECOGNITION">
             <intent-filter>
                 <action android:name="android.speech.RecognitionService" />
                 <category android:name="android.intent.category.DEFAULT" />

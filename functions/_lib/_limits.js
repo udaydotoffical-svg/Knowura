@@ -7,10 +7,9 @@
 //  - Owner mode (a verified owner token) skips every one of these.
 //
 // Everything is decided on the server from verified identity — nothing the browser says
-// (a "guest" flag, a message count, a kind) can raise its own allowance. Counters live in
-// Upstash Redis when UPSTASH_REDIS_REST_URL/TOKEN are set (atomic INCRBY — exact even under
-// a burst of parallel requests), otherwise in the private Blob store (best-effort under
-// parallel bursts), with an in-memory copy in front. Not a route (no exports.handler).
+// (a "guest" flag, a message count, a kind) can raise its own allowance. Production counters
+// require Upstash Redis (atomic INCRBY — exact even under parallel bursts); local/test runs
+// may use the private Blob store and in-memory fallback. Not a route (no exports.handler).
 
 const crypto = require('crypto');
 const { getPlatformStore } = require('./_store');
@@ -39,6 +38,10 @@ const mem = new Map();
 function store() { return storeOverride || getPlatformStore('ratelimit'); }
 function setStoreForTests(s) { storeOverride = s; mem.clear(); }
 const keyOf = (bucket, id) => crypto.createHash('sha256').update(`${bucket}|${id}`).digest('hex').slice(0, 40);
+const productionServerless = () => process.env.NODE_ENV === 'production' || !!process.env.VERCEL || (!!process.env.NETLIFY && !process.env.NETLIFY_LOCAL);
+function unavailableResponse() {
+    return json(503, { error: 'Rate limiting is temporarily unavailable. Please try again shortly.' }, { 'Retry-After': '30' });
+}
 
 // ─── atomic counters (Upstash Redis REST) ─────────────────────────────────
 function redisConf() {
@@ -82,7 +85,13 @@ async function hit(bucket, id, { max, windowMs, cost = 1, peek = false }) {
     const key = keyOf(bucket, id), now = Date.now();
 
     const conf = redisConf();
-    if (conf) { try { return await redisHit(conf, key, { max, windowMs, cost, peek }); } catch (e) { /* fall back to the Blob store */ } }
+    if (productionServerless()) {
+        // No non-atomic Blob or process-local fallback in deployed production. If Redis
+        // is missing or unavailable, callers must deny the request rather than grant it.
+        if (!conf) throw new Error('Rate limit backend is not configured');
+        return redisHit(conf, key, { max, windowMs, cost, peek });
+    }
+    if (conf) { try { return await redisHit(conf, key, { max, windowMs, cost, peek }); } catch (e) { /* local/test fallback only */ } }
 
     let rec = null;
     try { rec = await store().get(key, { type: 'json' }); } catch (e) { rec = null; }
@@ -105,16 +114,29 @@ async function hit(bucket, id, { max, windowMs, cost = 1, peek = false }) {
 
 // Count an attempt; returns a 429 response when over the limit, else null.
 async function authAttempt(event, bucket, max = AUTH_MAX) {
-    const r = await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW });
-    return r.allowed ? null : tooMany(r.retryAfter, `Too many attempts. Please wait ${Math.ceil(r.retryAfter / 60)} minutes and try again.`);
+    try {
+        const r = await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW });
+        return r.allowed ? null : tooMany(r.retryAfter, `Too many attempts. Please wait ${Math.ceil(r.retryAfter / 60)} minutes and try again.`);
+    } catch (e) { return unavailableResponse(); }
 }
 // Failures-only variants (Google sign-in): check first, record only the failures.
 async function authBlocked(event, bucket, max = AUTH_MAX) {
-    const r = await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW, peek: true });
-    return r.allowed ? null : tooMany(r.retryAfter, `Too many failed attempts. Please wait ${Math.ceil(r.retryAfter / 60)} minutes and try again.`);
+    try {
+        const r = await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW, peek: true });
+        return r.allowed ? null : tooMany(r.retryAfter, `Too many failed attempts. Please wait ${Math.ceil(r.retryAfter / 60)} minutes and try again.`);
+    } catch (e) { return unavailableResponse(); }
 }
 async function authFailure(event, bucket, max = AUTH_MAX) {
-    await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW });
+    try { await hit(bucket, ipKey(event), { max, windowMs: AUTH_WINDOW }); return null; }
+    catch (e) { return unavailableResponse(); }
+}
+
+// A Redis-backed request throttle for routes that limit all requests, not only failures.
+async function requestLimit(event, bucket, max, windowMs, message) {
+    try {
+        const r = await hit(bucket, ipKey(event), { max, windowMs });
+        return r.allowed ? null : tooMany(r.retryAfter, message);
+    } catch (e) { return unavailableResponse(); }
 }
 
 // ─── who is calling? ──────────────────────────────────────────────────────
@@ -155,29 +177,39 @@ async function usageGate(event, ident, kind = 'chat', cost = 1) {
     if (ident.owner) return { usage: null };
     const L = LIMITS();
 
-    const wait = rateLimit(event, `burst-${kind}`, L.burstPerMin * (kind === 'aux' ? 4 : 1), 60 * 1000, ident.id);
-    if (wait) return { response: tooMany(wait, `You're sending messages too fast — try again in ${wait} seconds.`) };
-
-    const perWindow = kind === 'voice' ? L.voice : kind === 'wake' ? L.wake : ident.kind === 'user' ? L.user : L.guest;
-
-    // Background helper calls can't be used as a side door: the client only *says* a call is
-    // "aux", so they're allowed only in proportion to the real messages already sent.
-    if (kind === 'aux') {
-        const chat = await hit('window-chat', ident.id, { max: perWindow, windowMs: L.windowMs, peek: true });
-        const aux = await hit('window-aux', ident.id, { max: perWindow * AUX_PER_CHAT + AUX_PER_CHAT, windowMs: L.windowMs, peek: true });
-        if (aux.used + cost > chat.used * AUX_PER_CHAT + AUX_PER_CHAT) {
-            return { response: json(429, { error: "Too many background requests — send a message first.", limitReached: false }, { 'Retry-After': '60' }) };
+    try {
+        const burstMax = L.burstPerMin * (kind === 'aux' ? 4 : 1);
+        if (productionServerless()) {
+            const burst = await hit(`burst-${kind}`, ident.id, { max: burstMax, windowMs: 60 * 1000 });
+            if (!burst.allowed) return { response: tooMany(burst.retryAfter, `You're sending messages too fast — try again in ${burst.retryAfter} seconds.`) };
+        } else {
+            const wait = rateLimit(event, `burst-${kind}`, burstMax, 60 * 1000, ident.id);
+            if (wait) return { response: tooMany(wait, `You're sending messages too fast — try again in ${wait} seconds.`) };
         }
+
+        const perWindow = kind === 'voice' ? L.voice : kind === 'wake' ? L.wake : ident.kind === 'user' ? L.user : L.guest;
+
+        // Background helper calls can't be used as a side door: the client only *says* a call is
+        // "aux", so they're allowed only in proportion to the real messages already sent.
+        if (kind === 'aux') {
+            const chat = await hit('window-chat', ident.id, { max: perWindow, windowMs: L.windowMs, peek: true });
+            const aux = await hit('window-aux', ident.id, { max: perWindow * AUX_PER_CHAT + AUX_PER_CHAT, windowMs: L.windowMs, peek: true });
+            if (aux.used + cost > chat.used * AUX_PER_CHAT + AUX_PER_CHAT) {
+                return { response: json(429, { error: "Too many background requests — send a message first.", limitReached: false }, { 'Retry-After': '60' }) };
+            }
+        }
+        const max = kind === 'aux' ? perWindow * AUX_PER_CHAT + AUX_PER_CHAT : perWindow;
+
+        // wake-phrase clips are tiny and capped per person, so they don't count toward (or trip) the global chat breaker
+        const g = kind === 'wake' ? { allowed: true } : await hit('global-daily', 'all', { max: L.globalDaily, windowMs: DAY, cost });
+        if (!g.allowed) return { response: json(503, { error: "Knowura is very busy right now. Please try again a little later." }, { 'Retry-After': String(g.retryAfter) }) };
+
+        const r = await hit(`window-${kind}`, ident.id, { max, windowMs: L.windowMs, cost });
+        if (!r.allowed) return { response: limitResponse(kind, ident, r, L) };
+        return { usage: { limit: r.limit, remaining: r.remaining, resetIn: r.retryAfter } };
+    } catch (e) {
+        return { response: unavailableResponse() };
     }
-    const max = kind === 'aux' ? perWindow * AUX_PER_CHAT + AUX_PER_CHAT : perWindow;
-
-    // wake-phrase clips are tiny and capped per person, so they don't count toward (or trip) the global chat breaker
-    const g = kind === 'wake' ? { allowed: true } : await hit('global-daily', 'all', { max: L.globalDaily, windowMs: DAY, cost });
-    if (!g.allowed) return { response: json(503, { error: "Knowura is very busy right now. Please try again a little later." }, { 'Retry-After': String(g.retryAfter) }) };
-
-    const r = await hit(`window-${kind}`, ident.id, { max, windowMs: L.windowMs, cost });
-    if (!r.allowed) return { response: limitResponse(kind, ident, r, L) };
-    return { usage: { limit: r.limit, remaining: r.remaining, resetIn: r.retryAfter } };
 }
 
-module.exports = { hit, authAttempt, authBlocked, authFailure, whoIs, usageGate, setStoreForTests, LIMITS, AUTH_MAX, AUTH_WINDOW };
+module.exports = { hit, authAttempt, authBlocked, authFailure, requestLimit, unavailableResponse, whoIs, usageGate, setStoreForTests, LIMITS, AUTH_MAX, AUTH_WINDOW };

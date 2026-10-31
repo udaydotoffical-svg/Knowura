@@ -8,8 +8,8 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const { sign } = require('./_lib/_userToken');
 const { isOwnerLogin, rememberOwner } = require('./_lib/_owner');
-const { json, guard, readJson, cleanStr, rateLimit, tooMany } = require('./_lib/_util');
-const { authBlocked, authFailure } = require('./_lib/_limits');
+const { json, guard, readJson, cleanStr } = require('./_lib/_util');
+const { authBlocked, authFailure, requestLimit } = require('./_lib/_limits');
 
 const JWT_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/;
 
@@ -17,8 +17,8 @@ exports.handler = async (event) => {
     const early = guard(event);
     if (early) return early;
     try {
-        const wait = rateLimit(event, "google-signin", 60, 15 * 60 * 1000);
-        if (wait) return tooMany(wait);
+        const limited = await requestLimit(event, "google-signin", 60, 15 * 60 * 1000);
+        if (limited) return limited;
         const blocked = await authBlocked(event, 'google-signin-fail');
         if (blocked) return blocked;
 
@@ -33,11 +33,15 @@ exports.handler = async (event) => {
 
         const credential = cleanStr(body.credential, 4096, 20);
         if (credential === null || !JWT_SHAPE.test(credential)) {
-            await authFailure(event, 'google-signin-fail');
+            const unavailable = await authFailure(event, 'google-signin-fail');
+            if (unavailable) return unavailable;
             return json(400, { verified: false, error: "Missing or malformed credential" });
         }
 
-        const reject = async (msg) => { await authFailure(event, 'google-signin-fail'); return json(401, { verified: false, error: msg }); };
+        const reject = async (msg) => {
+            const unavailable = await authFailure(event, 'google-signin-fail');
+            return unavailable || json(401, { verified: false, error: msg });
+        };
 
         const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
         if (!res.ok) return reject("Google rejected the credential");

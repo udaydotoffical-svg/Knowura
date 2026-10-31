@@ -102,6 +102,23 @@ test('Android wrapper: the APK package, site host and Digital Asset Links file a
     assert.ok(fs.existsSync(path.join(root, 'android/gradlew')));
 });
 
+test('native release signing is external and Electron trusts only the HTTPS app origin', () => {
+    const root = path.join(__dirname, '..');
+    const gradle = fs.readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8');
+    for (const name of ['ANDROID_KEYSTORE_PATH', 'ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD']) assert.ok(gradle.includes(name), name);
+    assert.match(gradle, /validateReleaseSigning/);
+    assert.doesNotMatch(gradle, /sideload\.keystore|storePassword\s+['"][^$]/);
+    const ignore = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
+    assert.match(ignore, /\*\.keystore/); assert.match(ignore, /\*\.jks/);
+    const manifest = fs.readFileSync(path.join(root, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+    assert.match(manifest, /android:name="\.KnowuraRecognitionService"[\s\S]*?android:permission="android\.permission\.BIND_SPEECH_RECOGNITION"/);
+    const desktop = fs.readFileSync(path.join(root, 'desktop/main.js'), 'utf8');
+    assert.match(desktop, /url\.protocol === 'https:' && url\.host === HOST/);
+    assert.match(desktop, /isTrustedUrl\(origin\)/);
+    assert.match(desktop, /function panelSize\(workArea\)/);
+    assert.doesNotMatch(desktop, /function hostOf\(/);
+});
+
 test('the site is installable as an app: manifest id, a no-cache service worker, and an Install app button', () => {
     const m = JSON.parse(pub('site.webmanifest'));
     assert.equal(m.id, '/');
@@ -159,6 +176,24 @@ test('assistant panel: voice first, X to text, swipe-up handoff, cloud sync, stu
     const root = path.join(__dirname, '..');
     assert.match(fs.readFileSync(path.join(root, 'android/app/src/main/java/com/knowura/app/KnowuraLauncherActivity.java'), 'utf8'), /kwdev/);
     assert.match(pub('index.html'), /function importAssistantChat/);
+});
+
+test('web accessibility: voice updates announce, modal dialogs are labelled and contained, and range focus is visible', () => {
+    const app = pub('index.html'), panel = pub('assistant.html'), attach = pub('assets/attach/attach.js');
+    for (const page of [app, panel]) {
+        assert.match(page, /id="liveStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+        assert.match(page, /id="liveTranscript"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/);
+    }
+    assert.match(app, /id="ownerModal"[^>]*role="dialog"[^>]*aria-modal="true"[^>]*aria-label="Owner Mode"/);
+    assert.match(app, /id="appDialog"[^>]*role="dialog"[^>]*aria-modal="true"[^>]*aria-labelledby="appDialogTitle"/);
+    assert.match(app, /input\[type="range"\]:focus-visible\s*\{[^}]*outline:/);
+    assert.match(attach, /role="dialog" aria-modal="true" aria-label="Add attachment"/);
+    assert.match(attach, /sheet\.querySelector\('button\[data-act\]'\)\?\.focus/);
+    assert.match(attach, /if \(e\.key === 'Escape'[\s\S]*?closeSheet\(\)/);
+    assert.match(attach, /if \(e\.key !== 'Tab'\) return;/);
+    assert.match(attach, /first\.focus\(\)/);
+    assert.match(attach, /last\.focus\(\)/);
+    assert.match(attach, /returnTo\.focus\(\{ preventScroll: true \}\)/);
 });
 
 test('attachments: engine, vendored parsers and licences ship; app and panel are wired; legal text covers them', () => {
