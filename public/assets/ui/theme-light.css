@@ -4,6 +4,8 @@ html.light body { background: linear-gradient(180deg, rgba(238, 240, 246, 0.1), 
 html.light #startup { background: rgba(239, 241, 246, 0.42); }
 html.light .sidebar-backdrop { background: rgba(239, 241, 246, 0.6); }
 html.light .ai { background: rgba(222, 226, 236, 0.75); }
+html.light .teachback-card, html.light .visual-card { background: rgba(228, 231, 240, 0.42); }
+html.light .search-evidence strong { color: rgb(128, 99, 45); }
 html.light .msg a:hover { color: rgb(30, 81, 90); }
 html.light .msg strong { color: rgb(31, 31, 31); }
 html.light .msg pre { background: rgb(240, 244, 249); }

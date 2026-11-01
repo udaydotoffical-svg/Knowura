@@ -503,49 +503,81 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
         /* ─── STUDY MODE, REPLY TOOLS, FOLLOW-UPS, STREAK, ACCESSIBILITY ─── */
         .reply-tools { display: flex; align-items: center; gap: 6px; margin: -4px 0 4px 34px; align-self: flex-start; }
-        .reply-tools button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 2px solid var(--ink); border-radius: 8px; background: var(--panel-strong); color: var(--text-dim); cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .reply-tools button { position: relative; isolation: isolate; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text-dim); cursor: pointer; box-shadow: none; }
+        .reply-tools button::before { content: ''; position: absolute; z-index: -1; inset: 11px; border: 1px solid var(--ink); border-radius: 7px; background: var(--panel-strong); box-shadow: none; pointer-events: none; }
         .reply-tools button:hover { color: var(--cyan); }
-        .reply-tools button.on { color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
+        .reply-tools button:hover::before { border-color: var(--cyan); }
+        .reply-tools button.on { color: var(--cyan); }
+        .reply-tools button.on::before { border-color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
+        .reply-tools button:focus-visible, .reply-enhancements button:focus-visible, .followups button:focus-visible, .feature-close:focus-visible, .visual-step button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         .reply-tools .icon { width: 16px; height: 16px; }
-        .followups { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
-        .followups button { padding: 7px 12px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 13px; text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .followups { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
+        .followups button { position: relative; isolation: isolate; min-height: 44px; padding: 0 10px; border: 0; border-radius: 0; background: transparent; color: var(--text); font-size: 11px; line-height: 1.1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; box-shadow: none; }
+        .followups button::before { content: ''; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--ink); border-radius: 999px; background: var(--panel-strong); box-shadow: none; pointer-events: none; }
         .followups button:hover { color: var(--cyan); }
-        .reply-enhancements { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px 34px; align-self: flex-start; max-width: 80%; }
-        .reply-enhancements button { min-height: 34px; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
-        .reply-enhancements button:hover { color: var(--cyan); background: rgba(47,107,255,.2); }
-        .teachback-card, .visual-card { align-self: flex-start; width: calc(100% - 34px); max-width: min(80%, 680px); margin: 0 0 14px 34px; padding: 14px 16px; border: 2.5px solid var(--ink); border-radius: 14px; background: var(--panel-strong); color: var(--text); box-shadow: var(--shadow-sm); }
-        .teachback-card h3, .visual-card h3 { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
-        .teachback-card p, .visual-card p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
-        .teachback-question { margin: 10px 0 4px !important; color: var(--cyan) !important; font-weight: 700; }
+        .followups button:hover::before { border-color: var(--cyan); }
+        .reply-enhancements { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
+        .reply-enhancements button { position: relative; isolation: isolate; min-height: 44px; padding: 0 9px; border: 0; border-radius: 0; background: transparent; color: var(--text); font-size: 11px; font-weight: 600; letter-spacing: 0; cursor: pointer; box-shadow: none; }
+        .reply-enhancements button::before { content: ''; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--ink); border-radius: 999px; background: var(--panel-strong); box-shadow: none; pointer-events: none; }
+        .reply-enhancements button:hover { color: var(--cyan); }
+        .reply-enhancements button:hover::before { background: rgba(47,107,255,.16); border-color: var(--cyan); }
+        .teachback-card, .visual-card { align-self: flex-start; width: calc(100% - 34px); max-width: min(80%, 680px); margin: 0 0 10px 34px; padding: 11px 13px; border: 1px solid var(--ink); border-left: 2px solid var(--cyan); border-radius: 12px; background: rgba(9,18,40,.42); color: var(--text); box-shadow: none; }
+        .feature-header { display: flex; align-items: flex-start; gap: 12px; }
+        .feature-heading { flex: 1; min-width: 0; }
+        .feature-kicker { display: block; color: var(--cyan); font-size: 10px; font-weight: 800; letter-spacing: .55px; line-height: 1.2; text-transform: uppercase; }
+        .teachback-card h3, .visual-card h3 { margin: 3px 0 0; font-size: 15px; line-height: 1.35; }
+        .feature-close { position: relative; isolation: isolate; display: grid; flex: none; width: 44px; height: 44px; place-items: center; margin: -10px -9px 0 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text-dim); font-size: 20px; line-height: 1; cursor: pointer; box-shadow: none; }
+        .feature-close::before { content: ''; position: absolute; z-index: -1; inset: 11px; border: 1px solid var(--ink); border-radius: 7px; background: var(--panel-strong); pointer-events: none; }
+        .feature-close:hover { color: var(--cyan); }
+        .feature-close:hover::before { border-color: var(--cyan); background: rgba(47,107,255,.16); }
+        .feature-close:active { transform: none; box-shadow: none; }
+        .feature-close:active::before { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        .teachback-card p, .visual-card p { margin: 7px 0 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+        .teachback-question { margin: 9px 0 4px !important; color: var(--text) !important; font-weight: 700; }
         .teachback-transcript-label { margin-top: 10px !important; color: var(--cyan) !important; font-size: 10px !important; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
-        .teachback-transcript { padding: 8px 10px; border-left: 3px solid var(--cyan); background: rgba(34,229,255,.06); color: var(--text) !important; overflow-wrap: anywhere; }
-        .teachback-input { display: block; width: 100%; min-height: 88px; margin: 12px 0 10px; padding: 10px 12px; resize: vertical; border: 2px solid var(--ink); border-radius: 9px; background: var(--dark); color: var(--text); font-size: 16px; line-height: 1.5; }
-        .teachback-input:focus-visible, .visual-range:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
-        .teachback-submit { min-height: 36px; }
-        .teachback-result { margin-top: 12px; padding: 12px; border: 2px solid var(--ink); border-radius: 10px; background: rgba(34,229,255,.08); font-size: 13px; line-height: 1.5; }
+        .teachback-transcript { padding: 2px 0 2px 9px; border-left: 2px solid var(--cyan); color: var(--text) !important; overflow-wrap: anywhere; }
+        .teachback-input { display: block; width: 100%; min-height: 72px; margin: 9px 0 8px; padding: 9px 11px; resize: vertical; border: 1.5px solid var(--ink); border-radius: 8px; background: var(--dark); color: var(--text); font-size: 16px; line-height: 1.5; }
+        .teachback-input:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+        .teachback-submit.btn-ui { position: relative; isolation: isolate; min-height: 44px; padding: 0 11px; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: 11px; letter-spacing: 0; text-transform: none; }
+        .teachback-submit.btn-ui::before { content: ''; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--ink); border-radius: 999px; background: var(--panel-strong); pointer-events: none; }
+        .teachback-submit.btn-ui:hover:not(:disabled), .teachback-submit.btn-ui:active:not(:disabled) { transform: none; background: transparent; box-shadow: none; color: var(--cyan); }
+        .teachback-submit.btn-ui:hover:not(:disabled)::before { border-color: var(--cyan); background: rgba(47,107,255,.16); }
+        .teachback-submit.btn-ui:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .teachback-result { margin-top: 10px; padding: 9px 0 0; border-top: 1px solid rgba(143,166,204,.28); font-size: 13px; line-height: 1.5; }
         .teachback-result b { display: block; margin-bottom: 4px; color: var(--cyan); text-transform: uppercase; letter-spacing: .4px; }
-        .teachback-hint { margin-top: 8px !important; padding-left: 10px; border-left: 3px solid var(--cyan); color: var(--text) !important; }
+        .teachback-hint { margin-top: 8px !important; padding-left: 9px; border-left: 2px solid var(--cyan); color: var(--text) !important; }
         .teachback-misses { margin: 8px 0 0 18px; color: var(--text); }
         .teachback-saved { margin-top: 8px !important; color: #19c37d !important; }
-        .visual-flow { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 0; list-style: none; }
-        .visual-step { position: relative; }
-        .visual-step:not(:last-child)::after { content: '↓'; position: absolute; z-index: 1; bottom: -12px; left: 19px; color: var(--cyan); font-size: 15px; line-height: 1; }
-        .visual-step button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 42px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 9px; background: var(--panel-strong); color: var(--text); text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
-        .visual-step button[aria-pressed="true"] { border-color: var(--cyan); background: rgba(34,229,255,.14); }
-        .visual-step-num { display: grid; flex: none; width: 26px; height: 26px; place-items: center; border: 2px solid var(--ink); border-radius: 7px; background: var(--blue); color: #fff; font-size: 12px; font-weight: 800; }
-        .visual-step-label { font-size: 13px; font-weight: 700; }
-        .visual-current { min-height: 48px; padding: 10px 12px; border-left: 3px solid var(--cyan); background: rgba(34,229,255,.06); color: var(--text); font-size: 13px; line-height: 1.5; }
-        .visual-current b { display: block; margin-bottom: 3px; color: var(--cyan); font-size: 10px; letter-spacing: .6px; text-transform: uppercase; }
-        .visual-range-label { display: block; margin: 10px 0 4px; color: var(--text-dim); font-size: 12px; font-weight: 700; }
-        .visual-range { width: 100%; accent-color: var(--cyan); }
-        .answer-sources { margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(143,166,204,.28); }
-        .answer-sources summary { color: var(--cyan); cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+        .visual-note { margin-top: 5px !important; }
+        .visual-flow { display: grid; grid-template-columns: repeat(var(--visual-steps, 4), minmax(0, 1fr)); gap: 6px; margin: 15px 0 12px; padding: 0; list-style: none; background-image: linear-gradient(to right, rgba(34,229,255,.85), rgba(34,229,255,.85)); background-position: 12px 12px; background-size: calc(100% - 24px) 2px; background-repeat: no-repeat; }
+        .visual-step { position: relative; min-width: 0; }
+        .visual-step button { position: relative; z-index: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; width: 100%; min-height: 56px; padding: 0 3px 5px 0; border: 0; border-radius: 0; background: transparent; color: var(--text-dim); text-align: left; cursor: pointer; box-shadow: none; }
+        .visual-step button[aria-pressed="true"] { color: var(--text); }
+        .visual-step button:active { transform: none; box-shadow: none; }
+        .visual-step button:active .visual-step-num { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+        .visual-step-num { position: relative; z-index: 2; display: grid; flex: none; width: 24px; height: 24px; place-items: center; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--dark); color: var(--cyan); font-size: 11px; font-weight: 700; transition: background .12s ease, color .12s ease, transform .12s ease, box-shadow .12s ease; }
+        .visual-step button[aria-pressed="true"] .visual-step-num { border-color: var(--cyan); background: var(--cyan); color: #001018; }
+        .visual-step-label { font-size: 12px; line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; }
+        .visual-current { min-height: 38px; padding: 8px 0 1px 10px; border-left: 2px solid var(--cyan); color: var(--text); font-size: 13px; line-height: 1.5; }
+        .visual-current b { display: block; margin-bottom: 3px; color: var(--cyan); font-size: 10px; letter-spacing: .55px; text-transform: uppercase; }
+        .answer-sources { margin-top: 10px; padding-top: 6px; border-top: 1px solid rgba(143,166,204,.24); }
+        .answer-sources summary { width: max-content; color: var(--cyan); cursor: pointer; font-size: 11px; font-weight: 700; }
+        .answer-sources summary small { display: inline; margin-left: 6px; color: var(--text-dim); font-size: 10px; font-weight: 500; }
         .answer-sources ol { display: grid; gap: 8px; margin: 8px 0 0 20px; padding: 0; }
         .answer-sources li { padding-left: 2px; }
         .answer-sources small { display: block; color: var(--text-dim); font-size: 11px; }
         .answer-sources li p { margin: 3px 0 0; color: var(--text-dim); font-size: 12px; line-height: 1.4; }
-        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) { .reply-enhancements { margin-left: 26px; max-width: calc(100% - 26px); } .teachback-card, .visual-card { width: calc(100% - 26px); max-width: none; margin-left: 26px; padding: 12px; } }
-        html.term .teachback-card, html.term .visual-card, html.term .teachback-input, html.term .visual-step button { border-radius: 2px !important; }
+        .source-evidence-note { margin: 7px 0 8px; color: var(--text-dim); font-size: 11px; line-height: 1.4; }
+        .search-evidence { display: grid; gap: 2px; margin-top: 8px; padding: 6px 0 6px 9px; border-left: 2px solid #e8b45a; color: var(--text-dim); font-size: 11px; line-height: 1.4; }
+        .search-evidence strong { color: #f0c77b; font-size: 11px; }
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
+            .reply-enhancements { margin-left: 26px; max-width: calc(100% - 26px); }
+            .teachback-card, .visual-card { width: calc(100% - 26px); max-width: none; margin-left: 26px; padding: 10px 11px; }
+            .visual-flow { display: flex; flex-direction: column; gap: 0; margin: 11px 0 9px; background-image: linear-gradient(to bottom, rgba(34,229,255,.85), rgba(34,229,255,.85)); background-position: 14px 12px; background-size: 2px calc(100% - 24px); }
+            .visual-step button { min-height: 44px; flex-direction: row; align-items: center; gap: 10px; padding: 4px; }
+            .visual-step-label { font-size: 13px; }
+        }
+        html.term .teachback-card, html.term .visual-card, html.term .teachback-input { border-radius: 2px !important; }
         .study-strip { display: none; align-items: center; gap: 10px; margin: 0 0 8px; padding: 6px 8px 6px 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(34, 229, 255, 0.1); box-shadow: var(--shadow-sm); font-size: 12.5px; line-height: 1.35; }
         .study-strip.on { display: flex; }
         .study-strip img { width: 36px; height: 36px; flex: none; border-radius: 50%; }
@@ -567,6 +599,9 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         /* ─── RETRO PACK: press-into-shadow buttons, CRT scanlines, pixel burst, green terminal mode (Konami code) ─── */
         .btn-ui:not(:disabled):active, .pb-pick:not(:disabled):active, .suggestion-chip:active, .menu-item:active, .menu-nav:active, .choice-pill:active, .chip:active,
         .followups button:active, .reply-tools button:active, .reply-enhancements button:active, button.streak-chip:active, .q-opt:not(:disabled):active, .suggest button:active, .msg-actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+        .followups button:active:not(:disabled), .reply-tools button:active:not(:disabled), .reply-enhancements button:active:not(:disabled) { transform: none; box-shadow: none; }
+        .followups button:active:not(:disabled)::before, .reply-tools button:active:not(:disabled)::before, .reply-enhancements button:active:not(:disabled)::before { transform: translate(1px, 1px); }
+        .teachback-submit.btn-ui:active:not(:disabled)::before { transform: translate(1px, 1px); }
         html.crt::after { content: ''; position: fixed; inset: 0; z-index: 2147483100; pointer-events: none;
             background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.16) 3px), radial-gradient(120% 100% at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.35) 100%); }
         html.crt:not(.term) body { text-shadow: 0 0 6px rgba(34, 229, 255, 0.18); }
@@ -1737,7 +1772,6 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             #pbEffortBtn span, #pbStudyBtn span { display: none; }   /* icon-only; the buttons keep their aria-labels */
             .pb-pick { padding: 0 10px; }
             #pbEffortBtn, #pbStudyBtn { min-width: 38px; justify-content: center; }
-            .reply-tools button { width: 34px; height: 34px; }
         }
         @media (max-height: 500px) and (pointer: coarse) {
             .pb-field { flex-direction: row; align-items: center; gap: 8px; padding: 6px 8px; }   /* landscape phone: text box and buttons share one row */
@@ -3367,7 +3401,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             .replace(/<pre><code(?: class="language-([\w+#.-]{1,20})")?>([\s\S]*?)<\/code><\/pre>/g, codeCardHTML);
     }
 
-    function sourcePanelHTML(sources) {
+    function sourcePanelHTML(sources, searchInfo = {}) {
         const safeSources = (Array.isArray(sources) ? sources : []).slice(0, 4).map((source) => {
             try {
                 const url = new URL(String(source?.url || ''));
@@ -3375,8 +3409,26 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 return { title: String(source?.title || url.hostname).slice(0, 180), url: url.href, host: url.hostname, snippet: String(source?.snippet || '').slice(0, 240) };
             } catch (e) { return null; }
         }).filter(Boolean);
-        if (!safeSources.length) return '';
-        return `<details class="answer-sources"><summary>Show sources (${safeSources.length})</summary><ol>${safeSources.map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a><small>${escapeHtml(source.host)}</small>${source.snippet ? `<p>${escapeHtml(source.snippet)}</p>` : ''}</li>`).join('')}</ol></details>`;
+        const attempted = searchInfo?.attempted === true;
+        const verified = searchInfo?.verified === true;
+        const status = String(searchInfo?.status || '');
+        const verificationNote = String(searchInfo?.verificationNote || '').slice(0, 320);
+        if (!safeSources.length) {
+            if (!attempted) return '';
+            const title = status === 'error' ? 'Live search unavailable' : 'No usable web sources';
+            const note = status === 'error'
+                ? 'Current pages could not be loaded, so time-sensitive details may be outdated.'
+                : 'No usable pages were returned. Treat changing details in this answer as unverified.';
+            const evidenceNote = [verificationNote, note].filter(Boolean).join(' ');
+            return `<div class="search-evidence" role="note"><strong>${title}</strong><span>${escapeHtml(evidenceNote)}</span></div>`;
+        }
+        const label = verified ? `Cross-checked · ${safeSources.length}` : `Web sources · ${safeSources.length}`;
+        const trust = verified ? 'AI cross-check' : 'not independently verified';
+        const disclosure = verified
+            ? 'An AI cross-check is not a guarantee; open a source to inspect the details.'
+            : 'Search results are context only and do not independently confirm every claim; open a source to check key details.';
+        const note = [verificationNote, disclosure].filter(Boolean).join(' ');
+        return `<details class="answer-sources"><summary><span>${label}</span><small>${trust}</small></summary><p class="source-evidence-note">${escapeHtml(note)}</p><ol>${safeSources.map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a><small>${escapeHtml(source.host)}</small>${source.snippet ? `<p>${escapeHtml(source.snippet)}</p>` : ''}</li>`).join('')}</ol></details>`;
     }
 
     // ─── MINI-CODE-BOXZ ──────────────────────────────────────────────────
@@ -3675,12 +3727,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 const body = reasoning ? renderMarkdown(reasoning.length > 6000 ? reasoning.slice(0, 6000) + '\n\n…' : reasoning) : '<p class="reasoning-empty">No thought process was returned for this reply.</p>';
                 html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${body}</details>`;
                 html += renderMarkdown(reply);
-                html += sourcePanelHTML(data.sources);
+                const backendSearch = data.search && typeof data.search === 'object' ? data.search : {};
+                const searchInfo = { ...backendSearch, attempted: willSearch || backendSearch.attempted === true };
+                html += sourcePanelHTML(data.sources, searchInfo);
                 if (data.study) html += studyChipHTML(data.study);
                 noteUsage(data.usage);
                 thinking.innerHTML = html;
-                saveActiveChat(thinking.innerHTML, 'ai', { sources: data.sources });
-                if (data.study && !opts.fromVoice) setTimeout(() => openStudy(data.study), 900); // pop it up on screen
+                saveActiveChat(thinking.innerHTML, 'ai', { sources: data.sources, search: searchInfo });
+                if (data.study && !opts.fromVoice) setTimeout(() => openStudy(data.study), 900); // pop it on screen
                 typeReveal(thinking); // typewriter reveal (+ soft haptic ticks on phones); the saved copy is already complete
 
                 // First exchange of a chat — quietly generate a real title in the
@@ -4633,6 +4687,15 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!chat) chat = createChat();
         const message = { text, type };
         if (type === 'ai' && Array.isArray(metadata.sources) && metadata.sources.length) message.sources = metadata.sources;
+        if (type === 'ai' && metadata.search && typeof metadata.search === 'object' && metadata.search.attempted) {
+            message.search = {
+                attempted: true,
+                status: String(metadata.search.status || '').slice(0, 40),
+                verified: metadata.search.verified === true,
+                verificationNote: String(metadata.search.verificationNote || '').slice(0, 320),
+                checkedSources: Number.isInteger(metadata.search.checkedSources) ? Math.max(0, Math.min(4, metadata.search.checkedSources)) : 0
+            };
+        }
         if (type === 'ai' && metadata.visual) message.visual = metadata.visual;
         if (type === 'ai' && metadata.teachback) message.teachback = metadata.teachback;
         chat.messages.push(message);
@@ -6272,10 +6335,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         enhancements.setAttribute('role', 'group');
         enhancements.setAttribute('aria-label', 'Learning tools');
         const teach = document.createElement('button');
-        teach.type = 'button'; teach.textContent = 'Check my understanding';
+        teach.type = 'button'; teach.textContent = 'Quick check';
         teach.addEventListener('click', () => openTeachback(enhancements, question, reply));
         const visual = document.createElement('button');
-        visual.type = 'button'; visual.textContent = 'Make it visual';
+        visual.type = 'button'; visual.textContent = 'Visualize';
         visual.addEventListener('click', () => openVisual(enhancements, question, reply));
         enhancements._bubble = bubble;
         enhancements.append(teach, visual);
@@ -6299,6 +6362,18 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
         return null;
     }
+    function featureHeader(card, eyebrow, titleText) {
+        const header = document.createElement('div'); header.className = 'feature-header';
+        const heading = document.createElement('div'); heading.className = 'feature-heading';
+        const kicker = document.createElement('span'); kicker.className = 'feature-kicker'; kicker.textContent = eyebrow;
+        const title = document.createElement('h3'); title.textContent = titleText;
+        heading.append(kicker, title);
+        const close = document.createElement('button'); close.type = 'button'; close.className = 'feature-close';
+        close.setAttribute('aria-label', 'Close learning tool'); close.title = 'Close'; close.textContent = '×';
+        close.addEventListener('click', () => card.remove());
+        header.append(heading, close);
+        return header;
+    }
     async function openTeachback(enhancements, question, reply) {
         const existing = replyFeatureCard(enhancements, '.teachback-card');
         if (existing) { existing.remove(); return; }
@@ -6306,15 +6381,15 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const card = document.createElement('section');
         card.className = 'teachback-card';
         card.setAttribute('aria-label', 'Check my understanding');
-        const title = document.createElement('h3'); title.textContent = 'Teach it back';
-        const intro = document.createElement('p'); intro.textContent = 'Answer a quick question in your own words. No grades—this helps me spot what to clarify.';
+        const header = featureHeader(card, 'QUICK CHECK', 'Teach it back');
+        const intro = document.createElement('p'); intro.textContent = 'Write one or two sentences. No grades.';
         const questionPrompt = document.createElement('p'); questionPrompt.className = 'teachback-question'; questionPrompt.textContent = 'Preparing a quick check…';
         const input = document.createElement('textarea');
-        input.className = 'teachback-input'; input.rows = 3;
+        input.className = 'teachback-input'; input.rows = 2;
         input.setAttribute('aria-label', 'Your explanation');
         input.placeholder = 'Write your explanation here'; input.disabled = true;
         const submit = document.createElement('button');
-        submit.type = 'button'; submit.className = 'btn-ui teachback-submit'; submit.textContent = 'Check my understanding'; submit.disabled = true;
+        submit.type = 'button'; submit.className = 'btn-ui teachback-submit'; submit.textContent = 'Check answer'; submit.disabled = true;
         const status = document.createElement('p'); status.className = 'teachback-status'; status.setAttribute('role', 'status');
         let checkQuestion = '';
         const submitAnswer = async () => {
@@ -6336,7 +6411,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         };
         submit.addEventListener('click', submitAnswer);
         input.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitAnswer(); });
-        card.append(title, intro, questionPrompt, input, submit, status);
+        card.append(header, intro, questionPrompt, input, submit, status);
         enhancements.after(card);
         try {
             const prompt = await requestLearningFeature({ type: 'teachback', phase: 'prompt' }, [
@@ -6349,7 +6424,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!checkQuestion) checkQuestion = `In your own words, how would you explain ${question.replace(/[?.!]+$/, '').slice(0, 120) || 'the main idea'}?`;
         questionPrompt.textContent = checkQuestion;
         input.disabled = false; submit.disabled = false;
-        input.focus({ preventScroll: true });
     }
     function renderTeachbackResult(card, result, reply, bubble, question, response) {
         const output = document.createElement('div');
@@ -6393,12 +6467,12 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
     function renderSavedTeachback(card, result) {
         card.className = 'teachback-card'; card.setAttribute('aria-label', 'Saved teach-back feedback');
-        const title = document.createElement('h3'); title.textContent = 'Teach-back check';
+        card.append(featureHeader(card, 'SAVED CHECK', 'Teach-back check'));
         if (result.question) {
             const questionLabel = document.createElement('p'); questionLabel.className = 'teachback-transcript-label'; questionLabel.textContent = 'Question';
             const questionText = document.createElement('p'); questionText.className = 'teachback-transcript'; questionText.textContent = String(result.question).slice(0, 500);
-            card.append(title, questionLabel, questionText);
-        } else card.append(title);
+            card.append(questionLabel, questionText);
+        }
         if (result.response) {
             const responseLabel = document.createElement('p'); responseLabel.className = 'teachback-transcript-label'; responseLabel.textContent = 'Your answer';
             const responseText = document.createElement('p'); responseText.className = 'teachback-transcript'; responseText.textContent = String(result.response).slice(0, 1200);
@@ -6426,12 +6500,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
     function restoreChatArtifacts(bubble, message) {
         if (Array.isArray(message.sources) && message.sources.length && !bubble.querySelector('.answer-sources')) {
-            bubble.insertAdjacentHTML('beforeend', sourcePanelHTML(message.sources));
+            bubble.insertAdjacentHTML('beforeend', sourcePanelHTML(message.sources, message.search || {}));
+        } else if (message.search?.attempted && !bubble.querySelector('.answer-sources, .search-evidence')) {
+            bubble.insertAdjacentHTML('beforeend', sourcePanelHTML([], message.search));
         }
         let tail = bubble;
         if (message.visual?.type === 'concept-map' && Array.isArray(message.visual.nodes)) {
             const visual = document.createElement('section'); visual.className = 'visual-card';
-            renderVisualCard(visual, message.visual, 'Saved concept map. Select a node to expand its detail.');
+            renderVisualCard(visual, message.visual, 'Saved visual · tap a step to revisit the idea.');
             tail.after(visual); tail = visual;
         }
         if (message.teachback?.type === 'assessment') {
@@ -6443,22 +6519,24 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     function fallbackVisual(question, reply) {
         const clean = String(reply || '').replace(/```[\s\S]*?```/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#*_`>]/g, '').replace(/\s+/g, ' ').trim();
         const sentences = clean.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
-        const nodes = [{ label: 'Start with the question', detail: question.slice(0, 170) }];
-        sentences.forEach((detail, i) => nodes.push({ label: i === 0 ? 'Core idea' : `Connection ${i}`, detail: detail.slice(0, 180) }));
-        if (nodes.length < 3) nodes.push({ label: 'Check the connection', detail: 'Explain how the main idea leads to the result.' });
-        return { type: 'concept-map', title: 'A quick map of the explanation', nodes: nodes.slice(0, 4) };
+        const labels = ['The key idea', 'How it works', 'Why it matters'];
+        const nodes = [{ label: 'The question', detail: question.slice(0, 170) || 'Start with the thing you want to understand.' }];
+        sentences.forEach((detail, i) => nodes.push({ label: labels[i] || 'The result', detail: detail.slice(0, 180) }));
+        if (nodes.length < 3) nodes.push({ label: 'Why it matters', detail: 'Connect the key idea to the result it explains.' });
+        return { type: 'concept-map', title: 'The idea, step by step', nodes: nodes.slice(0, 4) };
     }
     function renderVisualCard(card, data, note) {
         card.innerHTML = '';
-        const title = document.createElement('h3'); title.textContent = String(data.title || 'Explore the idea').slice(0, 100);
-        const intro = document.createElement('p'); intro.textContent = note || 'Select a step or move the slider to follow the connection.';
-        const nodes = (Array.isArray(data.nodes) ? data.nodes : []).map((node) => ({ label: String(node?.label || '').trim().slice(0, 70), detail: String(node?.detail || '').trim().slice(0, 200) })).filter((node) => node.label && node.detail).slice(0, 5);
+        const header = featureHeader(card, 'VISUAL GUIDE', String(data.title || 'Explore the idea').slice(0, 100));
+        const intro = document.createElement('p'); intro.className = 'visual-note'; intro.textContent = note || 'Follow the idea from its starting point to the result.';
+        const nodes = (Array.isArray(data.nodes) ? data.nodes : []).map((node) => ({ label: String(node?.label || '').trim().slice(0, 70), detail: String(node?.detail || '').trim().slice(0, 200) })).filter((node) => node.label && node.detail).slice(0, 4);
         if (nodes.length < 2) nodes.push(...fallbackVisual('', 'The main idea connects to its result.').nodes.slice(1));
-        const flow = document.createElement('ol'); flow.className = 'visual-flow'; flow.setAttribute('aria-label', 'Interactive concept diagram');
+        const flow = document.createElement('ol'); flow.className = 'visual-flow'; flow.setAttribute('aria-label', 'Interactive concept path');
+        flow.style.setProperty('--visual-steps', String(nodes.length));
         const detailId = `visual-detail-${Math.random().toString(36).slice(2, 9)}`;
         const buttons = nodes.map((node, index) => {
             const item = document.createElement('li'); item.className = 'visual-step';
-            const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-pressed', 'false'); button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', detailId);
+            const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-pressed', 'false'); button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', detailId); button.setAttribute('aria-label', `Step ${index + 1}: ${node.label}`);
             const number = document.createElement('span'); number.className = 'visual-step-num'; number.textContent = String(index + 1);
             const label = document.createElement('span'); label.className = 'visual-step-label'; label.textContent = node.label;
             button.append(number, label); item.append(button); flow.append(item);
@@ -6466,37 +6544,34 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         });
         const current = document.createElement('div'); current.className = 'visual-current'; current.id = detailId; current.setAttribute('aria-live', 'polite');
         const currentStep = document.createElement('b'); const currentDetail = document.createElement('span'); current.append(currentStep, currentDetail);
-        const rangeLabel = document.createElement('label'); rangeLabel.className = 'visual-range-label'; rangeLabel.textContent = 'Explore the steps';
-        const range = document.createElement('input'); range.className = 'visual-range'; range.type = 'range'; range.min = '1'; range.max = String(nodes.length); range.value = '1'; range.setAttribute('aria-label', 'Explore diagram steps'); rangeLabel.append(range);
         const select = (value) => {
             const index = Math.max(0, Math.min(nodes.length - 1, Number(value) - 1));
-            range.value = String(index + 1); range.setAttribute('aria-valuetext', `Step ${index + 1} of ${nodes.length}: ${nodes[index].label}`);
             buttons.forEach((button, i) => { button.setAttribute('aria-pressed', String(i === index)); button.setAttribute('aria-expanded', String(i === index)); });
-            currentStep.textContent = `Step ${index + 1} of ${nodes.length} · ${nodes[index].label}`;
+            currentStep.textContent = `Step ${index + 1} · ${nodes[index].label}`;
             currentDetail.textContent = nodes[index].detail;
         };
         buttons.forEach((button, index) => button.addEventListener('click', () => select(index + 1)));
-        range.addEventListener('input', () => select(range.value));
         select(1);
-        card.append(title, intro, flow, current, rangeLabel);
+        card.append(header, intro, flow, current);
     }
     async function openVisual(enhancements, question, reply) {
         const existing = replyFeatureCard(enhancements, '.visual-card');
         if (existing) { existing.remove(); return; }
         replyFeatureCard(enhancements, '.teachback-card')?.remove();
         const card = document.createElement('section'); card.className = 'visual-card'; card.setAttribute('aria-label', 'Interactive explanation diagram');
-        const loading = document.createElement('p'); loading.setAttribute('role', 'status'); loading.textContent = 'Building a small concept map…'; card.append(loading); enhancements.after(card);
-        let diagram = fallbackVisual(question, reply), note = 'A quick map made from the explanation.';
+        const loading = document.createElement('p'); loading.setAttribute('role', 'status'); loading.textContent = 'Turning the explanation into a few clear steps…';
+        card.append(featureHeader(card, 'VISUAL GUIDE', 'Making the idea visual'), loading); enhancements.after(card);
+        let diagram = fallbackVisual(question, reply), note = 'A quick visual story from this explanation.';
         try {
             const result = await requestLearningFeature({ type: 'visual' }, [
                 { role: 'user', content: question.slice(0, 300) },
                 { role: 'assistant', content: reply.slice(0, 1800) },
-                { role: 'user', content: 'Create a small, ordered, interactive concept map of the explanation.' }
+                { role: 'user', content: 'Make this easy to grasp at a glance: create a simple 3–4 step story from the question to the result. Use plain-language labels and clear cause-and-effect order. In each short detail, explain why the next step follows; add a concrete example or analogy when it helps. Avoid unexplained jargon, abstract labels, and repeating the answer. No code or markup.' }
             ]);
             const visual = result.visual;
             if (visual?.type === 'concept-map' && Array.isArray(visual.nodes) && visual.nodes.length >= 2) {
                 diagram = { type: 'concept-map', title: visual.title, nodes: visual.nodes };
-                note = 'Select a node to expand its detail, or use the slider to step through the idea.';
+                note = 'AI arranged the idea into a simple story. Tap a step to see why it matters.';
             }
         } catch (e) { /* a local text-based map remains useful if the feature request is unavailable */ }
         if (!card.isConnected) return;

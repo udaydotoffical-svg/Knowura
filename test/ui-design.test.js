@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+const study = fs.readFileSync(path.join(__dirname, '..', 'functions', '_lib', '_study.js'), 'utf8');
 
 test('text-entry controls meet the design system 16px minimum', () => {
     const start = html.indexOf('/* Design-system floor: editable text controls never drop below 16px. */');
@@ -26,8 +27,8 @@ test('prompt picker chips use the design system black outline and hard shadow', 
 });
 
 test('learning additions use sanitized sources, typed feature payloads, and Weak Spots persistence', () => {
-    assert.match(html, /function sourcePanelHTML\(sources\)/);
-    assert.match(html, /sourcePanelHTML\(data\.sources\)/);
+    assert.match(html, /function sourcePanelHTML\(sources, searchInfo = \{\}\)/);
+    assert.match(html, /sourcePanelHTML\(data\.sources, searchInfo\)/);
     assert.ok(html.includes("if (!['http:', 'https:'].includes(url.protocol)"));
     assert.ok(html.includes('rel="noopener noreferrer"'));
     assert.ok(html.includes("requestLearningFeature({ type: 'teachback', phase: 'prompt' }"));
@@ -54,4 +55,53 @@ test('restored teach-back cards never claim Weak Spots were saved while Incognit
     assert.ok(end > start, 'saved teach-back renderer should have a bounded source block');
     const renderer = html.slice(start, end);
     assert.ok(renderer.includes("saved.textContent = incognito ? 'Weak Spots aren’t saved while Incognito mode is on.' : 'Saved to Weak Spots for spaced review.';"));
+});
+
+test('learning panels are compact, dismissible, mobile-readable, and the visual is an AI-led concept path', () => {
+    assert.match(html, /function featureHeader\(card, eyebrow, titleText\)/);
+    assert.match(html, /aria-label', 'Close learning tool'/);
+    assert.match(html, /border-left: 2px solid var\(--cyan\);[^}]*box-shadow: none/);
+    assert.match(html, /@media \(max-width: 680px\)[\s\S]*?\.visual-flow \{ display: flex; flex-direction: column/);
+    assert.match(html, /@media \(max-width: 680px\)[\s\S]*?\.visual-step button \{ min-height: 44px/);
+    assert.match(html, /\.visual-step button \{[^}]*min-height: 56px;[^}]*border-radius: 0/);
+    assert.match(html, /\.visual-step button:active \{[^}]*transform: none; box-shadow: none/);
+    assert.match(html, /\.visual-step button:active \.visual-step-num \{[^}]*box-shadow: 1px 1px 0/);
+    assert.match(html, /\.feature-close \{[^}]*width: 44px; height: 44px;[^}]*border-radius: 0/);
+    assert.match(html, /\.feature-close::before \{[^}]*inset: 11px;[^}]*border-radius: 7px/);
+    assert.match(html, /\.feature-close:active::before \{[^}]*box-shadow: 1px 1px 0/);
+    assert.match(html, /\.visual-step button\[aria-pressed="true"\] \.visual-step-num/);
+    assert.match(html, /AI arranged the idea into a simple story/);
+    assert.match(html, /plain-language labels and clear cause-and-effect order/);
+    assert.doesNotMatch(html, /visual-range/);
+    assert.match(study, /student-friendly visual story/);
+    assert.match(study, /Avoid unexplained jargon and abstract labels/);
+});
+
+test('reply action hit areas stay at least 44px on narrow phones', () => {
+    const narrow = /@media \(max-width: 420px\) \{([\s\S]*?)\n\s{8}\}/.exec(html);
+    assert.ok(narrow, 'the narrow-phone media query should exist');
+    assert.doesNotMatch(narrow[1], /\.reply-tools button\s*\{[^}]*\b(?:width|height):\s*(?:[0-3]\d|4[0-3])px/);
+    assert.match(html, /\.reply-tools button \{[^}]*width: 44px; height: 44px/);
+    assert.match(html, /\.reply-tools button \{[^}]*border-radius: 0/);
+    assert.match(html, /\.reply-tools button::before \{[^}]*border-radius: 7px/);
+    assert.match(html, /\.reply-tools button:active:not\(:disabled\)[^{}]*\{[^}]*transform: none; box-shadow: none/);
+    assert.match(html, /\.reply-tools button:active:not\(:disabled\)::before[^{}]*\{[^}]*translate\(1px, 1px\)/);
+});
+
+test('search evidence is transparent and learning actions are compact but easy to tap', () => {
+    assert.match(html, /not independently verified/);
+    assert.match(html, /AI cross-check/);
+    assert.match(html, /No usable web sources/);
+    assert.match(html, /Live search unavailable/);
+    assert.match(html, /searchInfo\?\.verified === true/);
+    assert.match(html, /message\.search \|\| \{\}/);
+    assert.match(html, /teach\.type = 'button'; teach\.textContent = 'Quick check'/);
+    assert.match(html, /visual\.type = 'button'; visual\.textContent = 'Visualize'/);
+    assert.match(html, /\.reply-enhancements button \{[^}]*min-height: 44px/);
+    assert.match(html, /\.reply-enhancements button::before \{[^}]*inset: 11px 0;[^}]*box-shadow: none/);
+    assert.match(html, /\.followups button \{[^}]*min-height: 44px/);
+    assert.match(html, /\.followups button::before \{[^}]*inset: 11px 0/);
+    assert.match(html, /\.reply-tools button \{[^}]*width: 44px; height: 44px/);
+    assert.match(html, /\.reply-tools button::before \{[^}]*inset: 11px;[^}]*box-shadow: none/);
+    assert.match(html, /\.teachback-submit\.btn-ui \{[^}]*min-height: 44px/);
 });

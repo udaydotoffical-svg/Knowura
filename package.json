@@ -9,11 +9,12 @@
     "check:secrets": "node scripts/check-secrets.js"
   },
   "dependencies": {
-    "node-fetch": "^2.6.7",
-    "@simplewebauthn/server": "^11.0.0",
-    "@simplewebauthn/browser": "^11.0.0",
     "@netlify/blobs": "^8.0.0",
-    "@vercel/blob": "^2.8.0"
+    "@simplewebauthn/browser": "^11.0.0",
+    "@simplewebauthn/server": "^11.0.0",
+    "@vercel/blob": "^2.8.0",
+    "node-fetch": "^2.6.7",
+    "tldts": "^7.4.19"
   },
   "overrides": {
     "undici": "6.29.1",

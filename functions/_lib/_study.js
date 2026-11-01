@@ -92,7 +92,7 @@ const VISUAL_TOOLS = [{
     type: "function",
     function: {
         name: "create_visual",
-        description: "Create a small interactive step-by-step concept map of the current explanation, with 3 or 4 ordered steps. Each label is 2-5 words and each detail is one short sentence.",
+        description: "Turn the current explanation into a student-friendly visual story with 3 or 4 ordered steps, from the question to its result. Use concrete, familiar labels (2-5 words) and one short plain-language detail per step; add a memorable analogy or example when it genuinely helps. Avoid unexplained jargon and abstract labels.",
         parameters: {
             type: "object",
             properties: {
@@ -224,7 +224,7 @@ function visualBlurb(payload) { return `Here's an interactive concept map: **${p
 const STUDY_PROMPT = ` When asked, you can build a quiz (create_quiz) or flashcards (create_flashcards) that pop up for the user; get the topic first if it's missing, then reply with one short friendly line.`;
 const TEACHBACK_PROMPT = ` This is a one-tap teach-back prompt: ask exactly one short open-ended question about the topic just explained, do not reveal the answer, and call create_teachback_question. Keep the visible reply brief.`;
 const TEACHBACK_ASSESS_PROMPT = ` Assess the student's latest response against the relevant explanation in the conversation. Praise accurate parts, be clear about anything missing or mistaken, and call assess_teachback with concise strengths and weak_spots. Do not invent misconceptions; weak_spots can be empty when the answer is complete.`;
-const VISUAL_PROMPT = ` The user wants an interactive visual for the current topic. When it can clarify the explanation, call create_visual to create a small ordered concept map with 3 or 4 steps. Never generate code or markup. If no meaningful map can be made, explain briefly instead.`;
+const VISUAL_PROMPT = ` The user wants a visual explanation they can understand at a glance, not raw labels. When it can clarify the topic, call create_visual with a friendly 3- or 4-step story from question to result. Make each short label concrete and each detail a clear plain-language sentence that explains why the next step follows; use a familiar example or analogy when helpful. Avoid unexplained jargon and generic headings like "Connection 1". Never generate code or markup. If no meaningful map can be made, explain briefly instead.`;
 // Study mode: the student turned on guided learning, so teach instead of just answering.
 const STUDY_MODE_PROMPT = ` STUDY MODE is on: you are a patient tutor. For homework-style questions do not just hand over the final answer: give the key idea or a hint, then ask ONE short guiding question and wait. When they answer, say what is right, gently fix what is not, and set the next small step. If they are stuck or ask you to just explain, explain it clearly. Keep replies short (under about 120 words) unless they asked to learn a concept. After a topic is done, ask one quick check question.`;
 
