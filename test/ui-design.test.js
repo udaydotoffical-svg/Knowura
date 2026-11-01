@@ -24,3 +24,34 @@ test('prompt picker chips use the design system black outline and hard shadow', 
     assert.match(picker[1], /border:\s*2px solid var\(--ink\)/);
     assert.match(picker[1], /box-shadow:\s*2px 2px 0 var\(--ink\)/);
 });
+
+test('learning additions use sanitized sources, typed feature payloads, and Weak Spots persistence', () => {
+    assert.match(html, /function sourcePanelHTML\(sources\)/);
+    assert.match(html, /sourcePanelHTML\(data\.sources\)/);
+    assert.ok(html.includes("if (!['http:', 'https:'].includes(url.protocol)"));
+    assert.ok(html.includes('rel="noopener noreferrer"'));
+    assert.ok(html.includes("requestLearningFeature({ type: 'teachback', phase: 'prompt' }"));
+    assert.ok(html.includes("requestLearningFeature({ type: 'teachback', phase: 'assess' }"));
+    assert.ok(html.includes("requestLearningFeature({ type: 'visual' }"));
+    assert.match(html, /result\.teachback\?\.type !== 'assessment'/);
+    assert.match(html, /visual\?\.type === 'concept-map'/);
+    assert.match(html, /function weakAddConcept\(concept, hint, context\)/);
+    assert.match(html, /function saveChatArtifact\(bubble, field, payload\)/);
+    assert.match(html, /function restoreChatArtifacts\(bubble, message\)/);
+    assert.ok(html.includes("question: String(question || '').slice(0, 500)"));
+    assert.ok(html.includes("response: String(response || '').slice(0, 1200)"));
+    assert.ok(html.includes('result.question'));
+    assert.ok(html.includes('result.response'));
+    assert.match(html, /aria-expanded/);
+    assert.match(html, /teachback-saved/);
+    assert.match(html, /font-size: 16px; line-height: 1\.5/);
+});
+
+test('restored teach-back cards never claim Weak Spots were saved while Incognito is on', () => {
+    const start = html.indexOf('function renderSavedTeachback(card, result)');
+    const end = html.indexOf('function restoreChatArtifacts(bubble, message)', start);
+    assert.notEqual(start, -1, 'saved teach-back renderer should exist');
+    assert.ok(end > start, 'saved teach-back renderer should have a bounded source block');
+    const renderer = html.slice(start, end);
+    assert.ok(renderer.includes("saved.textContent = incognito ? 'Weak Spots aren’t saved while Incognito mode is on.' : 'Saved to Weak Spots for spaced review.';"));
+});

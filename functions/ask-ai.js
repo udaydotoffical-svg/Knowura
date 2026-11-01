@@ -4,7 +4,11 @@ const safety = require('./_lib/_safety');
 const { json, guard, readJson } = require('./_lib/_util');
 const { whoIs, usageGate } = require('./_lib/_limits');
 const { PC_TOOL, PC_PROMPT, PC_PROMPT_OWNER, PC_OFF_PROMPT, PC_DEFAULT_REPLY, pcDecision, pcFromCalls } = require('./_lib/_pc');
-const { STUDY_TOOLS, STUDY_PROMPT, STUDY_MODE_PROMPT, wantsStudyTools, sanitizeStudy, studyBlurb } = require('./_lib/_study');
+const {
+    STUDY_TOOLS, TEACHBACK_PROMPT_TOOLS, TEACHBACK_ASSESS_TOOLS, VISUAL_TOOLS,
+    STUDY_PROMPT, TEACHBACK_PROMPT, TEACHBACK_ASSESS_PROMPT, VISUAL_PROMPT, STUDY_MODE_PROMPT,
+    wantsStudyTools, sanitizeStudy, sanitizeTeachback, sanitizeVisual, studyBlurb, teachbackBlurb, visualBlurb
+} = require('./_lib/_study');
 
 const MAX_MESSAGES = 60;
 const MAX_MESSAGE_CHARS = 16000;      // assistant turns
@@ -103,6 +107,26 @@ async function runSafety(messages) {
     }
 }
 
+function sanitizeSources(results) {
+    if (!Array.isArray(results)) return [];
+    const seen = new Set(), sources = [];
+    for (const result of results) {
+        try {
+            const url = new URL(String(result?.url || ""));
+            if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || seen.has(url.href)) continue;
+            seen.add(url.href);
+            sources.push({
+                title: String(result?.title || url.hostname).replace(CONTROL, "").slice(0, 180),
+                url: url.href,
+                host: url.hostname,
+                snippet: String(result?.content || "").replace(CONTROL, "").slice(0, 240)
+            });
+            if (sources.length === 4) break;
+        } catch (e) { /* Ignore malformed or non-web source URLs. */ }
+    }
+    return sources;
+}
+
 async function webSearch(query) {
     try {
         const res = await fetch("https://api.tavily.com/search", {
@@ -116,14 +140,19 @@ async function webSearch(query) {
                 include_answer: true
             })
         });
+        if (!res.ok) return null;
         const data = await res.json();
-        if (!data.results?.length) return null;
+        const sources = sanitizeSources(data.results);
+        if (!sources.length) return null;
 
-        const snippet = data.results
-            .map(r => `- ${r.title}: ${r.content.slice(0, 300)} (${r.url})`)
+        const snippet = sources
+            .map(r => `- ${r.title}: ${r.snippet.slice(0, 220)} (${r.url})`)
             .join('\n');
 
-        return `Web search results for "${query}":\n${data.answer ? `Quick answer: ${data.answer}\n\n` : ''}${snippet}`;
+        return {
+            text: `Web search results for "${query}":\n${data.answer ? `Quick answer: ${String(data.answer).slice(0, 500)}\n\n` : ''}${snippet}`,
+            sources
+        };
     } catch (e) {
         console.warn("Web search failed:", e);
         return null;
@@ -149,6 +178,13 @@ const SEARCH_PATTERNS = [
 function needsSearch(text) {
     const lower = String(text || "").toLowerCase();
     return SEARCH_PATTERNS.some(re => re.test(lower));
+}
+
+function sanitizeFeature(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (value.type === 'teachback' && ['prompt', 'assess'].includes(value.phase)) return { type: 'teachback', phase: value.phase };
+    if (value.type === 'visual') return { type: 'visual' };
+    return null;
 }
 
 // System prompt first; saved memory and web results ride along as ordinary user-turn text.
@@ -177,6 +213,7 @@ exports.handler = async (event, context) => {
         const messages = sanitizeMessages(body.messages);
         if (!messages) return json(400, { error: "No valid messages provided" });
         const memory = sanitizeMemory(body.memory);
+        const feature = isAux ? null : sanitizeFeature(body.feature);
 
         // Who is asking? Owner mode requires a valid server-issued token (from WebAuthn or the
         // password fallback) — a raw client-supplied boolean is not real auth — and owner mode
@@ -203,6 +240,7 @@ exports.handler = async (event, context) => {
         // only what the person typed decides whether to search, never the text of an attached file
         const lastUserMsg = lastUserFull.split(/\n\n\[Attached /)[0];
         let searchBlock = "";
+        let sourceCitations = [];
         if (!isAux && needsSearch(lastUserMsg)) {
             // A bare follow-up like "search it" / "look that up" has no topic of its own —
             // fold in the previous user message so the search query means something.
@@ -211,8 +249,9 @@ exports.handler = async (event, context) => {
                 ? `${textOf(userTurns[userTurns.length - 2].content).split(/\n\n\[Attached /)[0].slice(0, 200)} ${lastUserMsg}`.trim()
                 : lastUserMsg;
             const results = await webSearch(query.slice(0, 380));
+            sourceCitations = results?.sources || [];
             searchBlock = results
-                ? `\n\n[Web results, use them and name the source:]\n${results}`
+                ? `\n\n[Web results, use them and name the source:]\n${results.text}`
                 : `\n\n[A web search found nothing useful, so answer from what you know and say it may be out of date.]`;
         }
 
@@ -229,10 +268,13 @@ exports.handler = async (event, context) => {
 
         const ultraPrompt = `\n\nTake your time: break the problem into parts, check your own logic, then give a well-justified answer.`;
 
-        const offerStudy = !isAux && wantsStudyTools(messages);
+        const offerStudy = !isAux && !feature && wantsStudyTools(messages);
+        const featurePrompt = feature?.type === 'teachback'
+            ? (feature.phase === 'prompt' ? TEACHBACK_PROMPT : TEACHBACK_ASSESS_PROMPT)
+            : feature?.type === 'visual' ? VISUAL_PROMPT : '';
         // PC action: see _lib/_pc.js (only when the desktop app says it is on, never on content someone else wrote)
-        const { offerPc, pcOffNote } = pcDecision({ pc: body.pc, isAux, searchBlock, hasImages, messages, textOf, isOwner });
-        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + (offerPc ? (isOwner ? PC_PROMPT_OWNER : PC_PROMPT) : "") + (pcOffNote ? PC_OFF_PROMPT : "") + (!isAux && body.studyMode === true ? STUDY_MODE_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
+        const { offerPc, pcOffNote } = pcDecision({ pc: body.pc, isAux: isAux || !!feature, searchBlock, hasImages, messages, textOf, isOwner });
+        const systemPrompt = (isOwner ? ownerSystemPrompt : baseSystemPrompt) + (offerStudy ? STUDY_PROMPT : "") + featurePrompt + (offerPc ? (isOwner ? PC_PROMPT_OWNER : PC_PROMPT) : "") + (pcOffNote ? PC_OFF_PROMPT : "") + (!isAux && body.studyMode === true ? STUDY_MODE_PROMPT : "") + (isUltra ? ultraPrompt : "") + (mod && mod.care ? safety.CARE_NOTE : "");
 
         // The picker sends a real Groq model id (from the live /models list). Only
         // ids Groq currently offers for chat are accepted; anything else — including
@@ -273,8 +315,11 @@ exports.handler = async (event, context) => {
             payload.reasoning_effort = effort;
         }
 
-        if (offerStudy || offerPc) {
-            payload.tools = [...(offerStudy ? STUDY_TOOLS : []), ...(offerPc ? [PC_TOOL] : [])]; payload.tool_choice = "auto";
+        const featureTools = feature?.type === 'teachback'
+            ? (feature.phase === 'prompt' ? TEACHBACK_PROMPT_TOOLS : TEACHBACK_ASSESS_TOOLS)
+            : feature?.type === 'visual' ? VISUAL_TOOLS : [];
+        if (offerStudy || featureTools.length || offerPc) {
+            payload.tools = [...(offerStudy ? STUDY_TOOLS : []), ...featureTools, ...(offerPc ? [PC_TOOL] : [])]; payload.tool_choice = "auto";
             // building a quiz is formatting, not hard thinking: keep gpt-oss quick so it finishes in time
             if (isGptOss && !isUltra && !payload.reasoning_effort) payload.reasoning_effort = "low";
         }
@@ -328,7 +373,7 @@ exports.handler = async (event, context) => {
 
         // If the model called a study tool, validate it and hand the client a `study` payload
         // plus a short text reply (the tool call itself never reaches the UI).
-        let study = null, pcTask = null;
+        let study = null, teachback = null, visual = null, pcTask = null;
         const msg = data?.choices?.[0]?.message;
         const calls = (msg?.tool_calls || []).map(c => c?.function).filter(Boolean);
         if (calls.length) {
@@ -337,20 +382,20 @@ exports.handler = async (event, context) => {
                 pcTask = pcr.task;
                 msg.content = (msg.content && msg.content.trim()) || (pcTask ? PC_DEFAULT_REPLY : "I tried to hand that to Mochi but the instruction was unusable. Could you ask again, a bit shorter?");
             } else {
-                const call = calls[0];
-                study = sanitizeStudy(call.name, call.arguments);
-                if (study) {
-                    msg.content = (msg.content && msg.content.trim()) || studyBlurb(study);
-                } else {
-                    msg.content = (msg.content && msg.content.trim()) || "I tried to build that but it came out garbled — could you ask again?";
+                for (const call of calls) {
+                    teachback = teachback || sanitizeTeachback(call.name, call.arguments);
+                    visual = visual || sanitizeVisual(call.name, call.arguments);
+                    study = study || sanitizeStudy(call.name, call.arguments);
                 }
+                const fallback = teachback ? teachbackBlurb(teachback) : visual ? visualBlurb(visual) : study ? studyBlurb(study) : "I tried to build that but it came out garbled — could you ask again?";
+                msg.content = (msg.content && msg.content.trim()) || fallback;
             }
             delete msg.tool_calls;
         }
-        return json(200, { ...data, study, pcTask, ownerMode: isOwner, ultraThink: isUltra, model: payload.model, usage: gate.usage });
+        return json(200, { ...data, study, teachback, visual, pcTask, sources: sourceCitations, ownerMode: isOwner, ultraThink: isUltra, model: payload.model, usage: gate.usage });
     } catch (error) {
         return json(500, { error: "Something went wrong. Please try again." });
     }
 };
 
-exports._test = { sanitizeMessages, sanitizeMemory, needsSearch, wantsStudyTools, sanitizeStudy, buildMessages, textOf, isVision, pickVisionModel };
+exports._test = { sanitizeMessages, sanitizeMemory, needsSearch, wantsStudyTools, sanitizeStudy, sanitizeFeature, buildMessages, textOf, isVision, pickVisionModel, sanitizeSources };

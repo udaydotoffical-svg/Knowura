@@ -135,6 +135,27 @@ test('chat-save rebuilds the document from a whitelist and drops junk', () => {
     assert.equal(doc.admin, undefined);
 });
 
+test('chat-save retains safe feature metadata and rejects unsafe source URLs and visual payloads', () => {
+    const doc = chatSave._test.cleanDoc({
+        chats: [{ id: 'c_meta', title: 'Sources and visuals', messages: [{
+            type: 'ai', text: 'Here is the answer.',
+            sources: [
+                { title: 'Example', url: 'https://example.com/article', snippet: 'A useful source.' },
+                { title: 'Unsafe', url: 'javascript:alert(1)', snippet: 'Must be dropped.' }
+            ],
+            visual: { type: 'concept-map', title: 'Totals', nodes: [{ label: 'First', detail: 'Start here.' }, { label: 'Next', detail: 'Then continue.' }], markup: '<script>bad</script>' },
+            teachback: { type: 'assessment', feedback: 'Good.', strengths: ['Clear'], weakSpots: ['One detail'], nextStep: 'Review it.', question: 'Why do seasons change?', response: 'Earth is tilted, changing the sunlight angle.' },
+            extra: 'not persisted'
+        }] }],
+        profile: { sub: 'real-sub' }
+    }, 'real-sub');
+    const message = doc.chats[0].messages[0];
+    assert.deepEqual(message.sources, [{ title: 'Example', url: 'https://example.com/article', host: 'example.com', snippet: 'A useful source.' }]);
+    assert.deepEqual(message.visual, { type: 'concept-map', title: 'Totals', nodes: [{ label: 'First', detail: 'Start here.' }, { label: 'Next', detail: 'Then continue.' }] });
+    assert.deepEqual(message.teachback, { type: 'assessment', feedback: 'Good.', strengths: ['Clear'], weakSpots: ['One detail'], nextStep: 'Review it.', question: 'Why do seasons change?', response: 'Earth is tilted, changing the sunlight angle.' });
+    assert.equal(message.extra, undefined);
+});
+
 test('webauthn payload shape check', () => {
     const good = { id: 'abc_-', rawId: 'abc_-', type: 'public-key', response: { clientDataJSON: 'abcd', authenticatorData: 'abcd', signature: 'abcd' } };
     assert.ok(cleanCredentialResponse(good));
@@ -536,5 +557,5 @@ test('PC action: the tool is only offered when the desktop app says so and never
     assert.match(pc.PC_OFF_PROMPT, /Let Mochi use my PC/); assert.match(pc.PC_OFF_PROMPT, /tray icon/);
     assert.equal(pc.PC_TOOL.function.name, 'do_on_pc'); assert.deepEqual(pc.PC_TOOL.function.parameters.required, ['task']);
     const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'functions/ask-ai.js'), 'utf8');
-    assert.match(src, /\(offerPc \? \(isOwner \? PC_PROMPT_OWNER : PC_PROMPT\) : ""\)/); assert.match(src, /\(pcOffNote \? PC_OFF_PROMPT : ""\)/); assert.match(src, /json\(200, \{ \.\.\.data, study, pcTask,/);
+    assert.match(src, /\(offerPc \? \(isOwner \? PC_PROMPT_OWNER : PC_PROMPT\) : ""\)/); assert.match(src, /\(pcOffNote \? PC_OFF_PROMPT : ""\)/); assert.match(src, /json\(200, \{ \.\.\.data, study, teachback, visual, pcTask,/);
 });

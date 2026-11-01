@@ -510,6 +510,42 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .followups { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
         .followups button { padding: 7px 12px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 13px; text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
         .followups button:hover { color: var(--cyan); }
+        .reply-enhancements { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px 34px; align-self: flex-start; max-width: 80%; }
+        .reply-enhancements button { min-height: 34px; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .reply-enhancements button:hover { color: var(--cyan); background: rgba(47,107,255,.2); }
+        .teachback-card, .visual-card { align-self: flex-start; width: calc(100% - 34px); max-width: min(80%, 680px); margin: 0 0 14px 34px; padding: 14px 16px; border: 2.5px solid var(--ink); border-radius: 14px; background: var(--panel-strong); color: var(--text); box-shadow: var(--shadow-sm); }
+        .teachback-card h3, .visual-card h3 { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
+        .teachback-card p, .visual-card p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+        .teachback-question { margin: 10px 0 4px !important; color: var(--cyan) !important; font-weight: 700; }
+        .teachback-transcript-label { margin-top: 10px !important; color: var(--cyan) !important; font-size: 10px !important; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+        .teachback-transcript { padding: 8px 10px; border-left: 3px solid var(--cyan); background: rgba(34,229,255,.06); color: var(--text) !important; overflow-wrap: anywhere; }
+        .teachback-input { display: block; width: 100%; min-height: 88px; margin: 12px 0 10px; padding: 10px 12px; resize: vertical; border: 2px solid var(--ink); border-radius: 9px; background: var(--dark); color: var(--text); font-size: 16px; line-height: 1.5; }
+        .teachback-input:focus-visible, .visual-range:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+        .teachback-submit { min-height: 36px; }
+        .teachback-result { margin-top: 12px; padding: 12px; border: 2px solid var(--ink); border-radius: 10px; background: rgba(34,229,255,.08); font-size: 13px; line-height: 1.5; }
+        .teachback-result b { display: block; margin-bottom: 4px; color: var(--cyan); text-transform: uppercase; letter-spacing: .4px; }
+        .teachback-hint { margin-top: 8px !important; padding-left: 10px; border-left: 3px solid var(--cyan); color: var(--text) !important; }
+        .teachback-misses { margin: 8px 0 0 18px; color: var(--text); }
+        .teachback-saved { margin-top: 8px !important; color: #19c37d !important; }
+        .visual-flow { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 0; list-style: none; }
+        .visual-step { position: relative; }
+        .visual-step:not(:last-child)::after { content: '↓'; position: absolute; z-index: 1; bottom: -12px; left: 19px; color: var(--cyan); font-size: 15px; line-height: 1; }
+        .visual-step button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 42px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 9px; background: var(--panel-strong); color: var(--text); text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .visual-step button[aria-pressed="true"] { border-color: var(--cyan); background: rgba(34,229,255,.14); }
+        .visual-step-num { display: grid; flex: none; width: 26px; height: 26px; place-items: center; border: 2px solid var(--ink); border-radius: 7px; background: var(--blue); color: #fff; font-size: 12px; font-weight: 800; }
+        .visual-step-label { font-size: 13px; font-weight: 700; }
+        .visual-current { min-height: 48px; padding: 10px 12px; border-left: 3px solid var(--cyan); background: rgba(34,229,255,.06); color: var(--text); font-size: 13px; line-height: 1.5; }
+        .visual-current b { display: block; margin-bottom: 3px; color: var(--cyan); font-size: 10px; letter-spacing: .6px; text-transform: uppercase; }
+        .visual-range-label { display: block; margin: 10px 0 4px; color: var(--text-dim); font-size: 12px; font-weight: 700; }
+        .visual-range { width: 100%; accent-color: var(--cyan); }
+        .answer-sources { margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(143,166,204,.28); }
+        .answer-sources summary { color: var(--cyan); cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+        .answer-sources ol { display: grid; gap: 8px; margin: 8px 0 0 20px; padding: 0; }
+        .answer-sources li { padding-left: 2px; }
+        .answer-sources small { display: block; color: var(--text-dim); font-size: 11px; }
+        .answer-sources li p { margin: 3px 0 0; color: var(--text-dim); font-size: 12px; line-height: 1.4; }
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) { .reply-enhancements { margin-left: 26px; max-width: calc(100% - 26px); } .teachback-card, .visual-card { width: calc(100% - 26px); max-width: none; margin-left: 26px; padding: 12px; } }
+        html.term .teachback-card, html.term .visual-card, html.term .teachback-input, html.term .visual-step button { border-radius: 2px !important; }
         .study-strip { display: none; align-items: center; gap: 10px; margin: 0 0 8px; padding: 6px 8px 6px 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(34, 229, 255, 0.1); box-shadow: var(--shadow-sm); font-size: 12.5px; line-height: 1.35; }
         .study-strip.on { display: flex; }
         .study-strip img { width: 36px; height: 36px; flex: none; border-radius: 50%; }
@@ -530,7 +566,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
         /* ─── RETRO PACK: press-into-shadow buttons, CRT scanlines, pixel burst, green terminal mode (Konami code) ─── */
         .btn-ui:not(:disabled):active, .pb-pick:not(:disabled):active, .suggestion-chip:active, .menu-item:active, .menu-nav:active, .choice-pill:active, .chip:active,
-        .followups button:active, .reply-tools button:active, button.streak-chip:active, .q-opt:not(:disabled):active, .suggest button:active, .msg-actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+        .followups button:active, .reply-tools button:active, .reply-enhancements button:active, button.streak-chip:active, .q-opt:not(:disabled):active, .suggest button:active, .msg-actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
         html.crt::after { content: ''; position: fixed; inset: 0; z-index: 2147483100; pointer-events: none;
             background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.16) 3px), radial-gradient(120% 100% at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.35) 100%); }
         html.crt:not(.term) body { text-shadow: 0 0 6px rgba(34, 229, 255, 0.18); }
@@ -3331,6 +3367,18 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             .replace(/<pre><code(?: class="language-([\w+#.-]{1,20})")?>([\s\S]*?)<\/code><\/pre>/g, codeCardHTML);
     }
 
+    function sourcePanelHTML(sources) {
+        const safeSources = (Array.isArray(sources) ? sources : []).slice(0, 4).map((source) => {
+            try {
+                const url = new URL(String(source?.url || ''));
+                if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null;
+                return { title: String(source?.title || url.hostname).slice(0, 180), url: url.href, host: url.hostname, snippet: String(source?.snippet || '').slice(0, 240) };
+            } catch (e) { return null; }
+        }).filter(Boolean);
+        if (!safeSources.length) return '';
+        return `<details class="answer-sources"><summary>Show sources (${safeSources.length})</summary><ol>${safeSources.map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a><small>${escapeHtml(source.host)}</small>${source.snippet ? `<p>${escapeHtml(source.snippet)}</p>` : ''}</li>`).join('')}</ol></details>`;
+    }
+
     // ─── MINI-CODE-BOXZ ──────────────────────────────────────────────────
     // Fenced code turns into a small card; the (already-escaped) code rides along in a data
     // attribute, so saved chats keep working and the panel needs no separate storage.
@@ -3627,10 +3675,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 const body = reasoning ? renderMarkdown(reasoning.length > 6000 ? reasoning.slice(0, 6000) + '\n\n…' : reasoning) : '<p class="reasoning-empty">No thought process was returned for this reply.</p>';
                 html += `<details class="reasoning${ultraAtSend ? ' ultra' : ''}"><summary>${summary}</summary>${body}</details>`;
                 html += renderMarkdown(reply);
+                html += sourcePanelHTML(data.sources);
                 if (data.study) html += studyChipHTML(data.study);
                 noteUsage(data.usage);
                 thinking.innerHTML = html;
-                saveActiveChat(thinking.innerHTML, 'ai');
+                saveActiveChat(thinking.innerHTML, 'ai', { sources: data.sources });
                 if (data.study && !opts.fromVoice) setTimeout(() => openStudy(data.study), 900); // pop it up on screen
                 typeReveal(thinking); // typewriter reveal (+ soft haptic ticks on phones); the saved copy is already complete
 
@@ -3712,7 +3761,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         finishTyping();
         // Only the OS "reduce motion" setting skips it — Lite-mode phones still get the light text-only effect + haptics.
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-        const targets = [...root.children].filter(el => !el.matches('details.reasoning, .study-chip, .cb-card'));
+        const targets = [...root.children].filter(el => !el.matches('details.reasoning, .answer-sources, .study-chip, .cb-card'));
         const nodes = [];
         for (const el of targets) {
             const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -3877,6 +3926,18 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const list = weakList().filter((w) => w.id !== id);
         list.push({ id, front: q.question, back: q.options[q.answer] + (q.explanation ? ' (' + q.explanation + ')' : ''), box: 0, due: Date.now() });
         kwStore.set('knowura_weak', list.slice(-80));
+    }
+    function weakAddConcept(concept, hint, context) {
+        if (typeof incognito !== 'undefined' && incognito) return false;
+        const front = String(concept || '').trim().slice(0, 180);
+        if (!front) return false;
+        const id = 't' + [...front.toLowerCase()].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
+        const back = [hint ? `Hint: ${String(hint).trim().slice(0, 240)}` : '', context ? `Review: ${String(context).trim().slice(0, 320)}` : ''].filter(Boolean).join('\n\n') || 'Review this idea in your own words.';
+        const list = weakList().filter((w) => w.id !== id);
+        list.push({ id, front, back, box: 0, due: Date.now() });
+        kwStore.set('knowura_weak', list.slice(-80));
+        refreshStudyHome();
+        return true;
     }
     function weakRate(wid, knew) {
         let list = weakList();
@@ -4519,7 +4580,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!chat || chat.messages.length === 0) {
             renderEmptyState();
         } else {
-            chat.messages.forEach(m => addBubble(safeHtml(m.text), m.type, false));
+            chat.messages.forEach((m) => {
+                const bubble = addBubble(safeHtml(m.text), m.type, false);
+                restoreChatArtifacts(bubble, m);
+            });
             chat.messages.slice(-10).forEach(m => {
                 let content = htmlToText(m.text);
                 if (m.type === 'user' && window.KnowuraAttach && /att-row/.test(m.text)) { const d = document.createElement('div'); d.innerHTML = safeHtml(m.text); content = KnowuraAttach.contextText(d); }
@@ -4564,10 +4628,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         ask(text);
     }
 
-    function saveActiveChat(text, type) {
+    function saveActiveChat(text, type, metadata = {}) {
         let chat = getActiveChat();
         if (!chat) chat = createChat();
-        chat.messages.push({ text, type });
+        const message = { text, type };
+        if (type === 'ai' && Array.isArray(metadata.sources) && metadata.sources.length) message.sources = metadata.sources;
+        if (type === 'ai' && metadata.visual) message.visual = metadata.visual;
+        if (type === 'ai' && metadata.teachback) message.teachback = metadata.teachback;
+        chat.messages.push(message);
         if (chat.messages.length > 60) chat.messages = chat.messages.slice(-60);
         chat.updatedAt = Date.now();
         if (type === 'user' && chat.title === 'New Chat') {
@@ -6167,7 +6235,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     // Reply tools (regenerate, thumbs, copy) and follow-up chips, on the latest answer only.
-    function clearReplyTools() { document.querySelectorAll('#chat-box .reply-tools, #chat-box .followups').forEach((n) => n.remove()); }
+    function clearReplyTools() { document.querySelectorAll('#chat-box .reply-tools, #chat-box .reply-enhancements, #chat-box .followups').forEach((n) => n.remove()); }
     let followSeq = 0;
     function addReplyTools(bubble, question, reply, hadFiles) {
         clearReplyTools();
@@ -6199,7 +6267,241 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         row.append(up, down, copy);
         if (!hadFiles) row.append(mk('Regenerate', 'refresh', regenerateLast));
         bubble.after(row);
+        const enhancements = document.createElement('div');
+        enhancements.className = 'reply-enhancements';
+        enhancements.setAttribute('role', 'group');
+        enhancements.setAttribute('aria-label', 'Learning tools');
+        const teach = document.createElement('button');
+        teach.type = 'button'; teach.textContent = 'Check my understanding';
+        teach.addEventListener('click', () => openTeachback(enhancements, question, reply));
+        const visual = document.createElement('button');
+        visual.type = 'button'; visual.textContent = 'Make it visual';
+        visual.addEventListener('click', () => openVisual(enhancements, question, reply));
+        enhancements._bubble = bubble;
+        enhancements.append(teach, visual);
+        row.after(enhancements);
         loadFollowups(row, question, reply);
+    }
+    async function requestLearningFeature(feature, messages) {
+        const res = await fetch('/.netlify/functions/ask-ai', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feature, ownerToken, token: userToken, model: settings.modelChoice, effort: settings.effortLevel, memory: {}, messages })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Learning tool unavailable');
+        if (!data?.choices?.[0]) throw new Error('No learning response was returned');
+        noteUsage(data.usage);
+        return data;
+    }
+    function replyFeatureCard(enhancements, selector) {
+        for (let node = enhancements.nextElementSibling; node && !node.matches('.msg'); node = node.nextElementSibling) {
+            if (node.matches(selector)) return node;
+        }
+        return null;
+    }
+    async function openTeachback(enhancements, question, reply) {
+        const existing = replyFeatureCard(enhancements, '.teachback-card');
+        if (existing) { existing.remove(); return; }
+        replyFeatureCard(enhancements, '.visual-card')?.remove();
+        const card = document.createElement('section');
+        card.className = 'teachback-card';
+        card.setAttribute('aria-label', 'Check my understanding');
+        const title = document.createElement('h3'); title.textContent = 'Teach it back';
+        const intro = document.createElement('p'); intro.textContent = 'Answer a quick question in your own words. No grades—this helps me spot what to clarify.';
+        const questionPrompt = document.createElement('p'); questionPrompt.className = 'teachback-question'; questionPrompt.textContent = 'Preparing a quick check…';
+        const input = document.createElement('textarea');
+        input.className = 'teachback-input'; input.rows = 3;
+        input.setAttribute('aria-label', 'Your explanation');
+        input.placeholder = 'Write your explanation here'; input.disabled = true;
+        const submit = document.createElement('button');
+        submit.type = 'button'; submit.className = 'btn-ui teachback-submit'; submit.textContent = 'Check my understanding'; submit.disabled = true;
+        const status = document.createElement('p'); status.className = 'teachback-status'; status.setAttribute('role', 'status');
+        let checkQuestion = '';
+        const submitAnswer = async () => {
+            const attempt = input.value.trim();
+            if (attempt.length < 8) { status.textContent = 'Add a sentence or two so I can check your understanding.'; input.focus(); return; }
+            submit.disabled = true; status.textContent = 'Checking your explanation…';
+            try {
+                const result = await requestLearningFeature({ type: 'teachback', phase: 'assess' }, [
+                    { role: 'user', content: `Topic question: ${question.slice(0, 300)}\nTutor explanation: ${reply.slice(0, 1800)}` },
+                    { role: 'assistant', content: `Teach-back question: ${checkQuestion}` },
+                    { role: 'user', content: `My teach-back: ${attempt.slice(0, 1200)}` }
+                ]);
+                if (result.teachback?.type !== 'assessment') throw new Error('The assessment could not be prepared');
+                renderTeachbackResult(card, result.teachback, reply, enhancements._bubble, checkQuestion, attempt);
+                status.textContent = '';
+            } catch (e) {
+                status.textContent = `${e.message || 'I couldn’t check that just now.'} Your explanation is still here—try again in a moment.`;
+            } finally { submit.disabled = false; }
+        };
+        submit.addEventListener('click', submitAnswer);
+        input.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitAnswer(); });
+        card.append(title, intro, questionPrompt, input, submit, status);
+        enhancements.after(card);
+        try {
+            const prompt = await requestLearningFeature({ type: 'teachback', phase: 'prompt' }, [
+                { role: 'user', content: question.slice(0, 300) },
+                { role: 'assistant', content: reply.slice(0, 1800) }
+            ]);
+            checkQuestion = prompt.teachback?.type === 'question' ? prompt.teachback.question : '';
+        } catch (e) { /* keep a local prompt so the learner can still begin */ }
+        if (!card.isConnected) return;
+        if (!checkQuestion) checkQuestion = `In your own words, how would you explain ${question.replace(/[?.!]+$/, '').slice(0, 120) || 'the main idea'}?`;
+        questionPrompt.textContent = checkQuestion;
+        input.disabled = false; submit.disabled = false;
+        input.focus({ preventScroll: true });
+    }
+    function renderTeachbackResult(card, result, reply, bubble, question, response) {
+        const output = document.createElement('div');
+        output.className = 'teachback-result'; output.setAttribute('aria-live', 'polite');
+        const missed = (Array.isArray(result?.weakSpots) ? result.weakSpots : []).map((s) => String(s).trim().slice(0, 120)).filter(Boolean).slice(0, 3);
+        const strengths = (Array.isArray(result?.strengths) ? result.strengths : []).map((s) => String(s).trim().slice(0, 120)).filter(Boolean).slice(0, 3);
+        const understood = missed.length === 0;
+        const heading = document.createElement('b'); heading.textContent = understood ? 'You’re getting it' : 'Good start—let’s strengthen one part';
+        const feedback = document.createElement('p'); feedback.textContent = String(result?.feedback || 'You made a useful attempt. Keep connecting the main idea to why it matters.').slice(0, 320);
+        const hint = document.createElement('p'); hint.className = 'teachback-hint'; hint.textContent = `Hint: ${String(result?.nextStep || 'Try explaining how the central idea connects to its main cause or result.').slice(0, 300)}`;
+        output.append(heading, feedback, hint);
+        if (strengths.length) {
+            const strongHeading = document.createElement('p'); strongHeading.textContent = 'What you explained well:';
+            const strongList = document.createElement('ul'); strongList.className = 'teachback-misses';
+            strengths.forEach((strength) => { const item = document.createElement('li'); item.textContent = strength; strongList.append(item); });
+            output.append(strongHeading, strongList);
+        }
+        if (missed.length) {
+            const list = document.createElement('ul'); list.className = 'teachback-misses';
+            let savedCount = 0;
+            missed.forEach((concept) => { const item = document.createElement('li'); item.textContent = concept; list.append(item); if (weakAddConcept(concept, result?.nextStep, reply)) savedCount++; });
+            output.append(list);
+            const saved = document.createElement('p'); saved.className = 'teachback-saved';
+            saved.textContent = savedCount ? `Saved ${savedCount} ${savedCount === 1 ? 'concept' : 'concepts'} to Weak Spots for spaced review.` : 'Weak Spots aren’t saved while Incognito mode is on.';
+            output.append(saved);
+        }
+        const artifact = { ...result, question: String(question || '').slice(0, 500), response: String(response || '').slice(0, 1200) };
+        if (bubble) saveChatArtifact(bubble, 'teachback', artifact);
+        card.querySelector('.teachback-result')?.remove();
+        card.append(output);
+        const chatBox = document.getElementById('chat-box');
+        if (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 240) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    function saveChatArtifact(bubble, field, payload) {
+        if (!bubble || !['visual', 'teachback'].includes(field) || !payload) return;
+        const chat = getActiveChat(), index = bubbleIndex(bubble);
+        if (!chat || index < 0 || !chat.messages[index] || chat.messages[index].type !== 'ai') return;
+        chat.messages[index][field] = payload;
+        chat.updatedAt = Date.now();
+        saveChatStore();
+    }
+    function renderSavedTeachback(card, result) {
+        card.className = 'teachback-card'; card.setAttribute('aria-label', 'Saved teach-back feedback');
+        const title = document.createElement('h3'); title.textContent = 'Teach-back check';
+        if (result.question) {
+            const questionLabel = document.createElement('p'); questionLabel.className = 'teachback-transcript-label'; questionLabel.textContent = 'Question';
+            const questionText = document.createElement('p'); questionText.className = 'teachback-transcript'; questionText.textContent = String(result.question).slice(0, 500);
+            card.append(title, questionLabel, questionText);
+        } else card.append(title);
+        if (result.response) {
+            const responseLabel = document.createElement('p'); responseLabel.className = 'teachback-transcript-label'; responseLabel.textContent = 'Your answer';
+            const responseText = document.createElement('p'); responseText.className = 'teachback-transcript'; responseText.textContent = String(result.response).slice(0, 1200);
+            card.append(responseLabel, responseText);
+        }
+        const feedback = document.createElement('p'); feedback.textContent = String(result.feedback || '').slice(0, 320);
+        card.append(feedback);
+        const strengths = Array.isArray(result.strengths) ? result.strengths.slice(0, 3) : [];
+        if (strengths.length) {
+            const label = document.createElement('p'); label.textContent = 'What you explained well:';
+            const list = document.createElement('ul'); list.className = 'teachback-misses';
+            strengths.forEach((value) => { const item = document.createElement('li'); item.textContent = String(value).slice(0, 120); list.append(item); });
+            card.append(label, list);
+        }
+        const missed = Array.isArray(result.weakSpots) ? result.weakSpots.slice(0, 3) : [];
+        if (missed.length) {
+            const label = document.createElement('p'); label.textContent = 'Concepts to strengthen:';
+            const list = document.createElement('ul'); list.className = 'teachback-misses';
+            missed.forEach((value) => { const item = document.createElement('li'); item.textContent = String(value).slice(0, 120); list.append(item); });
+            const saved = document.createElement('p'); saved.className = 'teachback-saved';
+            saved.textContent = incognito ? 'Weak Spots aren’t saved while Incognito mode is on.' : 'Saved to Weak Spots for spaced review.';
+            card.append(label, list, saved);
+        }
+        if (result.nextStep) { const hint = document.createElement('p'); hint.className = 'teachback-hint'; hint.textContent = `Hint: ${String(result.nextStep).slice(0, 300)}`; card.append(hint); }
+    }
+    function restoreChatArtifacts(bubble, message) {
+        if (Array.isArray(message.sources) && message.sources.length && !bubble.querySelector('.answer-sources')) {
+            bubble.insertAdjacentHTML('beforeend', sourcePanelHTML(message.sources));
+        }
+        let tail = bubble;
+        if (message.visual?.type === 'concept-map' && Array.isArray(message.visual.nodes)) {
+            const visual = document.createElement('section'); visual.className = 'visual-card';
+            renderVisualCard(visual, message.visual, 'Saved concept map. Select a node to expand its detail.');
+            tail.after(visual); tail = visual;
+        }
+        if (message.teachback?.type === 'assessment') {
+            const teachback = document.createElement('section');
+            renderSavedTeachback(teachback, message.teachback);
+            tail.after(teachback);
+        }
+    }
+    function fallbackVisual(question, reply) {
+        const clean = String(reply || '').replace(/```[\s\S]*?```/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#*_`>]/g, '').replace(/\s+/g, ' ').trim();
+        const sentences = clean.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
+        const nodes = [{ label: 'Start with the question', detail: question.slice(0, 170) }];
+        sentences.forEach((detail, i) => nodes.push({ label: i === 0 ? 'Core idea' : `Connection ${i}`, detail: detail.slice(0, 180) }));
+        if (nodes.length < 3) nodes.push({ label: 'Check the connection', detail: 'Explain how the main idea leads to the result.' });
+        return { type: 'concept-map', title: 'A quick map of the explanation', nodes: nodes.slice(0, 4) };
+    }
+    function renderVisualCard(card, data, note) {
+        card.innerHTML = '';
+        const title = document.createElement('h3'); title.textContent = String(data.title || 'Explore the idea').slice(0, 100);
+        const intro = document.createElement('p'); intro.textContent = note || 'Select a step or move the slider to follow the connection.';
+        const nodes = (Array.isArray(data.nodes) ? data.nodes : []).map((node) => ({ label: String(node?.label || '').trim().slice(0, 70), detail: String(node?.detail || '').trim().slice(0, 200) })).filter((node) => node.label && node.detail).slice(0, 5);
+        if (nodes.length < 2) nodes.push(...fallbackVisual('', 'The main idea connects to its result.').nodes.slice(1));
+        const flow = document.createElement('ol'); flow.className = 'visual-flow'; flow.setAttribute('aria-label', 'Interactive concept diagram');
+        const detailId = `visual-detail-${Math.random().toString(36).slice(2, 9)}`;
+        const buttons = nodes.map((node, index) => {
+            const item = document.createElement('li'); item.className = 'visual-step';
+            const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-pressed', 'false'); button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', detailId);
+            const number = document.createElement('span'); number.className = 'visual-step-num'; number.textContent = String(index + 1);
+            const label = document.createElement('span'); label.className = 'visual-step-label'; label.textContent = node.label;
+            button.append(number, label); item.append(button); flow.append(item);
+            return button;
+        });
+        const current = document.createElement('div'); current.className = 'visual-current'; current.id = detailId; current.setAttribute('aria-live', 'polite');
+        const currentStep = document.createElement('b'); const currentDetail = document.createElement('span'); current.append(currentStep, currentDetail);
+        const rangeLabel = document.createElement('label'); rangeLabel.className = 'visual-range-label'; rangeLabel.textContent = 'Explore the steps';
+        const range = document.createElement('input'); range.className = 'visual-range'; range.type = 'range'; range.min = '1'; range.max = String(nodes.length); range.value = '1'; range.setAttribute('aria-label', 'Explore diagram steps'); rangeLabel.append(range);
+        const select = (value) => {
+            const index = Math.max(0, Math.min(nodes.length - 1, Number(value) - 1));
+            range.value = String(index + 1); range.setAttribute('aria-valuetext', `Step ${index + 1} of ${nodes.length}: ${nodes[index].label}`);
+            buttons.forEach((button, i) => { button.setAttribute('aria-pressed', String(i === index)); button.setAttribute('aria-expanded', String(i === index)); });
+            currentStep.textContent = `Step ${index + 1} of ${nodes.length} · ${nodes[index].label}`;
+            currentDetail.textContent = nodes[index].detail;
+        };
+        buttons.forEach((button, index) => button.addEventListener('click', () => select(index + 1)));
+        range.addEventListener('input', () => select(range.value));
+        select(1);
+        card.append(title, intro, flow, current, rangeLabel);
+    }
+    async function openVisual(enhancements, question, reply) {
+        const existing = replyFeatureCard(enhancements, '.visual-card');
+        if (existing) { existing.remove(); return; }
+        replyFeatureCard(enhancements, '.teachback-card')?.remove();
+        const card = document.createElement('section'); card.className = 'visual-card'; card.setAttribute('aria-label', 'Interactive explanation diagram');
+        const loading = document.createElement('p'); loading.setAttribute('role', 'status'); loading.textContent = 'Building a small concept map…'; card.append(loading); enhancements.after(card);
+        let diagram = fallbackVisual(question, reply), note = 'A quick map made from the explanation.';
+        try {
+            const result = await requestLearningFeature({ type: 'visual' }, [
+                { role: 'user', content: question.slice(0, 300) },
+                { role: 'assistant', content: reply.slice(0, 1800) },
+                { role: 'user', content: 'Create a small, ordered, interactive concept map of the explanation.' }
+            ]);
+            const visual = result.visual;
+            if (visual?.type === 'concept-map' && Array.isArray(visual.nodes) && visual.nodes.length >= 2) {
+                diagram = { type: 'concept-map', title: visual.title, nodes: visual.nodes };
+                note = 'Select a node to expand its detail, or use the slider to step through the idea.';
+            }
+        } catch (e) { /* a local text-based map remains useful if the feature request is unavailable */ }
+        if (!card.isConnected) return;
+        renderVisualCard(card, diagram, note);
+        if (enhancements._bubble) saveChatArtifact(enhancements._bubble, 'visual', diagram);
     }
     function regenerateLast() {
         if (pbBusy) return;

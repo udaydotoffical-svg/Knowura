@@ -77,6 +77,42 @@
         .followups { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
         .followups button { padding: 7px 12px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 13px; text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
         .followups button:hover { color: var(--cyan); }
+        .reply-enhancements { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px 34px; align-self: flex-start; max-width: 80%; }
+        .reply-enhancements button { min-height: 34px; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .reply-enhancements button:hover { color: var(--cyan); background: rgba(47,107,255,.2); }
+        .teachback-card, .visual-card { align-self: flex-start; width: calc(100% - 34px); max-width: min(80%, 680px); margin: 0 0 14px 34px; padding: 14px 16px; border: 2.5px solid var(--ink); border-radius: 14px; background: var(--panel-strong); color: var(--text); box-shadow: var(--shadow-sm); }
+        .teachback-card h3, .visual-card h3 { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
+        .teachback-card p, .visual-card p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+        .teachback-question { margin: 10px 0 4px !important; color: var(--cyan) !important; font-weight: 700; }
+        .teachback-transcript-label { margin-top: 10px !important; color: var(--cyan) !important; font-size: 10px !important; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+        .teachback-transcript { padding: 8px 10px; border-left: 3px solid var(--cyan); background: rgba(34,229,255,.06); color: var(--text) !important; overflow-wrap: anywhere; }
+        .teachback-input { display: block; width: 100%; min-height: 88px; margin: 12px 0 10px; padding: 10px 12px; resize: vertical; border: 2px solid var(--ink); border-radius: 9px; background: var(--dark); color: var(--text); font-size: 16px; line-height: 1.5; }
+        .teachback-input:focus-visible, .visual-range:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+        .teachback-submit { min-height: 36px; }
+        .teachback-result { margin-top: 12px; padding: 12px; border: 2px solid var(--ink); border-radius: 10px; background: rgba(34,229,255,.08); font-size: 13px; line-height: 1.5; }
+        .teachback-result b { display: block; margin-bottom: 4px; color: var(--cyan); text-transform: uppercase; letter-spacing: .4px; }
+        .teachback-hint { margin-top: 8px !important; padding-left: 10px; border-left: 3px solid var(--cyan); color: var(--text) !important; }
+        .teachback-misses { margin: 8px 0 0 18px; color: var(--text); }
+        .teachback-saved { margin-top: 8px !important; color: #19c37d !important; }
+        .visual-flow { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 0; list-style: none; }
+        .visual-step { position: relative; }
+        .visual-step:not(:last-child)::after { content: '↓'; position: absolute; z-index: 1; bottom: -12px; left: 19px; color: var(--cyan); font-size: 15px; line-height: 1; }
+        .visual-step button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 42px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 9px; background: var(--panel-strong); color: var(--text); text-align: left; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+        .visual-step button[aria-pressed="true"] { border-color: var(--cyan); background: rgba(34,229,255,.14); }
+        .visual-step-num { display: grid; flex: none; width: 26px; height: 26px; place-items: center; border: 2px solid var(--ink); border-radius: 7px; background: var(--blue); color: #fff; font-size: 12px; font-weight: 800; }
+        .visual-step-label { font-size: 13px; font-weight: 700; }
+        .visual-current { min-height: 48px; padding: 10px 12px; border-left: 3px solid var(--cyan); background: rgba(34,229,255,.06); color: var(--text); font-size: 13px; line-height: 1.5; }
+        .visual-current b { display: block; margin-bottom: 3px; color: var(--cyan); font-size: 10px; letter-spacing: .6px; text-transform: uppercase; }
+        .visual-range-label { display: block; margin: 10px 0 4px; color: var(--text-dim); font-size: 12px; font-weight: 700; }
+        .visual-range { width: 100%; accent-color: var(--cyan); }
+        .answer-sources { margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(143,166,204,.28); }
+        .answer-sources summary { color: var(--cyan); cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+        .answer-sources ol { display: grid; gap: 8px; margin: 8px 0 0 20px; padding: 0; }
+        .answer-sources li { padding-left: 2px; }
+        .answer-sources small { display: block; color: var(--text-dim); font-size: 11px; }
+        .answer-sources li p { margin: 3px 0 0; color: var(--text-dim); font-size: 12px; line-height: 1.4; }
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) { .reply-enhancements { margin-left: 26px; max-width: calc(100% - 26px); } .teachback-card, .visual-card { width: calc(100% - 26px); max-width: none; margin-left: 26px; padding: 12px; } }
+        html.term .teachback-card, html.term .visual-card, html.term .teachback-input, html.term .visual-step button { border-radius: 2px !important; }
         .study-strip { display: none; align-items: center; gap: 10px; margin: 0 0 8px; padding: 6px 8px 6px 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(34, 229, 255, 0.1); box-shadow: var(--shadow-sm); font-size: 12.5px; line-height: 1.35; }
         .study-strip.on { display: flex; }
         .study-strip img { width: 36px; height: 36px; flex: none; border-radius: 50%; }
@@ -97,7 +133,7 @@
 
         /* ─── RETRO PACK: press-into-shadow buttons, CRT scanlines, pixel burst, green terminal mode (Konami code) ─── */
         .btn-ui:not(:disabled):active, .pb-pick:not(:disabled):active, .suggestion-chip:active, .menu-item:active, .menu-nav:active, .choice-pill:active, .chip:active,
-        .followups button:active, .reply-tools button:active, button.streak-chip:active, .q-opt:not(:disabled):active, .suggest button:active, .msg-actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+        .followups button:active, .reply-tools button:active, .reply-enhancements button:active, button.streak-chip:active, .q-opt:not(:disabled):active, .suggest button:active, .msg-actions button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
         html.crt::after { content: ''; position: fixed; inset: 0; z-index: 2147483100; pointer-events: none;
             background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.16) 3px), radial-gradient(120% 100% at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.35) 100%); }
         html.crt:not(.term) body { text-shadow: 0 0 6px rgba(34, 229, 255, 0.18); }

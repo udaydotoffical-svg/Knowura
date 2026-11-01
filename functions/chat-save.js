@@ -10,6 +10,7 @@
 const { getPlatformStore } = require('./_lib/_store');
 const { verify } = require('./_lib/_userToken');
 const { json, guard, readJson, cleanStr, isPlainObject, rateLimit, tooMany } = require('./_lib/_util');
+const { sanitizeTeachbackPayload, sanitizeVisualPayload } = require('./_lib/_study');
 
 const MAX_BODY_BYTES = 4.3 * 1024 * 1024;  // under Vercel's 4.5MB request cap
 const MAX_DOC_BYTES = 4 * 1024 * 1024;
@@ -21,6 +22,24 @@ function store() {
 
 const num = (v) => (Number.isFinite(v) ? Math.max(0, Math.min(v, 8.64e15)) : 0);
 
+function cleanSources(value) {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set(), out = [];
+    for (const item of value.slice(0, 4)) {
+        if (!isPlainObject(item)) continue;
+        const title = cleanStr(item.title, 180);
+        const snippet = cleanStr(item.snippet, 500) ?? '';
+        let url;
+        try {
+            url = new URL(cleanStr(item.url, 2048, 1));
+            if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || seen.has(url.href)) continue;
+        } catch (e) { continue; }
+        seen.add(url.href);
+        out.push({ title: title || url.hostname, url: url.href, host: url.hostname, snippet });
+    }
+    return out;
+}
+
 function cleanChat(c) {
     if (!isPlainObject(c)) return null;
     const id = cleanStr(c.id, 60, 1);
@@ -29,7 +48,14 @@ function cleanChat(c) {
     for (const m of (Array.isArray(c.messages) ? c.messages.slice(-MAX_MESSAGES) : [])) {
         const text = isPlainObject(m) ? cleanStr(m.text, MAX_TEXT) : null;
         if (text === null || (m.type !== 'user' && m.type !== 'ai')) continue;
-        messages.push({ text, type: m.type });
+        const message = { text, type: m.type };
+        const sources = cleanSources(m.sources);
+        if (sources.length) message.sources = sources;
+        const visual = sanitizeVisualPayload(m.visual);
+        if (visual) message.visual = visual;
+        const teachback = sanitizeTeachbackPayload(m.teachback);
+        if (teachback) message.teachback = teachback;
+        messages.push(message);
     }
     return { id, title: cleanStr(c.title, 160) ?? 'Chat', createdAt: num(c.createdAt), updatedAt: num(c.updatedAt), messages };
 }

@@ -10,6 +10,12 @@ html.term .sidebar-backdrop { background: rgba(2, 7, 3, 0.6); }
 html.term .btn-ui:hover:not(:disabled) { background: rgba(25, 141, 64, 0.25); }
 html.term .ai { background: rgba(7, 27, 14, 0.75); }
 html.term .reply-tools button.on { background: rgba(24, 135, 61, 0.16); }
+html.term .reply-enhancements button:hover { background: rgba(25, 141, 64, 0.2); }
+html.term .teachback-transcript { background: rgba(24, 135, 61, 0.06); }
+html.term .teachback-result { background: rgba(24, 135, 61, 0.08); }
+html.term .teachback-saved { color: rgb(19, 230, 72) !important; }
+html.term .visual-step button[aria-pressed="true"] { background: rgba(24, 135, 61, 0.14); }
+html.term .visual-current { background: rgba(24, 135, 61, 0.06); }
 html.term .study-strip { background: rgba(24, 135, 61, 0.1); }
 html.term .pb-pick.on { background: rgba(24, 135, 61, 0.16); }
 html.term .pxburst i { background: var(--c, rgb(24, 135, 61)); }

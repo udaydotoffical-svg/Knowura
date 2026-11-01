@@ -123,6 +123,18 @@
         list.push({ id, front: q.question, back: q.options[q.answer] + (q.explanation ? ' (' + q.explanation + ')' : ''), box: 0, due: Date.now() });
         kwStore.set('knowura_weak', list.slice(-80));
     }
+    function weakAddConcept(concept, hint, context) {
+        if (typeof incognito !== 'undefined' && incognito) return false;
+        const front = String(concept || '').trim().slice(0, 180);
+        if (!front) return false;
+        const id = 't' + [...front.toLowerCase()].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
+        const back = [hint ? `Hint: ${String(hint).trim().slice(0, 240)}` : '', context ? `Review: ${String(context).trim().slice(0, 320)}` : ''].filter(Boolean).join('\n\n') || 'Review this idea in your own words.';
+        const list = weakList().filter((w) => w.id !== id);
+        list.push({ id, front, back, box: 0, due: Date.now() });
+        kwStore.set('knowura_weak', list.slice(-80));
+        refreshStudyHome();
+        return true;
+    }
     function weakRate(wid, knew) {
         let list = weakList();
         const w = list.find((x) => x.id === wid);
