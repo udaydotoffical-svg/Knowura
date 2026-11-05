@@ -618,6 +618,6 @@ test('phone layout: full-bleed app, safe areas, compact cookie bar, landscape ph
     assert.match(pass, /\.cookie-banner \{\s*flex-direction: row;/);
     assert.match(pass, /#pbEffortBtn span, #pbStudyBtn span \{ display: none; \}/);
     assert.match(pass, /select \{ font-size: 16px; \}/, 'inputs are 16px so iOS does not zoom on focus');
-    assert.match(h, /\.pb-input \{[^}]*min-height: 26px;/);
+    assert.match(h, /\.pb-input \{[^}]*min-height: 44px;/);
     assert.ok(!h.includes('public/assets/audio'), 'no developer-only tip shown to users');
 });

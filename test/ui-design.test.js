@@ -46,6 +46,33 @@ test('prompt picker chips use the design system black outline and hard shadow', 
     assert.match(picker[1], /box-shadow:\s*2px 2px 0 var\(--ink\)/);
 });
 
+test('prompt input stays full width above controls in keyboard-shortened layouts', () => {
+    const field = html.match(/\.pb-field\s*\{([^}]+)\}/);
+    const input = html.match(/\.pb-input\s*\{([^}]+)\}/);
+    const toolbar = html.match(/\.pb-bar\s*\{([^}]+)\}/);
+    assert.ok(field && input && toolbar, 'prompt field, text area, and toolbar rules should exist');
+    assert.match(field[1], /flex-flow:\s*column nowrap/);
+    assert.match(field[1], /align-items:\s*stretch/);
+    assert.match(input[1], /width:\s*100%/);
+    assert.match(input[1], /min-width:\s*0/);
+    assert.match(input[1], /min-height:\s*44px/);
+    assert.match(input[1], /font-size:\s*max\(16px, calc\(16px \* var\(--kw-text, 1\)\)\)/);
+    assert.match(toolbar[1], /width:\s*100%/);
+    const promptMarkup = html.slice(html.indexOf('<div class="pb-field" id="pbField">'), html.indexOf('</div>\n                        </div>', html.indexOf('<div class="pb-field" id="pbField">')));
+    assert.ok(promptMarkup.indexOf('<textarea id="userInput"') < promptMarkup.indexOf('<div class="pb-bar">'), 'the full-width textarea remains above the toolbar');
+    assert.doesNotMatch(html, /@media \(max-height: 500px\) and \(pointer: coarse\) \{[\s\S]*?\.pb-field\s*\{[^}]*flex-direction:\s*row/, 'short viewports must not place the textarea beside its controls');
+    assert.match(html, /@media \(pointer: coarse\) \{[\s\S]*?\.pb-pick\s*\{[^}]*min-width:\s*44px; min-height:\s*44px; height:\s*44px/);
+    assert.match(html, /\.pb-attach\s*\{[^}]*width:\s*44px; min-width:\s*44px/);
+    assert.match(html, /\.pb-send\s*\{[^}]*width:\s*44px; height:\s*44px/);
+    assert.match(html, /#pbEffortBtn, #pbStudyBtn \{ min-width: 44px; \}/);
+});
+
+test('prompt Beam keeps its mode colors and still respects reduced motion', () => {
+    assert.match(html, /\.prompt-bar\.ultra\s*\{[^}]*--pb-beam-a:\s*#ff244f; --pb-beam-b:\s*#ff684d/);
+    assert.match(html, /\.prompt-glow::after\s*\{[^}]*animation:\s*promptBeamOrbit 6s linear infinite/);
+    assert.match(html, /@media \(prefers-reduced-motion: reduce\) \{\s*\.pb-menu \{ animation: none; \}\s*\.pb-effort-fill, \.pb-effort-thumb \{[^}]*\}\s*\.prompt-glow::after \{ animation: none; opacity: \.6; \}\s*\}/);
+});
+
 test('learning additions use sanitized sources, typed feature payloads, and Weak Spots persistence', () => {
     assert.match(html, /function sourcePanelHTML\(sources, searchInfo = \{\}\)/);
     assert.match(html, /sourcePanelHTML\(data\.sources, searchInfo\)/);

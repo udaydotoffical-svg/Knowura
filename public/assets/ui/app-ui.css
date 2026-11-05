@@ -358,7 +358,12 @@
             background: linear-gradient(180deg, transparent, rgba(4,8,18,0.45));
             padding-bottom: max(14px, env(safe-area-inset-bottom)); /* clear the home-indicator area on notched phones */
         }
-        .prompt-bar { position: relative; width: 100%; max-width: 820px; }
+        .prompt-bar { position: relative; width: 100%; max-width: 820px; --pb-beam-a: var(--cyan); --pb-beam-b: var(--blue); }
+        .prompt-bar.ultra {
+            --pb-spark: #ff3057; --pb-beam-a: #ff244f; --pb-beam-b: #ff684d;
+            --pb-beam-halo-a: rgba(255,48,87,.36); --pb-beam-halo-b: rgba(255,104,77,.26);
+        }
+        @property --pb-beam-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 
         .prompt-glow {
             border: 2.5px solid var(--ink);
@@ -372,10 +377,25 @@
                 inset 0 0 28px rgba(110,190,255,0.10);
             transition: border-color 0.15s ease;
         }
-        .prompt-glow:focus-within { border-color: var(--cyan); }
         .prompt-glow .pb-inner { overflow: visible; }
+        .prompt-glow::after {
+            content: ''; position: absolute; inset: 0; z-index: 2; padding: 3px; border-radius: inherit; pointer-events: none;
+            background: conic-gradient(from var(--pb-beam-angle), transparent 0deg 262deg,
+                color-mix(in srgb, var(--pb-beam-a) 22%, transparent) 282deg,
+                var(--pb-beam-a) 312deg, var(--pb-beam-b) 340deg, transparent 360deg);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+            filter: drop-shadow(0 0 6px color-mix(in srgb, var(--pb-beam-a) 72%, transparent));
+            opacity: .95; animation: promptBeamOrbit 6s linear infinite;
+        }
+        .prompt-glow:focus-within { border-color: var(--pb-beam-a); }
+        .prompt-bar.ultra .prompt-glow::before {
+            background: radial-gradient(60% 140% at 50% 100%, var(--pb-beam-halo-a), transparent 70%),
+                        radial-gradient(60% 140% at 50% 0%, var(--pb-beam-halo-b), transparent 70%);
+        }
+        @keyframes promptBeamOrbit { to { --pb-beam-angle: 1turn; } }
 
-        .pb-field { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 10px; cursor: text; border-radius: inherit; }
+        .pb-field { position: relative; isolation: isolate; display: flex; flex-flow: column nowrap; align-items: stretch; min-width: 0; gap: 8px; padding: 12px 14px 10px; cursor: text; border-radius: inherit; }
         .pb-field::before {
             content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
             background: radial-gradient(140% 120% at 0% 100%, color-mix(in srgb, var(--pb-spark) 30%, transparent), transparent 62%);
@@ -391,13 +411,13 @@
         .pb-sparks { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
 
         .pb-input {
-            display: block; width: 100%; padding: 2px 0; border: 0; background: transparent; color: var(--text);
-            font-size: calc(16px * var(--kw-text, 1)); /* 16px stops iOS Safari auto-zooming on focus */
-            font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden; min-height: 26px;
+            display: block; flex: 0 0 auto; width: 100%; min-width: 0; padding: 10px 0; border: 0; background: transparent; color: var(--text);
+            font-size: max(16px, calc(16px * var(--kw-text, 1))); /* 16px stops iOS Safari auto-zooming on focus */
+            font-weight: 500; line-height: 22px; resize: none; outline: none; overflow-wrap: anywhere; overflow-y: hidden; min-height: 44px;
         }
         .pb-input::placeholder { color: var(--text-dim); }
 
-        .pb-bar { display: flex; align-items: center; gap: 6px; }
+        .pb-bar { display: flex; align-items: center; width: 100%; min-width: 0; gap: 6px; }
         .pb-spacer { flex: 1 1 auto; }
 
         .pb-pick {
@@ -502,6 +522,7 @@
         @media (prefers-reduced-motion: reduce) {
             .pb-menu { animation: none; }
             .pb-effort-fill, .pb-effort-thumb { transition: background-color 300ms ease; }
+            .prompt-glow::after { animation: none; opacity: .6; }
         }
 
 
