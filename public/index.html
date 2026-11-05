@@ -1842,6 +1842,35 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         html.lite .pb-menu, html.lite .model-dd-menu, html.lite .music-panel, html.lite .cookie-banner { background: var(--panel-strong) !important; }
         html.lite #startup, html.lite .sidebar-backdrop, html.lite .hamburger-panel, html.lite .owner-modal { background: rgba(3,6,14,0.92) !important; }
 
+        /* Keep the ocean photo clear and recognizable on phones, including low-performance tiers. */
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
+            html:not(.light):not(.term) { --panel: rgba(18,34,68,0.18); --panel-strong: rgba(9,18,40,0.34); }
+            html.lite:not(.light):not(.term) { --panel: rgba(12,24,52,0.50) !important; --panel-strong: rgba(9,18,40,0.66) !important; }
+            html:not(.light):not(.term) body,
+            html.balanced:not(.light):not(.term) body,
+            html.lite:not(.light):not(.term) body {
+                background-image: linear-gradient(180deg, rgba(3,6,16,0.02), rgba(3,6,16,0.10)), url('assets/images/background.jpg');
+                background-position: center center;
+                background-size: cover;
+            }
+            html:not(.light):not(.term) #startup,
+            html.balanced:not(.light):not(.term) #startup,
+            html.lite:not(.light):not(.term) #startup {
+                background: rgba(3,6,14,0.12) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            html:not(.light):not(.term) .glass-card {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            html:not(.light):not(.term) .chat-container,
+            html:not(.light):not(.term) .sidebar {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+        }
+
         /* ─── FIRST-VISIT INTRO (autoplaying welcome video, once per browser) ──── */
         #kw-intro {
             position: fixed; inset: 0; z-index: 9999;
