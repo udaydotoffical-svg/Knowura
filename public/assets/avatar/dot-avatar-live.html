@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; worker-src 'none'; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Dot voice avatar — 3D expressions</title>
+<meta name="description" content="Interactive 3D expression preview for the original Dot robot avatar">
+<style>
+:root{color-scheme:dark;--ink:#f7f8fc;--muted:#a7b2c7;--blue:#5c8dff;--line:rgba(220,230,255,.14)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(ellipse at 50% 38%,#152644 0%,#0c172b 44%,#070c16 100%)}
+button{font:inherit;color:inherit}.app-shell{position:relative;width:100%;height:100%;height:100svh;min-height:360px;overflow:hidden;isolation:isolate}
+#model-stage{position:absolute;inset:0;z-index:0;overflow:hidden;background:radial-gradient(ellipse at 50% 48%,rgba(74,115,188,.17),transparent 45%)}
+#model-stage:after{content:"";position:absolute;inset:auto 0 0;height:32%;pointer-events:none;background:linear-gradient(0deg,rgba(7,12,22,.22),transparent)}
+.app-shell #model-stage>canvas.dv-canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block;outline:none;touch-action:none;z-index:1}
+.dv-bar,.dv-credit,.dv-hint{display:none!important}
+.topbar{position:absolute;z-index:3;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:24px 30px;pointer-events:none}
+.brand{pointer-events:auto;display:flex;align-items:center;gap:12px}.brand-mark{width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#89aaff,#4778fa);box-shadow:0 8px 26px rgba(73,121,255,.3);display:grid;place-items:center;color:#081326;font-size:15px;font-weight:900;letter-spacing:-1px}
+.brand-copy{display:grid;gap:1px}.brand-name{font-size:13px;letter-spacing:.13em;font-weight:750;text-transform:uppercase}.brand-sub{font-size:12px;color:var(--muted)}
+.motion-toggle{pointer-events:auto;border:1px solid var(--line);border-radius:999px;background:rgba(15,24,42,.72);backdrop-filter:blur(16px);padding:9px 13px;display:flex;align-items:center;gap:9px;font-size:12px;color:#dbe4f6;cursor:pointer;transition:none!important}
+.motion-toggle:hover{background:rgba(30,44,70,.9);border-color:rgba(203,219,255,.28)}.switch{width:29px;height:17px;padding:2px;border-radius:99px;background:#44516a;transition:none!important;display:inline-flex;align-items:center}.switch:before{content:"";width:13px;height:13px;border-radius:50%;background:#fff;transition:none!important}.motion-toggle.is-reduced .switch{background:#638fff}.motion-toggle.is-reduced .switch:before{transform:translateX(12px)}
+.state-console{position:absolute;z-index:3;left:50%;bottom:18px;transform:translateX(-50%);width:min(720px,calc(100vw - 40px));padding:18px 20px 16px;border:1px solid rgba(217,228,255,.16);border-radius:22px;background:rgba(11,19,34,.78);box-shadow:0 24px 80px rgba(0,0,0,.3);backdrop-filter:blur(24px)}
+.state-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}.state-title-wrap{min-width:0}.eyebrow{display:block;margin-bottom:4px;color:#90a5cc;font-size:10px;font-weight:750;letter-spacing:.15em;text-transform:uppercase}.state-title{margin:0;font-size:19px;line-height:1.2;letter-spacing:-.025em;font-weight:700}.state-description{margin:4px 0 0;color:#acb8ce;font-size:12px;line-height:1.4}.live-chip{display:flex;align-items:center;gap:7px;white-space:nowrap;color:#dce7fc;font-size:11px;padding:7px 10px;border:1px solid rgba(200,218,255,.12);border-radius:99px;background:rgba(255,255,255,.035)}.live-dot{width:7px;height:7px;border-radius:50%;background:#87aaff;box-shadow:0 0 12px rgba(103,151,255,.75)}
+.state-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.state-button{min-width:0;border:1px solid transparent;border-radius:12px;background:rgba(255,255,255,.055);padding:10px 8px;color:#b9c4d8;font-size:12px;font-weight:600;cursor:pointer;transition:none!important}.state-button:hover:not(:disabled){background:rgba(255,255,255,.1);color:#f7f8fc}.state-button.is-active{border-color:rgba(128,165,255,.57);background:rgba(91,137,255,.2);color:#fff;box-shadow:inset 0 0 0 1px rgba(110,153,255,.12)}.state-button:disabled{opacity:.55;cursor:wait}.state-button:focus-visible,.motion-toggle:focus-visible{outline:2px solid #a3bdff;outline-offset:3px}
+#da-msg{position:absolute;z-index:5;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;padding:10px 14px;border-radius:10px;background:rgba(6,11,20,.84);color:#f7f8fc;font-size:13px}#da-msg[hidden]{display:none}
+@media(max-width:600px){.topbar{padding:16px 16px}.brand{gap:9px}.brand-mark{width:31px;height:31px;border-radius:10px}.brand-name{font-size:11px}.brand-sub{font-size:11px}.motion-toggle{padding:8px 10px;gap:7px;font-size:11px}.state-console{width:calc(100vw - 24px);bottom:12px;padding:15px 13px 13px;border-radius:18px}.state-heading{margin-bottom:11px}.state-title{font-size:17px}.state-description{font-size:11px}.live-chip{font-size:10px;padding:6px 8px}.state-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.state-button{padding:10px 5px;font-size:11px;border-radius:11px}.state-button:nth-child(4){grid-column:1/2}.state-button:nth-child(5){grid-column:2/4}}
+@media(max-width:360px){.brand-sub{display:none}.motion-toggle{font-size:10px}.state-console{width:calc(100vw - 18px);padding:12px 10px}.state-button{font-size:10px;padding:9px 3px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+@media(max-width:600px){.state-button:nth-child(4),.state-button:nth-child(5){grid-column:auto!important}.state-button:nth-child(10){grid-column:2/3}}
+html.avatar-embed,html.avatar-embed body{width:100%;height:100%;overflow:hidden}
+html.avatar-embed body{background:transparent!important}
+html.avatar-embed .app-shell{width:100%;height:100%;height:100svh;min-height:0}
+html.avatar-embed #model-stage{background:transparent}
+html.avatar-embed #model-stage:after,html.avatar-embed .topbar,html.avatar-embed .state-console,html.avatar-embed #da-msg,html.avatar-embed .dv-bar,html.avatar-embed .dv-credit,html.avatar-embed .dv-hint{display:none!important}
+</style>
+<script>if(new URLSearchParams(location.search).get("embed")==="1")document.documentElement.classList.add("avatar-embed");</script>
+</head>
+<body>
+<div class="app-shell">
+  <div id="model-stage" aria-label="Three-dimensional Dot robot avatar preview"></div>
+  <header class="topbar">
+    <div class="brand" aria-label="Dot voice avatar expression preview">
+      <span class="brand-mark" aria-hidden="true">d.</span>
+      <span class="brand-copy"><span class="brand-name">Dot / Voice avatar</span><span class="brand-sub">3D expression preview</span></span>
+    </div>
+    <button class="motion-toggle" id="reduced-motion" type="button" aria-pressed="false" aria-label="Enable reduced motion">
+      <span class="switch" aria-hidden="true"></span><span>Reduced motion</span>
+    </button>
+  </header>
+  <section class="state-console" aria-label="Voice and microphone states">
+    <div class="state-heading">
+      <div class="state-title-wrap">
+        <span class="eyebrow">Avatar state</span>
+        <h1 class="state-title" id="state-title">Idle</h1>
+        <p class="state-description" id="state-description">At rest · warm and ready</p>
+      </div>
+      <span class="live-chip" aria-live="polite"><span class="live-dot" aria-hidden="true"></span><span id="state-live">Ready</span></span>
+    </div>
+    <div class="state-grid" role="group" aria-label="Choose a voice, microphone, or fallback state">
+      <button class="state-button" type="button" data-state="idle" aria-pressed="true" disabled>Idle</button>
+      <button class="state-button" type="button" data-state="listening" aria-pressed="false" disabled>Listening</button>
+      <button class="state-button" type="button" data-state="thinking" aria-pressed="false" disabled>Thinking</button>
+      <button class="state-button" type="button" data-state="speaking" aria-pressed="false" disabled>Speaking</button>
+      <button class="state-button" type="button" data-state="ultra" aria-pressed="false" disabled>Ultra Think</button>
+      <button class="state-button" type="button" data-state="starting" aria-pressed="false" disabled>Starting</button>
+      <button class="state-button" type="button" data-state="muted" aria-pressed="false" disabled>Muted</button>
+      <button class="state-button" type="button" data-state="mic-permission" aria-pressed="false" disabled>Mic permission</button>
+      <button class="state-button" type="button" data-state="mic-unavailable" aria-pressed="false" disabled>Mic unavailable</button>
+      <button class="state-button" type="button" data-state="text-fallback" aria-pressed="false" disabled>Text fallback</button>
+    </div>
+  </section>
+  <p id="da-msg" role="status">Loading your 3D avatar…</p>
+</div>
+<script type="application/json" id="da-state">{"shape":"robot","color":"2f6bff","finish":"vinyl","gender":"boy","hat":"grad","glasses":"round","extra":"none","face":"happy","mouth":"smile","blush":false,"lashes":false}</script>
+<script type="text/plain" data-license="three.js">The MIT License
+
+Copyright © 2010-2026 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</script>
+<script type="module" src="/assets/avatar/modules/boot.js"></script>
+<script>
+(function(){
+  const states = {
+    idle: {label:'Idle',face:'happy',mouth:'smile',desc:'At rest · warm and ready',live:'Ready'},
+    listening: {label:'Listening',face:'surprised',mouth:'o',desc:'Listening · focused on your voice',live:'Listening'},
+    thinking: {label:'Thinking',face:'sleepy',mouth:'none',desc:'Thinking · working through the request',live:'Thinking'},
+    speaking: {label:'Speaking',face:'happy',mouth:'grin',desc:'Speaking · sharing the answer',live:'Speaking'},
+    ultra: {label:'Ultra Think',face:'starry',mouth:'o',desc:'Ultra Think · exploring a deeper answer',live:'Ultra Think'},
+    starting: {label:'Starting',face:'dot',mouth:'none',desc:'Starting · preparing the voice session',live:'Starting'},
+    muted: {label:'Muted',face:'cool',mouth:'none',desc:'Muted · microphone input is off',live:'Muted'},
+    'mic-permission': {label:'Mic permission',face:'surprised',mouth:'none',desc:'Mic permission · waiting for access',live:'Permission'},
+    'mic-unavailable': {label:'Mic unavailable',face:'teary',mouth:'none',desc:'Mic unavailable · no microphone was found',live:'Unavailable'},
+    'text-fallback': {label:'Text fallback',face:'wink',mouth:'smile',desc:'Text fallback · continue by typing',live:'Text mode'}
+  };
+  const buttons = Array.from(document.querySelectorAll('.state-button'));
+  const title = document.getElementById('state-title');
+  const desc = document.getElementById('state-description');
+  const live = document.getElementById('state-live');
+  const reduced = document.getElementById('reduced-motion');
+  const stage = document.getElementById('model-stage');
+  const systemReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  let viewer = null, current = 'idle';
+  reduced.setAttribute('aria-pressed', systemReduced ? 'true' : 'false');
+  reduced.setAttribute('aria-label', systemReduced ? 'Reduced motion is on' : 'Enable reduced motion');
+  reduced.classList.toggle('is-reduced', systemReduced);
+  function choose(key){
+    const s = states[key]; if(!s) return;
+    current = key;
+    title.textContent = s.label; desc.textContent = s.desc; live.textContent = s.live;
+    stage.dataset.expression = s.face; stage.dataset.mouth = s.mouth;
+    stage.setAttribute('aria-label', 'Three-dimensional Dot robot in ' + s.label + ' expression');
+    buttons.forEach(b => { const active = b.dataset.state === key; b.setAttribute('aria-pressed', active ? 'true' : 'false'); b.classList.toggle('is-active', active); });
+    if(viewer) {
+      try { viewer.setExpression(s.face,s.mouth,key); }
+      catch(err) { console.error(err); }
+    }
+  }
+  buttons.forEach(b => b.addEventListener('click',()=>choose(b.dataset.state)));
+  reduced.addEventListener('click',()=>{
+    const on = reduced.getAttribute('aria-pressed') !== 'true';
+    reduced.setAttribute('aria-pressed', on ? 'true' : 'false');
+    reduced.setAttribute('aria-label', on ? 'Reduced motion is on' : 'Enable reduced motion');
+    reduced.classList.toggle('is-reduced', on);
+    if(viewer) viewer.setReducedMotion(on);
+  });
+  function ready(e){
+    viewer = e.detail || window.dotAvatarViewer;
+    if(!viewer) return;
+    buttons.forEach(b=>b.disabled=false);
+    viewer.setReducedMotion(systemReduced);
+    choose(current);
+  }
+  window.addEventListener('dot-avatar-ready',ready,{once:true});
+  if(window.dotAvatarViewer) ready({detail:window.dotAvatarViewer});
+})();
+</script>
+</body>
+</html>

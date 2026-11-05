@@ -1,0 +1,96 @@
+/* Live voice avatar only: retain the existing fallback until the Dot viewer is ready. */
+#orbWrap {
+    isolation: isolate;
+}
+#orbWrap #liveAvatarFrame {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(calc(1 + var(--lvl, 0) * .22 + var(--avatar-level, 0) * .22));
+    transform-origin: center;
+    transition: opacity .32s ease, transform .08s linear;
+}
+#orbWrap.dot-avatar-ready #liveAvatarFrame {
+    opacity: 1;
+}
+#orbWrap.dot-avatar-ready #liveOrb {
+    visibility: hidden;
+    opacity: 0;
+}
+#orbWrap .ring {
+    z-index: 2;
+}
+#orbWrap #ultraBadge {
+    z-index: 3;
+}
+#orbWrap.ultra #liveAvatarFrame {
+    filter: drop-shadow(0 0 38px rgba(255, 48, 87, .6));
+}
+
+/* The Dot is a visual voice indicator, not a second control surface. */
+#orbWrap #liveAvatarFrame,
+#liveAvatarFrame:focus {
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #livePanel,
+    #livePanel *,
+    #livePanel::before,
+    #livePanel::after,
+    #livePanel *::before,
+    #livePanel *::after,
+    #voiceView,
+    #voiceView *,
+    #voiceView::before,
+    #voiceView::after,
+    #voiceView *::before,
+    #voiceView *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+    #livePanel #liveAvatarFrame,
+    #livePanel #liveOrb,
+    #livePanel #orbWrap .ring,
+    #voiceView #liveAvatarFrame,
+    #voiceView #liveOrb,
+    #voiceView #orbWrap .ring,
+    #voiceView #bars i {
+        transform: none !important;
+    }
+}
+
+html.lite #livePanel,
+html.lite #livePanel *,
+html.lite #livePanel::before,
+html.lite #livePanel::after,
+html.lite #livePanel *::before,
+html.lite #livePanel *::after,
+html.lite #voiceView,
+html.lite #voiceView *,
+html.lite #voiceView::before,
+html.lite #voiceView::after,
+html.lite #voiceView *::before,
+html.lite #voiceView *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+}
+html.lite #livePanel #liveAvatarFrame,
+html.lite #livePanel #liveOrb,
+html.lite #livePanel #orbWrap .ring,
+html.lite #voiceView #liveAvatarFrame,
+html.lite #voiceView #liveOrb,
+html.lite #voiceView #orbWrap .ring,
+html.lite #voiceView #bars i {
+    transform: none !important;
+}

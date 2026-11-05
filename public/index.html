@@ -118,6 +118,8 @@
 
     <link rel="stylesheet" href="/assets/ui/theme-light.css">
     <link rel="stylesheet" href="/assets/ui/theme-term.css">
+    <link rel="stylesheet" href="/assets/ui/live-avatar.css">
+    <script src="/assets/ui/live-avatar.js" defer></script>
 </head>
 <body>
 <div id="boot" class="boot" aria-hidden="true">
@@ -5471,6 +5473,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     let callActive = false;
     let callMuted = false;
+    let callStarting = false, callAttempt = 0;
     let callState = 'idle'; // 'listening' | 'capturing' | 'processing' | 'speaking'
     let vadStream = null, vadCtx = null, vadAnalyser = null, vadData = null, vadRAF = null;
     let callRecorder = null, callChunks = [];
@@ -5494,17 +5497,35 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     async function startCall() {
-        if (callActive) return;
+        if (callActive || callStarting) return;
+        const attempt = ++callAttempt;
+        callStarting = true;
         setLiveStatus('Connecting…');
+        let stream;
         try {
-            vadStream = await navigator.mediaDevices.getUserMedia({
+            stream = await navigator.mediaDevices.getUserMedia({
                 audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
             });
         } catch (e) {
+            if (attempt !== callAttempt || !document.getElementById('livePanel').classList.contains('open')) return;
+            callStarting = false;
+            const unavailable = ['NotFoundError', 'DevicesNotFoundError', 'NotReadableError'].includes(e?.name);
+            const avatarState = unavailable ? 'mic-unavailable' : 'mic-permission';
+            setLiveStatus(unavailable ? 'Microphone unavailable' : 'Microphone permission denied');
+            window.KnowuraLiveAvatar?.setState(avatarState);
+            await new Promise(resolve => setTimeout(resolve, 850));
+            if (attempt !== callAttempt || !document.getElementById('livePanel').classList.contains('open')) return;
             showAlert("Microphone access is required for Live Mode.", "Microphone needed");
             closeLivePanel();
             return;
         }
+        if (attempt !== callAttempt || !document.getElementById('livePanel').classList.contains('open')) {
+            stream?.getTracks().forEach(track => track.stop());
+            if (attempt === callAttempt) callStarting = false;
+            return;
+        }
+        vadStream = stream;
+        callStarting = false;
         callActive = true;
         callMuted = false;
         updateCallControlsUI();
@@ -5537,6 +5558,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function endCall() {
+        callAttempt++;
+        callStarting = false;
         callActive = false;
         callState = 'idle';
         callMuted = false;
@@ -5550,6 +5573,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             try { callRecorder.stop(); } catch (e) { /* already stopped */ }
         }
         if (vadStream) { vadStream.getTracks().forEach(t => t.stop()); vadStream = null; }
+        window.KnowuraLiveAvatar?.setLevel(0);
         if (currentReplyAudio) { currentReplyAudio.pause(); currentReplyAudio = null; }
         document.getElementById('pttBtn')?.classList.remove('holding');
         setOrbState('idle');
@@ -5606,6 +5630,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             sumSquares += v * v;
         }
         const rms = Math.sqrt(sumSquares / vadData.length);
+        window.KnowuraLiveAvatar?.setLevel(Math.min(1, rms * 6));
 
         if (callState === 'listening' && rms > VAD_SPEECH_RMS) {
             beginCapture();
