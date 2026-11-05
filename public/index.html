@@ -482,6 +482,31 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         #chat-box::-webkit-scrollbar-thumb { background: var(--blue); border: 2px solid var(--ink); border-radius: 6px; }
         #chat-box::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
 
+        .chat-topic-hero {
+            position: relative; isolation: isolate; overflow: hidden;
+            display: flex; flex: 0 0 auto; flex-direction: column; justify-content: flex-end; align-self: center;
+            width: 100%; max-width: 1536px; min-height: 176px; aspect-ratio: 1536 / 266; margin: 0 0 8px;
+            padding: clamp(22px, 2vw, 32px) clamp(24px, 3.6vw, 56px);
+            border: 2px solid var(--ink); border-radius: 13px;
+            background: linear-gradient(90deg, rgba(4,8,18,.91) 0%, rgba(4,8,18,.75) 55%, rgba(4,8,18,.42) 100%),
+                        linear-gradient(0deg, rgba(4,8,18,.84), rgba(4,8,18,.06)),
+                        url("/assets/images/ocean-topic-bg.jpg") center 54% / cover no-repeat;
+            box-shadow: 4px 4px 0 var(--ink);
+        }
+        .chat-topic-hero::after { position: absolute; z-index: -1; content: ""; inset: 0; border-top: 1px solid rgba(34,229,255,.45); pointer-events: none; }
+        .chat-topic-hero-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--cyan); font: 400 12px/1.2 "Geist Pixel", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; text-transform: uppercase; }
+        .chat-topic-hero-kicker::before { content: ""; width: 7px; height: 7px; border: 1px solid var(--ink); background: var(--cyan); }
+        .chat-topic-hero h2 { max-width: 1100px; margin: 0; color: #f4f8ff; font: 400 clamp(28px, 2.7vw, 44px)/1.08 "Geist Pixel", ui-monospace, Menlo, Consolas, monospace; letter-spacing: -.035em; }
+        .chat-topic-hero p { max-width: 900px; margin: 10px 0 0; color: #d6e0ee; font-size: 16px; line-height: 1.45; }
+        html.light .chat-topic-hero-kicker { color: #006b82; }
+        html.light .chat-topic-hero-kicker::before { background: #006b82; }
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
+            .chat-topic-hero { min-height: 176px; aspect-ratio: auto; margin-bottom: 3px; padding: 18px; border-radius: 10px; background-position: center 56%; }
+            .chat-topic-hero-kicker { margin-bottom: 7px; font-size: 10px; }
+            .chat-topic-hero h2 { max-width: 100%; font-size: 24px; line-height: 1.16; }
+            .chat-topic-hero p { margin-top: 7px; font-size: 13px; line-height: 1.42; }
+        }
+
         .msg {
             position: relative; padding: 14px 20px; border-radius: 14px; max-width: 80%;
             font-size: calc(15px * var(--kw-text, 1)); line-height: 1.65; animation: fadeInUp 0.16s ease-out;
@@ -4792,6 +4817,15 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!chat || chat.messages.length === 0) {
             renderEmptyState();
         } else {
+            if ((chat.title || '').trim().toLowerCase() === 'ocean currents & climate') {
+                box.insertAdjacentHTML('beforeend', `
+                    <section class="chat-topic-hero" aria-labelledby="chatTopicHeroTitle">
+                        <div class="chat-topic-hero-kicker">Ocean science <span>·</span> guided thread</div>
+                        <h2 id="chatTopicHeroTitle">How ocean currents shape climate</h2>
+                        <p>A clearer picture of the planet’s moving heat.</p>
+                    </section>
+                `);
+            }
             chat.messages.forEach((m) => {
                 const bubble = addBubble(safeHtml(m.text), m.type, false);
                 restoreChatArtifacts(bubble, m);
