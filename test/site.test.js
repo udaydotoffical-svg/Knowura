@@ -21,6 +21,17 @@ test('the version shown in the app matches package.json', () => {
     assert.match(pkg.scripts.build, /write-version\.js/);
 });
 
+test('wallpaper variants and menu links use the requested photo credit and social accounts', () => {
+    const h = pub('index.html');
+    assert.match(h, /url\('assets\/images\/background\.jpg'\)/);
+    assert.match(h, /url\('assets\/images\/background-lite\.jpg'\)/);
+    for (const value of ['https://unsplash.com/@jensaber', 'CsMkikDbvcA', 'https://unsplash.com/license', 'https://www.instagram.com/knowura.ai/', 'https://youtube.com/@Knowura']) {
+        assert.ok(h.includes(value), `missing requested attribution or social link: ${value}`);
+    }
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background.jpg')));
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background-lite.jpg')));
+});
+
 test('incognito never writes to storage, memory or the cloud', () => {
     const h = pub('index.html');
     const fn = (name) => { const i = h.indexOf(name); return h.slice(i, i + 400); };
