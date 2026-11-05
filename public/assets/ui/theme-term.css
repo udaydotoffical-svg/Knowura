@@ -92,6 +92,16 @@ html.term .menu-item:hover { background: rgba(25, 141, 64, 0.15); }
 html.term input[type="range"].glass-slider { background: linear-gradient(90deg, rgba(24, 135, 61, 0.4), rgba(25, 141, 64, 0.15)); }
 html.term .owner-modal { background: rgba(2, 7, 3, 0.5); }
 html.term .owner-modal-divider::before, html.term .owner-modal-divider::after { background: rgba(55, 128, 79, 0.25); }
+html.term #startup { background: rgba(2, 7, 3, 0.68); }
+html.term #startup .glass-card.login-card { background: linear-gradient(145deg, rgba(7, 26, 13, 0.82), var(--panel-strong)); }
+html.term .login-story { background: linear-gradient(90deg, rgba(2, 10, 5, 0.48), rgba(2, 10, 5, 0.2)),
+                linear-gradient(180deg, rgba(2, 10, 5, 0.08) 0%, rgba(2, 10, 5, 0.22) 42%, rgba(2, 10, 5, 0.82) 100%),
+                url('/assets/images/background.jpg') center / cover no-repeat; }
+html.term .login-story-word { color: rgb(184, 249, 200); }
+html.term .login-story-sub { color: rgba(184, 249, 200, 0.8); }
+html.term .login-panel { background: linear-gradient(150deg, rgba(7, 26, 14, 0.38), rgba(2, 12, 6, 0.12)); }
+html.term .login-divider::before, html.term .login-divider::after { background: rgba(57, 134, 83, 0.3); }
+html.term .login-guest { background: linear-gradient(135deg, rgba(24, 135, 61, 0.08), rgba(11, 61, 27, 0.22)); }
 html.term pre, html.term code { background: rgb(86, 183, 118); }
 html.term body:not(.native) { background: radial-gradient(120% 90% at 50% 0%, rgb(11, 61, 27) 0%, rgb(3, 7, 4) 60%); }
 html.term .scrim::after { background: radial-gradient(closest-side, rgba(24, 135, 61, 0.28), rgba(27, 155, 70, 0.12) 55%, transparent 72%); }

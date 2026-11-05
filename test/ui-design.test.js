@@ -19,6 +19,26 @@ test('text-entry controls meet the design system 16px minimum', () => {
     assert.match(rule, /font-size:\s*16px/);
 });
 
+test('login redesign preserves auth controls and adapts to phones', () => {
+    const start = html.indexOf('<div id="startup">');
+    const end = html.indexOf('<div id="cookieBanner"', start);
+    assert.notEqual(start, -1, 'the startup screen should exist');
+    assert.ok(end > start, 'the login markup should have a bounded source block');
+    const login = html.slice(start, end);
+    assert.match(login, /class="login-story"/);
+    assert.match(login, /data-callback="onSignIn"/);
+    assert.match(login, /class="g_id_signin"[^>]*data-text="continue_with"/);
+    assert.match(login, /onclick="enterApp\('Guest'\)"/);
+    assert.match(login, /id="stayInput" checked/);
+    for (const href of ['/terms', '/privacy', '/eula']) assert.ok(login.includes(`href="${href}"`));
+    assert.match(html, /@media \(max-width: 760px\)[\s\S]*?#startup \.glass-card\.login-card/);
+    assert.equal((login.match(/class="login-story-mark"/g) || []).length, 1, 'the login shows one Knowura mark');
+    assert.doesNotMatch(login, /login-art|login-art-note|login-brand-mark|login-google-note|login-story-footer|login-eyebrow/, 'the login hero stays free of extra illustrations and micro-labels');
+    assert.match(html, /#startup:has\(\+ #cookieBanner:not\(\[hidden\]\)\)\s*\{\s*bottom:\s*calc\(88px \+ env\(safe-area-inset-bottom\)\);/, 'phone login reserves space above the existing cookie notice');
+    assert.match(html, /#startup \.legal-line \{[^}]*font-size: 12px/, 'legal copy meets the 12px caption minimum');
+    assert.match(html, /@media \(min-width: 761px\) and \(max-height: 760px\)[\s\S]*?#startup:has\(\+ #cookieBanner:not\(\[hidden\]\)\) \.login-story-copy \{ margin-bottom: 48px; \}/, 'short desktop login keeps the hero subtitle above the cookie notice');
+});
+
 test('prompt picker chips use the design system black outline and hard shadow', () => {
     const picker = html.match(/\.pb-pick\s*\{([^}]+)\}/);
     assert.ok(picker, 'prompt picker rule should exist');
