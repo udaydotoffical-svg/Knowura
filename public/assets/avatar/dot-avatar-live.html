@@ -30,9 +30,11 @@ button{font:inherit;color:inherit}.app-shell{position:relative;width:100%;height
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 @media(max-width:600px){.state-button:nth-child(4),.state-button:nth-child(5){grid-column:auto!important}.state-button:nth-child(10){grid-column:2/3}}
 html.avatar-embed,html.avatar-embed body{width:100%;height:100%;overflow:hidden}
-html.avatar-embed body{background:transparent!important}
-html.avatar-embed .app-shell{width:100%;height:100%;height:100svh;min-height:0}
-html.avatar-embed #model-stage{background:transparent}
+html.avatar-embed{color-scheme:light;background:transparent!important;background-color:transparent!important}
+html.avatar-embed body{background:transparent!important;background-color:transparent!important}
+html.avatar-embed .app-shell{width:100%;height:100%;height:100svh;min-height:0;background:transparent!important;background-color:transparent!important}
+html.avatar-embed #model-stage{background:transparent!important;background-color:transparent!important}
+html.avatar-embed #model-stage>canvas.dv-canvas{background:transparent!important;background-color:transparent!important}
 html.avatar-embed #model-stage:after,html.avatar-embed .topbar,html.avatar-embed .state-console,html.avatar-embed #da-msg,html.avatar-embed .dv-bar,html.avatar-embed .dv-credit,html.avatar-embed .dv-hint{display:none!important}
 </style>
 <script>if(new URLSearchParams(location.search).get("embed")==="1")document.documentElement.classList.add("avatar-embed");</script>

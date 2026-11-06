@@ -278,3 +278,288 @@ test('main VAD feeds mic level into the Dot and clears it when the call ends', (
     assert.match(html.slice(endStart, endEnd), /KnowuraLiveAvatar\?\.setLevel\(0\)/);
     assert.match(avatarCss, /var\(--lvl, 0\) \* \.22 \+ var\(--avatar-level, 0\) \* \.22/);
 });
+
+test('both voice surfaces keep the avatar layer transparent and remove decorative orbit rings', () => {
+    for (const file of ['index.html', 'assistant.html']) {
+        const html = pub(file);
+        assert.doesNotMatch(html, /class="ring(?:\s|\")/);
+    }
+    assert.match(avatarCss, /background:\s*transparent\s*!important/);
+    assert.match(avatarCss, /#orbWrap \.ring[\s\S]*?display:\s*none\s*!important/);
+    assert.match(runtimeHtml, /html\.avatar-embed body\{background:transparent!important;background-color:transparent!important\}/);
+    assert.match(runtimeHtml, /html\.avatar-embed\{color-scheme:light;background:transparent!important;background-color:transparent!important\}/);
+    assert.match(runtimeHtml, /html\.avatar-embed #model-stage>canvas\.dv-canvas\{background:transparent!important;background-color:transparent!important\}/);
+    const viewer = fs.readFileSync(path.join(moduleDir, 'viewer.js'), 'utf8');
+    assert.match(viewer, /renderer\.setClearColor\(0x000000, 0\)/);
+    assert.match(viewer, /renderer\.setClearAlpha\?\.\(0\)/);
+    assert.match(viewer, /const embedMode = doc\.documentElement\.classList\.contains\('avatar-embed'\)/);
+    assert.match(viewer, /if \(!embedMode\)[\s\S]*?scene\.add\(ground\)/);
+});
+
+test('speech mouth input comes from measured playback waveform instead of synthetic word timing', () => {
+    for (const file of ['index.html', 'assistant.html']) assert.match(pub(file), /attachSpeechAudio\(/);
+    assert.match(avatarJs, /analyser\.getByteTimeDomainData\(samples\)/);
+    assert.match(avatarJs, /const rms = Math\.sqrt\(sum \/ samples\.length\)/);
+    const viewer = fs.readFileSync(path.join(moduleDir, 'viewer.js'), 'utf8');
+    assert.match(viewer, /live playback envelope, not a guessed word\/viseme animation/);
+    assert.match(viewer, /function setSpeechLevel\(value\)/);
+    assert.doesNotMatch(viewer, /const rhythm = 0\.5 \+ 0\.5 \* Math\.sin/);
+});
+
+test('performance Lite keeps playback-level mouth motion while actual reduced motion suppresses it', () => {
+    const h = makeHarness();
+    const frame = h.wrap.frame;
+    const reducedCalls = [], liteCalls = [], speechLevels = [];
+    frame.contentWindow.dotAvatarViewer = {
+        setExpression() {},
+        setReducedMotion(value) { reducedCalls.push(value); },
+        setPerformanceLite(value) { liteCalls.push(value); },
+        setSpeechLevel(value) { speechLevels.push(value); },
+        dispose() {}
+    };
+    h.message({ type: 'knowura-live-avatar-ready', ok: true, instance: h.instanceOf(frame) });
+    h.document.documentElement.classList.add('lite');
+    h.trigger(h.document.documentElement);
+    h.api.setState('speaking');
+    h.api.setSpeechLevel(.62);
+    assert.deepEqual(reducedCalls, [false, false]);
+    assert.deepEqual(liteCalls, [false, true]);
+    assert.equal(speechLevels.at(-1), .62);
+
+    h.changeMotion(true);
+    h.api.setSpeechLevel(.45);
+    assert.deepEqual(reducedCalls, [false, false, true]);
+    assert.equal(speechLevels.at(-1), 0);
+
+    const viewer = fs.readFileSync(path.join(moduleDir, 'viewer.js'), 'utf8');
+    assert.match(viewer, /const amount = reducedPresentation \? 0 : performanceLite[\s\S]*?animationState === 'speaking' \? 1 : 0/);
+    assert.match(viewer, /function setSpeechLevel\(value\)[\s\S]*?speechLevel = reducedPresentation \|\| !Number\.isFinite\(level\)/);
+    assert.match(avatarJs, /viewer\.setPerformanceLite\?\.\(performanceLite\(\)\)/);
+});
+
+test('main voice TTS media errors clean the analyser/audio and return to listening', () => {
+    const html = pub('index.html');
+    const start = html.indexOf('    async function speakReply(text) {');
+    const end = html.indexOf('    // ─── LIVE CAPTIONS', start);
+    const fn = html.slice(start, end);
+    assert.match(fn, /finished\.onerror\s*=\s*\(\)\s*=>\s*finishPlayback\(finished\.error/);
+    assert.match(fn, /if \(activeReplyAnalyserCleanup === unhook\) activeReplyAnalyserCleanup = null/);
+    assert.match(fn, /finished\.removeAttribute\('src'\)/);
+    assert.match(fn, /finished\.load\(\)/);
+    assert.match(fn, /if \(callActive\) enterListeningState\(\); else setOrbState\('idle'\)/);
+    assert.match(fn, /let playbackFinished = false/);
+});
+
+test('voice haptics respect the saved preference, user activation, platform support, and stronger mode', () => {
+    const h = makeHarness();
+    const pulses = [];
+    let now = 1000;
+    let preference = 'off';
+    h.window.navigator = {
+        userActivation: { hasBeenActive: true },
+        vibrate(pattern) { pulses.push([...pattern]); return true; }
+    };
+    h.window.performance = { now: () => now };
+    h.window.localStorage = { getItem(key) { assert.equal(key, 'knowura_settings'); return JSON.stringify({ haptics: preference }); } };
+
+    assert.equal(h.api.hapticEvent('speech-start'), false);
+    assert.equal(pulses.length, 0);
+    preference = 'on';
+    now += 100;
+    assert.equal(h.api.hapticEvent('speech-start'), true);
+    assert.deepEqual(pulses.at(-1), [12, 22, 8]);
+    preference = 'max';
+    now += 100;
+    assert.equal(h.api.hapticEvent('interrupt'), true);
+    assert.deepEqual(pulses.at(-1), [41, 28, 19]);
+    h.changeMotion(true);
+    now += 100;
+    assert.equal(h.api.hapticEvent('speech-end'), false);
+    assert.equal(pulses.length, 2);
+    h.changeMotion(false);
+    h.window.navigator.userActivation.hasBeenActive = false;
+    now += 100;
+    assert.equal(h.api.hapticEvent('speech-end'), false);
+    h.window.navigator.userActivation.hasBeenActive = true;
+    h.window.navigator.vibrate = undefined;
+    assert.equal(h.api.hapticEvent('speech-end'), false);
+});
+
+test('speech analysis is optional without AudioContext and direct playback remains available', async () => {
+    const h = makeHarness();
+    let plays = 0;
+    const audio = { play() { plays++; return Promise.resolve('played'); } };
+    assert.equal(h.api.attachSpeechAudio(audio), null);
+    assert.equal(await audio.play(), 'played');
+    assert.equal(plays, 1);
+});
+
+test('suspended AudioContexts are not allowed to capture TTS playback', async () => {
+    const h = makeHarness();
+    let created = 0, captures = 0, resumes = 0, ownedCloses = 0, suppliedCloses = 0, plays = 0;
+    h.window.AudioContext = class {
+        constructor() { created++; this.state = 'suspended'; this.destination = {}; }
+        resume() { resumes++; return new Promise(() => {}); }
+        close() { ownedCloses++; return Promise.resolve(); }
+        createMediaElementSource() { captures++; throw new Error('must not capture a suspended source'); }
+    };
+    const supplied = {
+        state: 'suspended', destination: {},
+        resume() { resumes++; return new Promise(() => {}); },
+        close() { suppliedCloses++; return Promise.resolve(); },
+        createMediaElementSource() { captures++; throw new Error('must not capture a suspended source'); }
+    };
+    const audio = { play() { plays++; return Promise.resolve('played'); } };
+    assert.equal(h.api.attachSpeechAudio(audio), null);
+    assert.equal(h.api.attachSpeechAudio(audio, supplied), null);
+    assert.equal(created, 1);
+    assert.equal(captures, 0);
+    assert.equal(resumes, 0);
+    assert.equal(ownedCloses, 1);
+    assert.equal(suppliedCloses, 0);
+    assert.equal(await audio.play(), 'played');
+    assert.equal(plays, 1);
+});
+
+test('analyser setup failure reconnects a captured source directly to output', () => {
+    const h = makeHarness();
+    const destination = {};
+    const connected = [];
+    const source = {
+        connect(target) { connected.push(target); },
+        disconnect() {}
+    };
+    const audio = {
+        paused: true, ended: false,
+        addEventListener() {}, removeEventListener() {}
+    };
+    const context = {
+        state: 'running', destination,
+        createMediaElementSource(value) { assert.equal(value, audio); return source; },
+        createAnalyser() { throw new Error('analyser unavailable'); }
+    };
+    const cleanup = h.api.attachSpeechAudio(audio, context);
+    assert.equal(typeof cleanup, 'function');
+    assert.deepEqual(connected, [destination]);
+    cleanup();
+});
+
+test('audio analyser passes clamped live RMS levels to the speaking Dot and clears on cleanup', () => {
+    const h = makeHarness();
+    const frame = h.wrap.frame;
+    const levels = [];
+    frame.contentWindow.dotAvatarViewer = {
+        setExpression() {},
+        setSpeechLevel(value) { levels.push(value); },
+        setReducedMotion() {},
+        dispose() {}
+    };
+    h.message({ type: 'knowura-live-avatar-ready', ok: true, instance: h.instanceOf(frame) });
+    h.api.setState('speaking');
+    h.window.requestAnimationFrame = () => 1;
+    h.window.cancelAnimationFrame = () => {};
+
+    const listeners = new Map();
+    const audio = {
+        paused: false,
+        ended: false,
+        addEventListener(name, fn) { listeners.set(name, fn); },
+        removeEventListener(name) { listeners.delete(name); },
+        fire(name) { listeners.get(name)?.(); }
+    };
+    const source = { connect() {}, disconnect() {} };
+    const analyser = {
+        fftSize: 0,
+        smoothingTimeConstant: 0,
+        connect() {},
+        disconnect() {},
+        getByteTimeDomainData(samples) { samples.fill(192); }
+    };
+    const context = {
+        state: 'running', destination: {},
+        createMediaElementSource(value) { assert.equal(value, audio); return source; },
+        createAnalyser() { return analyser; }
+    };
+    const observed = [];
+    const cleanup = h.api.attachSpeechAudio(audio, context, (value) => observed.push(value));
+    assert.equal(typeof cleanup, 'function');
+    assert.equal(analyser.fftSize, 512);
+    audio.fire('play');
+    assert.ok(Math.abs(observed[0] - 0.5) < 0.0001);
+    assert.ok(Math.abs(levels.at(-1) - 0.5) < 0.0001);
+    cleanup();
+    assert.equal(levels.at(-1), 0);
+    assert.equal(listeners.size, 0);
+});
+
+test('legacy voice images are hidden from first paint, including loading and failed states', () => {
+    for (const file of ['index.html', 'assistant.html']) {
+        const image = pub(file).match(/<img\b[^>]*id="liveOrb"[^>]*>/)?.[0] || '';
+        assert.match(image, /style="visibility:hidden"/);
+        assert.match(image, /aria-hidden="true"/);
+    }
+    // An unconditional rule keeps both initial loading and a real WebGL failure
+    // from resurrecting the previous GIF, while visibility preserves its layout.
+    const rule = avatarCss.match(/#orbWrap #liveOrb\s*\{([^}]+)\}/)?.[1] || '';
+    assert.match(rule, /visibility:\s*hidden/);
+    assert.match(rule, /opacity:\s*0/);
+    assert.doesNotMatch(rule, /display:\s*none/);
+});
+
+test('the iframe remains non-painting until ready and matches the transparent embed color scheme', () => {
+    const hidden = avatarCss.match(/#orbWrap #liveAvatarFrame\s*\{([^}]+)\}/)?.[1] || '';
+    const visible = avatarCss.match(/#orbWrap\.dot-avatar-ready #liveAvatarFrame\s*\{([^}]+)\}/)?.[1] || '';
+    assert.match(hidden, /visibility:\s*hidden/);
+    assert.match(hidden, /opacity:\s*0/);
+    assert.match(hidden, /background:\s*transparent\s*!important/);
+    assert.match(hidden, /color-scheme:\s*light/);
+    assert.match(visible, /visibility:\s*visible/);
+    assert.match(visible, /opacity:\s*1/);
+    assert.match(runtimeHtml, /html\.avatar-embed\{color-scheme:light/);
+});
+
+test('Dot state and motion are applied while hidden, and close hides it before disposal', () => {
+    for (const assistant of [false, true]) {
+        const h = makeHarness({ assistant });
+        const frame = h.wrap.frame;
+        const applied = [];
+        frame.contentWindow.dotAvatarViewer = {
+            setExpression() {
+                assert.equal(h.wrap.classList.contains('dot-avatar-ready'), false);
+                applied.push('expression');
+            },
+            setReducedMotion() {
+                assert.equal(h.wrap.classList.contains('dot-avatar-ready'), false);
+                applied.push('motion');
+            },
+            dispose() {
+                assert.equal(h.wrap.classList.contains('dot-avatar-ready'), false);
+                assert.equal(h.api.isReady(), false);
+                applied.push('dispose');
+            }
+        };
+        h.message({ type: 'knowura-live-avatar-ready', ok: true, instance: h.instanceOf(frame) });
+        assert.deepEqual(applied, ['expression', 'motion']);
+        assert.equal(h.wrap.classList.contains('dot-avatar-ready'), true);
+        h.panel.classList.remove('open');
+        h.trigger(h.panel);
+        assert.equal(applied.at(-1), 'dispose');
+        assert.equal(frame.getAttribute('src'), null);
+    }
+});
+
+test('a startup timeout stays hidden and cannot be revealed by a late ready message', () => {
+    const h = makeHarness();
+    const frame = h.wrap.frame;
+    const instance = h.instanceOf(frame);
+    frame.contentWindow.dotAvatarViewer = { setExpression() {}, setReducedMotion() {} };
+    const timeout = [...h.timeouts.values()].find(({ delay }) => delay === 20000);
+    assert.ok(timeout);
+    timeout.callback();
+    assert.equal(h.wrap.classList.contains('dot-avatar-failed'), true);
+    assert.equal(h.wrap.classList.contains('dot-avatar-ready'), false);
+    assert.equal(frame.getAttribute('src'), null);
+    h.message({ type: 'knowura-live-avatar-ready', ok: true, instance });
+    assert.equal(h.api.isReady(), false);
+    assert.equal(h.wrap.classList.contains('dot-avatar-ready'), false);
+});

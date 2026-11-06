@@ -1889,6 +1889,12 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             scroll-behavior: auto !important;
         }
         html.lite .orb-gif { filter: none !important; }
+        /* Auto/Lite desktop must not bury the local ocean photo under an 86% veil.
+           Match the phone's photo-facing panels only; controls keep their stronger backing. */
+        html.lite:not(.light):not(.term) .chat-container,
+        html.lite:not(.light):not(.term) .sidebar:not(.owner-mode) {
+            background-color: rgba(12,24,52,0.50);
+        }
         html.lite .aura-glow::before,
         html.lite .pb-field::before, html.lite .pb-field::after, html.lite .pb-sparks, html.lite .glass-card::before { display: none !important; }
         html.lite .prompt-glow { box-shadow: 5px 5px 0 var(--ink) !important; background: var(--panel-strong) !important; }
@@ -2218,10 +2224,8 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             <div id="livePanel" class="live-panel">
                 <button class="live-close" onclick="closeLivePanel()" title="End call"><svg class="icon"><use href="#icon-x"/></svg></button>
                 <div id="orbWrap" class="orb-wrap">
-                    <div class="ring ring1"></div>
-                    <div class="ring ring2"></div>
                     <div id="ultraBadge" class="ultra-badge" style="display:none;"><svg class="icon"><use href="#icon-bolt"/></svg> Ultra</div>
-                    <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
+                    <img id="liveOrb" class="orb-gif" alt="" aria-hidden="true" style="visibility:hidden">
                 </div>
                 <div id="liveStatus" class="live-status" role="status" aria-live="polite" aria-atomic="true">Connecting…</div>
                 <div id="liveTranscript" class="live-transcript" role="status" aria-live="polite" aria-atomic="true" aria-label="Voice transcript"></div>
@@ -3190,6 +3194,10 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         if (panelOpen) {
             // Mid-call: treat it as "grab its attention" — interrupt if it's talking, then listen
             if (callState === 'speaking' && currentReplyAudio) {
+                window.KnowuraLiveAvatar?.hapticEvent('interrupt');
+                activeReplyAnalyserCleanup?.();
+                activeReplyAnalyserCleanup = null;
+                window.KnowuraLiveAvatar?.setSpeechLevel(0);
                 currentReplyAudio.pause();
                 currentReplyAudio = null;
             }
@@ -5471,6 +5479,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     let orbFlashTimer = null;
     let audioCtx = null;
     let currentReplyAudio = null;
+    let activeReplyAnalyserCleanup = null;
 
     function setOrbState(state) {
         currentOrbState = state;
@@ -5599,6 +5608,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         vadData = new Uint8Array(vadAnalyser.frequencyBinCount);
 
         enterListeningState();
+        window.KnowuraLiveAvatar?.hapticEvent('listening-start');
         flashOrbOnce(ORB_INTRO_GIF, 1500); // one-time "booting up" intro, then settles into idle/listening
         if (settings.voiceMode === 'seamless') vadLoop();
     }
@@ -5619,6 +5629,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function endCall() {
+        const interruptedSpeech = callState === 'speaking' && currentReplyAudio && !currentReplyAudio.paused && !currentReplyAudio.ended;
         callAttempt++;
         callStarting = false;
         callActive = false;
@@ -5635,6 +5646,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
         if (vadStream) { vadStream.getTracks().forEach(t => t.stop()); vadStream = null; }
         window.KnowuraLiveAvatar?.setLevel(0);
+        if (interruptedSpeech) window.KnowuraLiveAvatar?.hapticEvent('interrupt');
+        activeReplyAnalyserCleanup?.();
+        activeReplyAnalyserCleanup = null;
+        window.KnowuraLiveAvatar?.setSpeechLevel(0);
         if (currentReplyAudio) { currentReplyAudio.pause(); currentReplyAudio = null; }
         document.getElementById('pttBtn')?.classList.remove('holding');
         setOrbState('idle');
@@ -5748,6 +5763,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         callState = 'speaking';
         setOrbState('thinking');
         setLiveStatus('Generating voice…');
+        let finishTtsPlayback = null;
         try {
             const res = await fetch("/.netlify/functions/speak", {
                 method: "POST",
@@ -5766,17 +5782,41 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             setLiveStatus('Speaking…');
             if (settings.captionsEnabled) playCaptions(text, currentReplyAudio);
             const unhook = hookAnalyser(currentReplyAudio);
+            activeReplyAnalyserCleanup = unhook;
             const finished = currentReplyAudio;
-            currentReplyAudio.onended = () => {
+            let playbackFinished = false;
+            const finishPlayback = (error = null) => {
+                if (playbackFinished) return;
+                playbackFinished = true;
                 unhook?.();
-                finished.removeAttribute('src'); // drop the base64 audio data
-                finished.load();
+                if (activeReplyAnalyserCleanup === unhook) activeReplyAnalyserCleanup = null;
+                const ownsPlayback = currentReplyAudio === finished;
+                if (!ownsPlayback) return;
+                window.KnowuraLiveAvatar?.setSpeechLevel(0);
+                if (error) console.warn('TTS playback failed:', error);
+                clearCaptionTimer();
+                try { finished.removeAttribute('src'); finished.load(); }
+                catch (cleanupError) { console.warn('TTS audio cleanup failed:', cleanupError); }
                 currentReplyAudio = null;
                 if (callActive) enterListeningState(); else setOrbState('idle');
             };
-            await currentReplyAudio.play();
+            finishTtsPlayback = finishPlayback;
+            finished.onplaying = () => window.KnowuraLiveAvatar?.hapticEvent('speech-start');
+            finished.onended = () => {
+                window.KnowuraLiveAvatar?.hapticEvent('speech-end');
+                finishPlayback();
+            };
+            finished.onerror = () => finishPlayback(finished.error || new Error('Audio playback failed'));
+            await finished.play();
         } catch (e) {
+            if (finishTtsPlayback) {
+                finishTtsPlayback(e);
+                return;
+            }
             console.warn('TTS failed:', e);
+            activeReplyAnalyserCleanup?.();
+            activeReplyAnalyserCleanup = null;
+            window.KnowuraLiveAvatar?.setSpeechLevel(0);
             setOrbState('idle');
             setLiveStatus("Couldn't generate voice — check console for details");
             setTimeout(() => { if (callActive) enterListeningState(); }, 2200);
@@ -5840,32 +5880,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function hookAnalyser(audioEl) {
-        try {
-            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioCtx.createMediaElementSource(audioEl);
-            const analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 64;
-            source.connect(analyser);
-            analyser.connect(audioCtx.destination);
-            const unhook = () => { try { source.disconnect(); analyser.disconnect(); } catch (e) { /* already disconnected */ } };
-
-            const data = new Uint8Array(analyser.frequencyBinCount);
-            const orb = document.getElementById('liveOrb');
-
-            function tick() {
-                if (audioEl.paused || audioEl.ended) { if (orb) orb.style.transform = ''; return; }
-                analyser.getByteFrequencyData(data);
-                const avg = data.reduce((a, b) => a + b, 0) / data.length;
-                const scale = 1 + Math.min(0.09, avg / 1300);
-                if (orb) orb.style.transform = `scale(${scale.toFixed(3)})`;
-                requestAnimationFrame(tick);
-            }
-            tick();
-            return unhook;
-        } catch (e) {
-            // Analyser is a visual nicety only — playback still works without it.
-            console.warn('Audio analyser unavailable:', e);
-        }
+        const orb = document.getElementById('liveOrb');
+        return window.KnowuraLiveAvatar?.attachSpeechAudio(audioEl, audioCtx, (rms) => {
+            if (orb) orb.style.transform = `scale(${(1 + Math.min(0.09, rms * 0.45)).toFixed(3)})`;
+        }) || null;
     }
 
     // ─── PERFORMANCE (Full / Balanced / Lite + lag watchdog) ─────────────────────────────

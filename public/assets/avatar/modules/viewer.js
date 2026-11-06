@@ -548,6 +548,7 @@ function nextPaint(win) {
 
 export async function start(THREE, mods, STATE) {
   const doc = document, win = window;
+  const embedMode = doc.documentElement.classList.contains('avatar-embed');
   const catalog = (mods && mods.catalog) || {};
   const state = typeof catalog.normalize === 'function' ? catalog.normalize(STATE || {}) : (STATE || {});
   const text = typeof catalog.describe === 'function' ? catalog.describe(state) : 'a dot avatar';
@@ -569,6 +570,7 @@ export async function start(THREE, mods, STATE) {
   }
   renderer.setPixelRatio(Math.min(win.devicePixelRatio || 1, coarse ? 1.5 : 2));
   renderer.setClearColor(0x000000, 0);
+  renderer.setClearAlpha?.(0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping !== undefined ? THREE.NeutralToneMapping : THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
@@ -604,10 +606,12 @@ export async function start(THREE, mods, STATE) {
   scene.add(rim);
   scene.add(new THREE.HemisphereLight(0xf4f6ff, 0xe6dccd, 0.35));
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.ShadowMaterial({ opacity: 0.12 }));
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  if (!embedMode) {
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.ShadowMaterial({ opacity: 0.12 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+  }
   const contact = contactShadow(THREE, doc);
   holder.add(contact);
 
@@ -659,8 +663,10 @@ export async function start(THREE, mods, STATE) {
   let raf = 0, lastFrame = 0, clock = 0, cost = 0, minGap = 0, lost = false;
   let dragging = false, lastMove = 0;
   let reducedPresentation = reduced;
-  let motionOn = !reducedPresentation, motionAmt = motionOn ? 1 : 0;
+  let performanceLite = false;
+  let motionOn = !reducedPresentation && !performanceLite, motionAmt = motionOn ? 1 : 0;
   let animationState = 'idle';
+  let speechLevel = 0, mouthMotion = 0;
   let poseFace = null, mouthNode = null, mouthBaseScale = null;
   let eyeL = null, eyeR = null, eyeLRest = null, eyeRRest = null;
   let posePivot = null, pivotRestY = 0;
@@ -683,18 +689,25 @@ export async function start(THREE, mods, STATE) {
     }
   }
 
-  function animateState(t, motion) {
+  function animateState(t, motion, dt = 1 / 60) {
     if (!ch) return;
     cachePoseNodes();
-    const amount = reducedPresentation ? 0 : Math.max(0, Math.min(1, motion));
+    const amount = reducedPresentation ? 0 : performanceLite
+      ? (animationState === 'speaking' ? 1 : 0)
+      : Math.max(0, Math.min(1, motion));
     if (mouthNode && mouthBaseScale) {
       if (animationState === 'speaking' && amount > 0) {
-        const rhythm = 0.5 + 0.5 * Math.sin(t * TAU * 2.45 + 0.18 * Math.sin(t * TAU * 0.37));
-        const open = 0.12 + 1.38 * Math.pow(rhythm, 1.3);
+        // This is the live playback envelope, not a guessed word/viseme animation.
+        const target = Math.max(0, Math.min(1, (speechLevel - 0.012) / 0.14));
+        mouthMotion += (target - mouthMotion) * (1 - Math.exp(-dt * (target > mouthMotion ? 32 : 16)));
+        const open = 0.08 + 1.42 * mouthMotion;
         mouthNode.scale.x = mouthBaseScale.x * (1 + (0.94 + 0.06 * open - 1) * amount);
         mouthNode.scale.y = mouthBaseScale.y * (1 + (open - 1) * amount);
         mouthNode.scale.z = mouthBaseScale.z;
-      } else mouthNode.scale.copy(mouthBaseScale);
+      } else {
+        mouthMotion = 0;
+        mouthNode.scale.copy(mouthBaseScale);
+      }
     }
 
     const thinking = animationState === 'thinking' && amount > 0;
@@ -744,7 +757,7 @@ export async function start(THREE, mods, STATE) {
     if (Math.abs(mGoal - motionAmt) < 0.003) motionAmt = mGoal;
     clock += dt;
     ch.update(clock, motionAmt);
-    animateState(clock, motionAmt);
+    animateState(clock, motionAmt, dt);
     holder.rotation.y = view.yaw;
     placeCamera();
     const t0 = win.performance.now();
@@ -768,17 +781,19 @@ export async function start(THREE, mods, STATE) {
   }
 
   function setMotion(on) {
-    motionOn = !!on && !reducedPresentation;
+    motionOn = !!on && !reducedPresentation && !performanceLite;
     ui.motion.setAttribute('aria-pressed', motionOn ? 'true' : 'false');
     kick();
   }
 
   function setReducedMotion(on) {
     reducedPresentation = !!on;
-    motionOn = !reducedPresentation;
-    motionAmt = reducedPresentation ? 0 : motionAmt;
+    motionOn = !reducedPresentation && !performanceLite;
+    motionAmt = reducedPresentation || performanceLite ? 0 : motionAmt;
     ui.motion.setAttribute('aria-pressed', motionOn ? 'true' : 'false');
     if (reducedPresentation) {
+      speechLevel = 0;
+      mouthMotion = 0;
       view.vel = 0;
       view.yaw = view.yawGoal;
       view.pitch = view.pitchGoal;
@@ -791,6 +806,24 @@ export async function start(THREE, mods, STATE) {
       renderer.render(scene, camera);
       lastFrame = 0;
     } else kick();
+  }
+
+  function setPerformanceLite(on) {
+    performanceLite = !!on;
+    motionOn = !reducedPresentation && !performanceLite;
+    motionAmt = performanceLite || reducedPresentation ? 0 : motionAmt;
+    ui.motion.setAttribute('aria-pressed', motionOn ? 'true' : 'false');
+    if (performanceLite) {
+      view.vel = 0;
+      view.yaw = view.yawGoal;
+      view.pitch = view.pitchGoal;
+      view.zoom = view.zoomGoal;
+      if (ch) ch.update(clock, 0);
+      animateState(clock, 0);
+      placeCamera();
+      renderer.render(scene, camera);
+      lastFrame = 0;
+    } else if (!reducedPresentation) kick();
   }
 
   function setExpression(faceId, mouthId, stateId) {
@@ -812,6 +845,12 @@ export async function start(THREE, mods, STATE) {
     ch.update(clock, reducedPresentation ? 0 : motionAmt);
     animateState(clock, reducedPresentation ? 0 : motionAmt);
     kick();
+  }
+
+  function setSpeechLevel(value) {
+    const level = Number(value);
+    speechLevel = reducedPresentation || !Number.isFinite(level) ? 0 : Math.max(0, Math.min(1, level));
+    if (!reducedPresentation) kick();
   }
 
   let hintTimer = 0;
@@ -965,7 +1004,7 @@ export async function start(THREE, mods, STATE) {
   return {
     renderer, scene, camera,
     get character() { return ch; },
-    setMotion, setReducedMotion, setExpression, resetView,
+    setMotion, setReducedMotion, setPerformanceLite, setExpression, setSpeechLevel, resetView,
     dispose() {
       if (raf) win.cancelAnimationFrame(raf);
       raf = 0;

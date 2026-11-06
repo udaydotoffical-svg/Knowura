@@ -32,6 +32,25 @@ test('wallpaper variants and menu links use the requested photo credit and socia
     assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background-lite.jpg')));
 });
 
+test('Ocean wallpaper stays a local JPEG and Auto/Lite photo-facing panels stay translucent on desktop and phone', () => {
+    const h = pub('index.html');
+    for (const file of ['background.jpg', 'background-lite.jpg', 'ocean-topic-bg.jpg']) {
+        const image = fs.readFileSync(path.join(__dirname, '..', 'public/assets/images', file));
+        assert.deepEqual([...image.subarray(0, 3)], [0xff, 0xd8, 0xff], `${file} is a real standalone JPEG, not an embedded URL`);
+    }
+    const bodyRules = [...h.matchAll(/(?:^|\n)\s*(?:html\.(?:balanced|lite) )?body \{([^}]+)\}/g)].filter(([, css]) => /\bbackground\s*:/.test(css));
+    assert.equal(bodyRules.length, 3, 'default, Balanced, and Lite each retain a global wallpaper rule');
+    for (const [, css] of bodyRules) {
+        assert.match(css, /url\('assets\/images\/background(?:-lite)?\.jpg'\)/);
+        assert.doesNotMatch(css, /url\(['"]?(?:data:|https?:)/, 'wallpaper must resolve to the same-origin file');
+    }
+    const panels = h.match(/html\.lite:not\(\.light\):not\(\.term\) \.chat-container,\s*html\.lite:not\(\.light\):not\(\.term\) \.sidebar:not\(\.owner-mode\) \{([^}]+)\}/);
+    assert.ok(panels, 'the visibility rule applies across viewports, without changing light, terminal, owner mode, or controls');
+    assert.match(panels[1], /background-color: rgba\(12,24,52,0\.50\)/);
+    assert.doesNotMatch(panels[1], /--panel|backdrop-filter|background-image/, 'do not change controls, effects, or the image reference');
+    assert.match(h, /html\.lite:not\(\.light\):not\(\.term\) \{ --panel: rgba\(12,24,52,0\.50\)/, 'retain the existing phone Lite treatment');
+});
+
 test('incognito never writes to storage, memory or the cloud', () => {
     const h = pub('index.html');
     const fn = (name) => { const i = h.indexOf(name); return h.slice(i, i + 400); };

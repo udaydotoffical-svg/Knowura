@@ -1,6 +1,7 @@
-/* Live voice avatar only: retain the existing fallback until the Dot viewer is ready. */
+/* Keep the legacy image only as a hidden layout/state signal, never as a loading avatar. */
 #orbWrap {
     isolation: isolate;
+    background: transparent !important;
 }
 #orbWrap #liveAvatarFrame {
     position: absolute;
@@ -11,7 +12,10 @@
     height: 100%;
     padding: 0;
     border: 0;
-    background: transparent;
+    background: transparent !important;
+    background-color: transparent !important;
+    color-scheme: light;
+    visibility: hidden;
     opacity: 0;
     pointer-events: none;
     transform: scale(calc(1 + var(--lvl, 0) * .22 + var(--avatar-level, 0) * .22));
@@ -19,11 +23,21 @@
     transition: opacity .32s ease, transform .08s linear;
 }
 #orbWrap.dot-avatar-ready #liveAvatarFrame {
+    visibility: visible;
     opacity: 1;
 }
-#orbWrap.dot-avatar-ready #liveOrb {
+#orbWrap #liveOrb {
     visibility: hidden;
     opacity: 0;
+}
+/* Keep the 3D face clean: no blue orbit rings, halos, spinner, or aurora around Dot. */
+#orbWrap .ring,
+#orbWrap::before,
+#orbWrap::after,
+#voiceView.live-panel::before,
+#orbWrap.thinking::after {
+    display: none !important;
+    content: none !important;
 }
 #orbWrap .ring {
     z-index: 2;

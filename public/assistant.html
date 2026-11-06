@@ -218,9 +218,7 @@
         <button type="button" class="live-close" id="voiceX" title="Switch to text chat" aria-label="Switch to text chat"><svg class="icon"><use href="#icon-x"/></svg></button>
         <button type="button" class="btn-ui acct-voice" id="acctVoice" hidden></button>
         <div id="orbWrap" class="orb-wrap">
-            <div class="ring ring1"></div>
-            <div class="ring ring2"></div>
-            <img id="liveOrb" class="orb-gif" alt="Knowura avatar">
+            <img id="liveOrb" class="orb-gif" alt="" aria-hidden="true" style="visibility:hidden">
         </div>
         <div id="bars" class="bars" aria-hidden="true"></div>
         <div id="micCard" class="mic-card" hidden>
@@ -425,6 +423,7 @@ function showAlert(message) { window.__note && window.__note(message); }
     const suggestHTML = () => '<div class="suggest">' + SUGGEST.map((q) => '<button type="button" data-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>').join('') + '</div><div class="study-home" id="studyHome"></div>';
 
     let view = 'voice', msgs = [], chat = null, busy = false, ctrl = null, call = null, captionsOn = true, speakingAudio = null, lastReplyText = '';
+    let activeSpeechAnalyserCleanup = null;
     window.__note = (m) => addBubble('<p>' + escapeHtml(String(m)) + '</p>', 'ai', { err: true });
     let toastTimer = null;
     function toast(message, bad) {
@@ -815,6 +814,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>'; $('muteBtn').classList.remove('muted');
         $('orbWrap').querySelector('img').src = ORB_INTRO; setTimeout(() => { if (call === c && c.state === 'listening') orb('listening'); }, 1400);
         status('Listening…'); ui('listening');
+        window.KnowuraLiveAvatar?.hapticEvent('listening-start');
         return true;
     }
     window.knowuraLevel = (rms) => { if (call && call.native && call.state === 'listening') setLvl(Math.min(1, rms * 8).toFixed(3)); };
@@ -857,6 +857,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         $('muteBtn').innerHTML = '<svg class="icon"><use href="#icon-mic"/></svg>'; $('muteBtn').classList.remove('muted');
         $('orbWrap').querySelector('img').src = ORB_INTRO; setTimeout(() => { if (call === c && c.state === 'listening') orb('listening'); }, 1400);
         status('Listening…'); ui('listening');
+        window.KnowuraLiveAvatar?.hapticEvent('listening-start');
         c.timer = setInterval(() => tick(c), 50);
     }
     function tick(c) {
@@ -905,7 +906,13 @@ function showAlert(message) { window.__note && window.__note(message); }
     function backToListening(c) { if (c.dead || call !== c) return; c.state = 'listening'; if (c.native) { try { bridge.micArm(!c.muted); } catch (e) { /* gone */ } } status(c.muted ? 'Muted' : 'Listening…'); orb('listening'); }
 
     // ── speech out (also used by "read aloud") ──
-    function stopSpeaking() { if (speakingAudio) { try { speakingAudio.pause(); } catch (e) { /* gone */ } speakingAudio = null; } $('orbWrap').querySelector('img').style.transform = ''; }
+    function stopSpeaking() {
+        if (speakingAudio) { try { speakingAudio.pause(); } catch (e) { /* gone */ } speakingAudio = null; }
+        activeSpeechAnalyserCleanup?.();
+        activeSpeechAnalyserCleanup = null;
+        window.KnowuraLiveAvatar?.setSpeechLevel(0);
+        $('orbWrap').querySelector('img').style.transform = '';
+    }
     async function speak(text) {
         try {
             const res = await post('speak', { text, ownerToken, token: tok() });
@@ -926,7 +933,24 @@ function showAlert(message) { window.__note && window.__note(message); }
         const audio = speakingAudio = new Audio('data:' + (d.mimeType || 'audio/wav') + ';base64,' + d.audio);
         status('Speaking…'); orb('speaking');
         if (captionsOn) playCaptions(clean, audio);
-        await new Promise((ok) => { audio.onended = ok; audio.onerror = ok; audio.play().catch(ok); });
+        const unhook = window.KnowuraLiveAvatar?.attachSpeechAudio(audio, c.ctx) || null;
+        activeSpeechAnalyserCleanup = unhook;
+        await new Promise((ok) => {
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                unhook?.();
+                if (activeSpeechAnalyserCleanup === unhook) activeSpeechAnalyserCleanup = null;
+                window.KnowuraLiveAvatar?.setSpeechLevel(0);
+                ok();
+            };
+            audio.onplaying = () => window.KnowuraLiveAvatar?.hapticEvent('speech-start');
+            audio.onended = () => { window.KnowuraLiveAvatar?.hapticEvent('speech-end'); finish(); };
+            audio.onerror = finish;
+            audio.onpause = () => { if (!audio.ended) finish(); };
+            audio.play().catch(finish);
+        });
         speakingAudio = null; clearTimeout(captionTimer); $('liveTranscript').textContent = '';
     }
     let captionTimer = null;
@@ -941,6 +965,8 @@ function showAlert(message) { window.__note && window.__note(message); }
     }
     function endCall() {
         const c = call; if (!c) return;
+        const interruptedSpeech = c.state === 'speaking' && speakingAudio && !speakingAudio.paused && !speakingAudio.ended;
+        if (interruptedSpeech) window.KnowuraLiveAvatar?.hapticEvent('interrupt');
         call = null; c.dead = true; clearInterval(c.timer); clearTimeout(captionTimer);
         try { if (c.rec && c.rec.state !== 'inactive') { c.rec.onstop = null; c.rec.stop(); } } catch (e) { /* ignore */ }
         if (c.native) { try { bridge.micStop(); } catch (e) { /* gone */ } }

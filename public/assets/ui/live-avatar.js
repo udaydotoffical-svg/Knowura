@@ -15,6 +15,36 @@
         'mic-unavailable': { face: 'teary', mouth: 'none' },
         'text-fallback': { face: 'wink', mouth: 'smile' }
     });
+    const VOICE_HAPTICS = Object.freeze({
+        'listening-start': [9],
+        'speech-start': [12, 22, 8],
+        'speech-end': [7],
+        interrupt: [17, 28, 8]
+    });
+    let lastVoiceHaptic = 0;
+
+    function hapticEvent(name) {
+        const pattern = VOICE_HAPTICS[name];
+        const navigator = window.navigator;
+        if (!pattern || typeof navigator?.vibrate !== 'function') return false;
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return false;
+        let preference = 'on';
+        try {
+            preference = JSON.parse(window.localStorage?.getItem('knowura_settings') || '{}').haptics || 'on';
+        } catch (_) { /* unavailable storage keeps the default, optional cue */ }
+        if (preference === 'off' || (navigator.userActivation && !navigator.userActivation.hasBeenActive)) return false;
+        const now = window.performance?.now?.() ?? Date.now();
+        if (now - lastVoiceHaptic < 70) return false;
+        const pulse = preference === 'max'
+            ? pattern.map((duration, index) => index % 2 === 0 ? Math.round(duration * 2.4) : duration)
+            : pattern;
+        try {
+            const played = navigator.vibrate(pulse);
+            if (played === false) return false;
+            lastVoiceHaptic = now;
+            return true;
+        } catch (_) { return false; }
+    }
 
     function init() {
         const panel = document.getElementById('livePanel') || document.getElementById('voiceView');
@@ -31,9 +61,12 @@
         let generation = 0;
         let activeInstance = null;
         let requestedGifSrc = fallback.getAttribute('src') || '';
+        let speechLevel = 0;
 
         const media = window.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
-        const reducedMotion = () => !!media?.matches || document.documentElement.classList.contains('lite');
+        const reducedMotion = () => !!media?.matches;
+        const performanceLite = () => document.documentElement.classList.contains('lite');
+        const fallbackMotionReduced = () => reducedMotion() || performanceLite();
         const frameViewer = () => {
             try { return frame?.contentWindow?.dotAvatarViewer || null; }
             catch (_) { return null; }
@@ -45,9 +78,126 @@
             wrap.style.setProperty('--avatar-level', Number.isFinite(level) ? String(Math.max(0, Math.min(1, level))) : '0');
         }
 
-        function syncFallbackMotion() {
-            const source = fallback.getAttribute('src') || '';
-            if (reducedMotion()) {
+    function setSpeechLevel(value) {
+        const level = Number(value);
+        speechLevel = activeState === 'speaking' && !reducedMotion() && Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 0;
+        const viewer = ready ? frameViewer() : null;
+        try { viewer?.setSpeechLevel?.(speechLevel); }
+        catch (error) { console.warn('Speech level could not be applied to Dot:', error); }
+    }
+
+    function attachSpeechAudio(audio, suppliedContext, onLevel) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!audio || (!suppliedContext && !AudioContext)) return null;
+        let context = suppliedContext || null;
+        const ownsContext = !context;
+        let source = null, analyser = null, raf = 0, active = true;
+        let startListener = null, stopListener = null;
+        const closeOwnedContext = () => {
+            if (!ownsContext) return;
+            try { Promise.resolve(context?.close?.()).catch(() => {}); }
+            catch (_) { /* context may already be closed */ }
+        };
+        const reportLevel = (value) => {
+            setSpeechLevel(value);
+            try { onLevel?.(value); }
+            catch (error) { console.warn('Speech level callback failed:', error); }
+        };
+        const removeListeners = () => {
+            if (!startListener && !stopListener) return;
+            try {
+                if (startListener) {
+                    audio.removeEventListener('play', startListener);
+                    audio.removeEventListener('playing', startListener);
+                }
+                if (stopListener) {
+                    audio.removeEventListener('ended', stopListener);
+                    audio.removeEventListener('error', stopListener);
+                }
+            } catch (_) { /* partially installed or already removed */ }
+        };
+        try {
+            if (!context) context = new AudioContext();
+            // Creating a MediaElementAudioSourceNode diverts audio through Web Audio.
+            // Do not capture the element unless its context is already running: an
+            // asynchronous/blocked resume can otherwise silence direct TTS playback.
+            if (context.state !== 'running') {
+                closeOwnedContext();
+                return null;
+            }
+            source = context.createMediaElementSource(audio);
+            analyser = context.createAnalyser();
+            analyser.fftSize = 512;
+            analyser.smoothingTimeConstant = 0.18;
+            source.connect(analyser);
+                analyser.connect(context.destination);
+                const samples = new Uint8Array(analyser.fftSize);
+                const tick = () => {
+                raf = 0;
+                if (!active || audio.paused || audio.ended) {
+                    reportLevel(0);
+                    return;
+                }
+                analyser.getByteTimeDomainData(samples);
+                let sum = 0;
+                for (let i = 0; i < samples.length; i++) {
+                        const sample = (samples[i] - 128) / 128;
+                    sum += sample * sample;
+                }
+                const rms = Math.sqrt(sum / samples.length);
+                reportLevel(rms);
+                raf = window.requestAnimationFrame(tick);
+            };
+            const start = () => { if (active && !raf) tick(); };
+            const stopLevel = () => { reportLevel(0); };
+            startListener = start;
+            stopListener = stopLevel;
+            audio.addEventListener('play', start);
+            audio.addEventListener('playing', start);
+            audio.addEventListener('ended', stopLevel);
+            audio.addEventListener('error', stopLevel);
+            if (!audio.paused && !audio.ended) start();
+                return () => {
+                    if (!active) return;
+                active = false;
+                if (raf) window.cancelAnimationFrame(raf);
+                removeListeners();
+                reportLevel(0);
+                try { source.disconnect(); analyser.disconnect(); } catch (_) { /* already disconnected */ }
+                closeOwnedContext();
+            };
+        } catch (error) {
+            active = false;
+            if (raf) window.cancelAnimationFrame(raf);
+            removeListeners();
+            try { analyser?.disconnect(); } catch (_) { /* partial setup */ }
+            try { source?.disconnect(); } catch (_) { /* partial setup */ }
+            reportLevel(0);
+            if (source && context?.destination) {
+                try {
+                    // Once captured, the element no longer has its native output
+                    // route. If analysis fails, reconnect it directly so playback
+                    // remains audible without the analyser.
+                    source.connect(context.destination);
+                    console.warn('Speech analyser unavailable; direct playback routing retained:', error);
+                    return () => {
+                        try { source.disconnect(); } catch (_) { /* already disconnected */ }
+                        closeOwnedContext();
+                    };
+                } catch (fallbackError) {
+                    console.warn('Direct playback routing fallback failed:', fallbackError);
+                }
+            }
+            closeOwnedContext();
+            setSpeechLevel(0);
+            console.warn('Speech audio analysis unavailable:', error);
+            return null;
+        }
+    }
+
+    function syncFallbackMotion() {
+        const source = fallback.getAttribute('src') || '';
+            if (fallbackMotionReduced()) {
                 if (source && source !== STILL_FALLBACK) requestedGifSrc = source;
                 if (panel.classList.contains('open') && requestedGifSrc && source !== STILL_FALLBACK) {
                     fallback.setAttribute('src', STILL_FALLBACK);
@@ -63,8 +213,12 @@
             syncFallbackMotion();
             const viewer = ready ? frameViewer() : null;
             if (!viewer || typeof viewer.setReducedMotion !== 'function') return;
-            try { viewer.setReducedMotion(reducedMotion()); }
+            const reduceMotion = reducedMotion();
+            if (reduceMotion) setSpeechLevel(0);
+            try { viewer.setReducedMotion(reduceMotion); }
             catch (error) { console.warn('3D avatar motion preference could not be applied:', error); }
+            try { viewer.setPerformanceLite?.(performanceLite()); }
+            catch (error) { console.warn('3D avatar performance mode could not be applied:', error); }
         }
 
         function applyState() {
@@ -73,6 +227,7 @@
             if (!viewer || !expression || typeof viewer.setExpression !== 'function' || appliedState === activeState) return;
             try {
                 viewer.setExpression(expression.face, expression.mouth, activeState);
+                viewer.setSpeechLevel?.(activeState === 'speaking' ? speechLevel : 0);
                 appliedState = activeState;
             } catch (error) {
                 console.warn('3D avatar expression could not be applied:', error);
@@ -83,6 +238,7 @@
             if (!Object.prototype.hasOwnProperty.call(STATES, state)) return;
             activeState = state;
             wrap.dataset.avatarState = state;
+            if (state !== 'speaking') setSpeechLevel(0);
             if (state !== 'listening') setLevel(0);
             applyState();
         }
@@ -161,16 +317,18 @@
             loadTimer = 0;
             generation++;
             activeInstance = null;
+            ready = false;
+            appliedState = null;
+            wrap.classList.remove('dot-avatar-ready', 'dot-avatar-failed');
+            if (activeState === 'speaking') hapticEvent('interrupt');
             if (frame) {
                 const viewer = frameViewer();
                 try { viewer?.dispose?.(); }
                 catch (error) { console.warn('3D avatar cleanup failed:', error); }
                 frame.removeAttribute('src');
             }
-            ready = false;
-            appliedState = null;
             setLevel(0);
-            wrap.classList.remove('dot-avatar-ready', 'dot-avatar-failed');
+            setSpeechLevel(0);
         }
 
         window.addEventListener('message', (event) => {
@@ -190,11 +348,11 @@
             }
             ready = true;
             appliedState = null;
-            wrap.classList.remove('dot-avatar-failed');
-            wrap.classList.add('dot-avatar-ready');
             refreshState();
             applyState();
             applyMotionPreference();
+            wrap.classList.remove('dot-avatar-failed');
+            wrap.classList.add('dot-avatar-ready');
         });
 
         const stateObserver = new MutationObserver(refreshState);
@@ -218,6 +376,9 @@
         window.KnowuraLiveAvatar = Object.freeze({
             setState,
             setLevel,
+            setSpeechLevel,
+            attachSpeechAudio,
+            hapticEvent,
             getState: () => activeState,
             getLevel: () => Number(wrap.style.getPropertyValue('--avatar-level') || 0),
             isReady: () => ready,
