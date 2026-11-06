@@ -21,7 +21,7 @@ body {
     min-height: 100vh;
     background:
         linear-gradient(180deg, rgba(3,6,16,0.35), rgba(3,6,16,0.65)),
-        url('/assets/images/background-7810a662211f.jpg') no-repeat center center fixed;
+        url('/assets/images/ocean-topic-bg-440eadfff585.jpg') no-repeat center center fixed;
     background-size: cover;
     color: var(--text);
     font-family: 'Geist Pixel', 'Segoe UI', system-ui, sans-serif;

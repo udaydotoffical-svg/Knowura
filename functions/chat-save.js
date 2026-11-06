@@ -57,7 +57,7 @@ function cleanChat(c) {
         if (teachback) message.teachback = teachback;
         messages.push(message);
     }
-    return { id, title: cleanStr(c.title, 160) ?? 'Chat', createdAt: num(c.createdAt), updatedAt: num(c.updatedAt), messages };
+    return { id, title: cleanStr(c.title, 160) ?? 'Chat', ...(c.titleReady === false ? { titleReady: false } : {}), createdAt: num(c.createdAt), updatedAt: num(c.updatedAt), messages };
 }
 
 function cleanDoc(doc, sub) {

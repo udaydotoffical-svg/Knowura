@@ -211,7 +211,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             height: 100dvh; /* shrinks with the on-screen keyboard on mobile instead of getting covered by it */
             background:
                 linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)),
-                url('/assets/images/background-7810a662211f.jpg') no-repeat center center;
+                url('/assets/images/ocean-topic-bg-440eadfff585.jpg') no-repeat center center;
             background-size: cover;
             display: flex; align-items: center; justify-content: center;
             color: var(--text); overflow: hidden;
@@ -327,6 +327,12 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             box-shadow: var(--shadow-lg);
             display: flex; flex-direction: column; overflow: hidden;
             transition: width 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.2s ease, border-width 0.2s ease;
+        }
+        /* Keep Ocean glass clearer on desktop; phone surfaces stay unblurred below. */
+        html:not(.term):not(.balanced):not(.lite) .chat-container,
+        html:not(.term):not(.balanced):not(.lite) .sidebar:not(.owner-mode) {
+            backdrop-filter: blur(10px) saturate(140%);
+            -webkit-backdrop-filter: blur(10px) saturate(140%);
         }
         .sidebar.collapsed { width: 0; border-width: 0; box-shadow: none; opacity: 0; pointer-events: none; }
         .sidebar.owner-mode { background: var(--owner-bg); border-color: var(--owner); }
@@ -641,10 +647,10 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         /* ─── THEMES: dark (default) · light · terminal (unlocked with the Konami code). Colours come from the :root variables. ─── */
         html.light { --dark: #eaf1fc; --text: #0b1530; --text-dim: #4a5f85; --cyan: #0b7f9e; --blue: #2f6bff; --blue-deep: #1f4fd6; --panel: rgba(255, 255, 255, 0.72); --panel-strong: rgba(255, 255, 255, 0.94); --owner: #d4143a; color-scheme: light; }
         html.light body {
-            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat !important;
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat !important;
         }
         html.light.lite body {
-            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') center / cover no-repeat !important;
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat !important;
         }
         /* Keep the wallpaper visible through large Light surfaces; controls retain their existing backing. */
         html.light .chat-container,
@@ -655,10 +661,10 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         html.light .msg.user, html.light .choice-pill.selected, html.light .choice-pill.selected .choice-hint, html.light .btn-ui.cta, html.light .new-chat-btn, html.light .cookie-btn { color: #fff; }
         html.light .empty-logo, html.light .sidebar-logo, html.light .credits-logo { background: #0b1530; border-radius: 12px; padding: 8px 14px; }
         html.term { --dark: #000; --blue: #19a64a; --blue-deep: #063d1a; --cyan: #39ff6a; --text: #c9ffd6; --text-dim: #3fbf68; --panel: rgba(0, 28, 8, 0.9); --panel-strong: rgba(0, 20, 6, 0.96); --owner: #ffb000; }
-        html.term body { background: #000 !important; }
+        html.term body { background: #000 !important; background-image: none !important; }
         html.term .chat-topic-hero {
             background: linear-gradient(90deg, rgba(0,8,2,.84), rgba(0,8,2,.35)),
-                        url('/assets/images/background-7810a662211f.jpg') center / 960px auto repeat;
+                        url('/assets/images/background-7810a662211f.jpg') center / 960px auto repeat !important;
         }
         html.term *:not(svg):not(svg *):not(img) { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace !important; }
         html.term .msg, html.term button, html.term .prompt-bar, html.term .pb-inner, html.term input, html.term textarea, html.term .sheet, html.term .study-card { border-radius: 2px !important; }
@@ -1291,7 +1297,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             display: none; position: absolute; inset: 0; z-index: 60;
             background:
                 linear-gradient(180deg, rgba(3,6,16,0.55), rgba(3,6,16,0.78)),
-                url('/assets/images/background-7810a662211f.jpg') no-repeat center center;
+                url('/assets/images/ocean-topic-bg-440eadfff585.jpg') no-repeat center center;
             background-size: cover;
             backdrop-filter: blur(6px) saturate(140%);
             flex-direction: column; align-items: center; justify-content: center;
@@ -1446,6 +1452,13 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .menu-view.active.back { animation-name: menuInBack; }
         @keyframes menuInFwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
         @keyframes menuInBack { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+        .history-preview-copy { margin: 2px 0 8px; }
+        .history-preview-kicker { margin: 0 0 6px; color: var(--cyan); font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+        .history-preview-title { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.25; }
+        .history-preview-description { margin: 5px 0 0; color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+        .history-preview-frame { display: block; width: 100%; height: clamp(250px, 42vh, 360px); border: 2px solid var(--ink); border-radius: 16px; background: #0f172a; box-shadow: var(--shadow-sm); }
+        .history-preview-note { margin: 8px 2px 0; color: var(--text-dim); font-size: 11px; line-height: 1.45; }
+        @media (max-width: 480px) { .history-preview-frame { height: 42vh; min-height: 250px; } }
         .menu-nav {
             display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin-bottom: 8px;
             background: rgba(255,255,255,0.04); color: var(--text); border: 2.5px solid var(--ink); border-radius: 12px;
@@ -1869,7 +1882,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
            specular edge + soft gradient instead; blur stays only on the small prompt box
            and popups. The glow keeps its cursor-following ring but not the halo layers. */
         html.balanced body {
-            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') no-repeat center center;
+            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') no-repeat center center;
             background-size: cover;
         }
         html.balanced #startup, html.balanced .sidebar, html.balanced .chat-container, html.balanced .glass-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
@@ -1894,7 +1907,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         html.lite.light { --panel: rgba(255, 255, 255, 0.92) !important; --panel-strong: rgba(255, 255, 255, 0.98) !important; }
         html.lite.term { --panel: rgba(0, 28, 8, 0.94) !important; --panel-strong: rgba(0, 20, 6, 0.98) !important; }
         html.lite body {
-            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') no-repeat center center;
+            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') no-repeat center center;
             background-size: cover;
         }
         html.lite *, html.lite *::before, html.lite *::after {
@@ -1924,7 +1937,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             html:not(.light):not(.term) body,
             html.balanced:not(.light):not(.term) body,
             html.lite:not(.light):not(.term) body {
-                background-image: linear-gradient(180deg, rgba(3,6,16,0.02), rgba(3,6,16,0.10)), url('/assets/images/background-7810a662211f.jpg');
+                background-image: linear-gradient(180deg, rgba(3,6,16,0.02), rgba(3,6,16,0.10)), url('/assets/images/ocean-topic-bg-440eadfff585.jpg');
                 background-position: center center;
                 background-size: cover;
             }
@@ -1988,9 +2001,9 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             color: #eaf6ff; border-right: 2px solid var(--ink);
             background: linear-gradient(90deg, rgba(4, 9, 20, 0.48), rgba(4, 9, 20, 0.2)),
                 linear-gradient(180deg, rgba(4, 9, 20, 0.08) 0%, rgba(4, 9, 20, 0.22) 42%, rgba(4, 9, 20, 0.82) 100%),
-                url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat;
+                url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat;
         }
-        html.light .login-story { color: #eaf6ff; background: linear-gradient(90deg, rgba(4, 9, 20, 0.48), rgba(4, 9, 20, 0.2)), linear-gradient(180deg, rgba(4, 9, 20, 0.08) 0%, rgba(4, 9, 20, 0.22) 42%, rgba(4, 9, 20, 0.82) 100%), url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat; }
+        html.light .login-story { color: #eaf6ff; background: linear-gradient(90deg, rgba(4, 9, 20, 0.48), rgba(4, 9, 20, 0.2)), linear-gradient(180deg, rgba(4, 9, 20, 0.08) 0%, rgba(4, 9, 20, 0.22) 42%, rgba(4, 9, 20, 0.82) 100%), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat; }
         html.light .login-story-sub { color: rgba(234, 246, 255, 0.82); }
         .login-story-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 13px; }
         .login-story-mark { width: 38px; height: 38px; flex: none; display: grid; place-items: center; background: var(--cyan); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
@@ -2344,6 +2357,11 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                     <span class="menu-nav-text"><span class="menu-nav-title">About &amp; Legal</span><span class="menu-nav-sub" data-summary="about">Terms, privacy, EULA</span></span>
                     <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
                 </button>
+                <button type="button" class="menu-nav" onclick="showMenuView('history')">
+                    <svg class="icon nav-ico"><use href="#icon-code"/></svg>
+                    <span class="menu-nav-text"><span class="menu-nav-title">Our first version</span><span class="menu-nav-sub">Non-working preview · first GitHub commit</span></span>
+                    <svg class="icon nav-chev"><use href="#icon-arrow-right"/></svg>
+                </button>
                 <button type="button" class="menu-nav" onclick="showMenuView('credits')">
                     <svg class="icon nav-ico"><use href="#icon-bolt"/></svg>
                     <span class="menu-nav-text"><span class="menu-nav-title">Credits</span><span class="menu-nav-sub">Made by Uday with ♥️</span></span>
@@ -2519,6 +2537,16 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                         <span>Groq</span><span>Tavily</span><span>Google Sign-In</span><span>Vercel</span><span>marked</span><span>DOMPurify</span><span>SimpleWebAuthn</span><span>highlight.js</span><span>Devicon</span><span>Geist Pixel</span>
                     </div>
                 </div>
+            </div>
+
+            <div class="menu-view" data-view="history">
+                <div class="history-preview-copy">
+                    <div class="history-preview-kicker">First GitHub commit · Jan 10, 2026 · 2f198d7</div>
+                    <h2 class="history-preview-title">Look how far we’ve grown</h2>
+                    <p class="history-preview-description">A snapshot of Knowura’s earliest build, kept here for nostalgia.</p>
+                </div>
+                <iframe id="firstVersionFrame" class="history-preview-frame" src="/first-version/index.html" sandbox="" loading="lazy" referrerpolicy="no-referrer" title="Static historical preview of Knowura’s first version"></iframe>
+                <p class="history-preview-note" role="note">Static, non-working preview — sign-in and chat are intentionally disabled.</p>
             </div>
 
             <div class="menu-view" data-view="about">
@@ -2733,7 +2761,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
     }
 
     // ─── SETTINGS MENU NAVIGATION (main list → sub-menus) ─────────────────────
-    const MENU_TITLES = { main: 'Menu', appearance: 'Appearance', chat: 'Chat', memory: 'Memory & Data', voice: 'Voice', about: 'About & Legal', credits: 'Credits' };
+    const MENU_TITLES = { main: 'Menu', appearance: 'Appearance', chat: 'Chat', memory: 'Memory & Data', voice: 'Voice', about: 'About & Legal', credits: 'Credits', history: 'Our first version' };
     let menuView = 'main';
 
     function showMenuView(name, { focus = true } = {}) {
@@ -3546,6 +3574,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const chat = chatStore.chats.find(c => c.id === chatId);
             if (!chat) return; // chat was deleted while this was in flight
             chat.title = title;
+            chat.titleReady = true;
             syncChatTopicHeroTitle(chat);
             saveChatStore();
             renderChatList();
@@ -4829,7 +4858,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // chat (the default "land on empty state" resume mode relies on this: the
     // chat doesn't actually exist until you send something).
     function createChat() {
-        const chat = { id: makeChatId(), title: 'New Chat', createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
+        const chat = { id: makeChatId(), title: 'New Chat', titleReady: false, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
         chatStore.chats.unshift(chat);
         if (chatStore.chats.length > 40) chatStore.chats.length = 40; // oldest fall off the end
         chatStore.activeChatId = chat.id;
@@ -4875,7 +4904,18 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         return colon < 0 ? title : (title.slice(0, colon).trim() || title);
     }
 
+    function chatTopicHeroReady(chat) {
+        const title = String(chat?.title || '').trim();
+        return !!chat
+            && Array.isArray(chat.messages)
+            && chat.messages.some(message => message?.type === 'user')
+            && chat.titleReady !== false
+            && !!title
+            && title !== 'New Chat';
+    }
+
     function renderChatTopicHero(chat) {
+        if (!chatTopicHeroReady(chat)) return '';
         const title = chatTopicHeroTitle(chat);
         const subject = chatTopicHeroSubject(chat);
         return `
@@ -4889,6 +4929,16 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function syncChatTopicHeroTitle(chat) {
         if (!chat || chat.id !== chatStore.activeChatId) return;
+        const box = document.getElementById('chat-box');
+        let hero = box?.querySelector('.chat-topic-hero');
+        if (!chatTopicHeroReady(chat)) {
+            hero?.remove();
+            return;
+        }
+        if (!hero && box) {
+            box.insertAdjacentHTML('afterbegin', renderChatTopicHero(chat));
+            hero = box.querySelector('.chat-topic-hero');
+        }
         const heading = document.getElementById('chatTopicHeroTitle');
         if (heading) heading.textContent = chatTopicHeroTitle(chat);
         const subject = document.getElementById('chatTopicHeroSubject');
@@ -4902,9 +4952,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         conversationMessages = [];
         const chat = getActiveChat();
         if (!chat || chat.messages.length === 0) {
-            renderEmptyState(chat);
+            renderEmptyState();
         } else {
-            box.insertAdjacentHTML('beforeend', renderChatTopicHero(chat));
+            const hero = renderChatTopicHero(chat);
+            if (hero) box.insertAdjacentHTML('beforeend', hero);
             chat.messages.forEach((m) => {
                 const bubble = addBubble(safeHtml(m.text), m.type, false);
                 restoreChatArtifacts(bubble, m);
@@ -4929,7 +4980,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         { icon: 'icon-search', label: "What's new today", prompt: "What's the latest news today?" }
     ];
 
-    function renderEmptyState(chat = getActiveChat()) {
+    function renderEmptyState() {
         const box = document.getElementById('chat-box');
         box.innerHTML = `
             <div class="empty-state">
@@ -4946,7 +4997,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 <div class="study-home" id="studyHome"></div>
             </div>
         `;
-        box.insertAdjacentHTML('afterbegin', renderChatTopicHero(chat));
         refreshStudyHome();
     }
 
@@ -4958,8 +5008,6 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         let chat = getActiveChat();
         if (!chat) {
             chat = createChat();
-            const box = document.getElementById('chat-box');
-            if (box && !box.querySelector('.chat-topic-hero')) box.insertAdjacentHTML('afterbegin', renderChatTopicHero(chat));
         }
         const message = { text, type };
         if (type === 'ai' && Array.isArray(metadata.sources) && metadata.sources.length) message.sources = metadata.sources;
@@ -4980,6 +5028,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (type === 'user' && chat.title === 'New Chat') {
             const plain = bubblePlain(text) || (/att-chip[^>]*data-n="([^"]+)"/.exec(text)?.[1] || '');
             chat.title = plain.length > 42 ? plain.slice(0, 42).trim() + '…' : (plain || 'New Chat');
+            chat.titleReady = false;
         }
         syncChatTopicHeroTitle(chat);
         saveChatStore();
@@ -5039,6 +5088,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const commit = () => {
             const val = input.value.trim();
             chat.title = val || chat.title;
+            chat.titleReady = true;
             syncChatTopicHeroTitle(chat);
             saveChatStore();
             renderChatList();

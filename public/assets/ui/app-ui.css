@@ -180,10 +180,10 @@
         /* ─── THEMES: dark (default) · light · terminal (unlocked with the Konami code). Colours come from the :root variables. ─── */
         html.light { --dark: #eaf1fc; --text: #0b1530; --text-dim: #4a5f85; --cyan: #0b7f9e; --blue: #2f6bff; --blue-deep: #1f4fd6; --panel: rgba(255, 255, 255, 0.72); --panel-strong: rgba(255, 255, 255, 0.94); --owner: #d4143a; color-scheme: light; }
         html.light body {
-            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat !important;
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat !important;
         }
         html.light.lite body {
-            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') center / cover no-repeat !important;
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat !important;
         }
         /* Keep the wallpaper visible through large Light surfaces; controls retain their existing backing. */
         html.light .chat-container,
@@ -194,10 +194,10 @@
         html.light .msg.user, html.light .choice-pill.selected, html.light .choice-pill.selected .choice-hint, html.light .btn-ui.cta, html.light .new-chat-btn, html.light .cookie-btn { color: #fff; }
         html.light .empty-logo, html.light .sidebar-logo, html.light .credits-logo { background: #0b1530; border-radius: 12px; padding: 8px 14px; }
         html.term { --dark: #000; --blue: #19a64a; --blue-deep: #063d1a; --cyan: #39ff6a; --text: #c9ffd6; --text-dim: #3fbf68; --panel: rgba(0, 28, 8, 0.9); --panel-strong: rgba(0, 20, 6, 0.96); --owner: #ffb000; }
-        html.term body { background: #000 !important; }
+        html.term body { background: #000 !important; background-image: none !important; }
         html.term .chat-topic-hero {
             background: linear-gradient(90deg, rgba(0,8,2,.84), rgba(0,8,2,.35)),
-                        url('/assets/images/background-7810a662211f.jpg') center / 960px auto repeat;
+                        url('/assets/images/background-7810a662211f.jpg') center / 960px auto repeat !important;
         }
         html.term *:not(svg):not(svg *):not(img) { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace !important; }
         html.term .msg, html.term button, html.term .prompt-bar, html.term .pb-inner, html.term input, html.term textarea, html.term .sheet, html.term .study-card { border-radius: 2px !important; }
@@ -547,7 +547,7 @@
             display: none; position: absolute; inset: 0; z-index: 60;
             background:
                 linear-gradient(180deg, rgba(3,6,16,0.55), rgba(3,6,16,0.78)),
-                url('/assets/images/background-7810a662211f.jpg') no-repeat center center;
+                url('/assets/images/ocean-topic-bg-440eadfff585.jpg') no-repeat center center;
             background-size: cover;
             backdrop-filter: blur(6px) saturate(140%);
             flex-direction: column; align-items: center; justify-content: center;

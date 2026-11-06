@@ -120,7 +120,7 @@ test('ask-ai handler: rejects bad payloads and enforces the cap before touching 
 test('chat-save rebuilds the document from a whitelist and drops junk', () => {
     const doc = chatSave._test.cleanDoc({
         chats: [
-            { id: 'c_1', title: 'ok', createdAt: 1, updatedAt: 2, messages: [{ text: 'hi', type: 'user' }, { text: 'x', type: 'evil' }, { text: 5, type: 'ai' }], extra: 'zzz' },
+            { id: 'c_1', title: 'ok', titleReady: false, createdAt: 1, updatedAt: 2, messages: [{ text: 'hi', type: 'user' }, { text: 'x', type: 'evil' }, { text: 5, type: 'ai' }], extra: 'zzz' },
             { id: '../../etc', messages: [] },     // bad id -> dropped
             'not an object'
         ],
@@ -129,6 +129,7 @@ test('chat-save rebuilds the document from a whitelist and drops junk', () => {
     assert.equal(doc.profile.sub, 'real-sub');
     assert.equal(doc.chats.length, 1);
     assert.deepEqual(doc.chats[0].messages, [{ text: 'hi', type: 'user' }]);
+    assert.equal(doc.chats[0].titleReady, false);
     assert.equal(doc.chats[0].extra, undefined);
     assert.equal(doc.activeChatId, null);
     assert.deepEqual(doc.memory.facts, ['a', 'b']);

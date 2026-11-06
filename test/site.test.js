@@ -24,8 +24,7 @@ test('the version shown in the app matches package.json', () => {
 
 test('wallpaper variants and menu links use the requested photo credit and social accounts', () => {
     const h = pub('index.html');
-    assert.match(h, /url\('\/(?:assets\/images\/background-7810a662211f\.jpg)'\)/);
-    assert.match(h, /url\('\/(?:assets\/images\/background-lite-1a7eee6b623f\.jpg)'\)/);
+    assert.match(h, /url\('\/assets\/images\/ocean-topic-bg-440eadfff585\.jpg'\)/);
     for (const value of ['https://unsplash.com/@jensaber', 'CsMkikDbvcA', 'https://unsplash.com/license', 'https://www.instagram.com/knowura.ai/', 'https://youtube.com/@Knowura']) {
         assert.ok(h.includes(value), `missing requested attribution or social link: ${value}`);
     }
@@ -33,7 +32,18 @@ test('wallpaper variants and menu links use the requested photo credit and socia
     assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background-lite-1a7eee6b623f.jpg')));
 });
 
-test('shared green-binary wallpaper and Ocean hero stay local JPEGs with translucent Auto/Lite panels', () => {
+test('Terms, Privacy, and 404 use the Ocean wallpaper through their shared legal stylesheet', () => {
+    for (const file of ['terms.html', 'privacy.html', '404.html']) {
+        assert.match(pub(file), /<link rel="stylesheet" href="\/legal\.css">/, `${file} loads the shared legal stylesheet`);
+    }
+    const legalCss = pub('legal.css');
+    assert.match(legalCss, /body\s*\{[^}]*url\('\/assets\/images\/ocean-topic-bg-[a-f0-9]{12}\.jpg'\)[^}]*background-size:\s*cover/s,
+        'shared legal pages use the Ocean wallpaper');
+    assert.doesNotMatch(legalCss, /assets\/images\/background(?:-lite)?(?:-[a-f0-9]{12})?\.jpg/,
+        'the 0101 texture is reserved for the Terminal hero');
+});
+
+test('Ocean wallpaper stays shared and the Terminal binary texture stays on its hero', () => {
     const h = pub('index.html');
     for (const file of ['background-7810a662211f.jpg', 'background-lite-1a7eee6b623f.jpg', 'ocean-topic-bg-440eadfff585.jpg']) {
         const image = fs.readFileSync(path.join(__dirname, '..', 'public/assets/images', file));
@@ -44,24 +54,53 @@ test('shared green-binary wallpaper and Ocean hero stay local JPEGs with translu
     const bodyRules = [...h.matchAll(/(?:^|\n)\s*(?:html\.(?:balanced|lite) )?body \{([^}]+)\}/g)].filter(([, css]) => /\bbackground\s*:/.test(css));
     assert.equal(bodyRules.length, 3, 'default, Balanced, and Lite each retain a global wallpaper rule');
     for (const [, css] of bodyRules) {
-        assert.match(css, /url\('\/assets\/images\/background(?:-lite)?-[a-f0-9]{12}\.jpg'\)/);
+        assert.match(css, /url\('\/assets\/images\/ocean-topic-bg-[a-f0-9]{12}\.jpg'\)/);
+        assert.doesNotMatch(css, /assets\/images\/background(?:-lite)?-[a-f0-9]{12}\.jpg/);
         assert.doesNotMatch(css, /url\(['"]?(?:data:|https?:)/, 'wallpaper must resolve to the same-origin file');
     }
-    assert.match(h, /html\.light body\s*\{[^}]*url\('\/assets\/images\/background-7810a662211f\.jpg'\)[^}]*!important/s);
-    assert.match(h, /html\.light\.lite body\s*\{[^}]*url\('\/assets\/images\/background-lite-1a7eee6b623f\.jpg'\)[^}]*!important/s);
+    for (const [name, rule] of [
+        ['Balanced', /html\.balanced body\s*\{([^}]+)\}/],
+        ['Lite', /html\.lite body\s*\{([^}]+)\}/],
+        ['Light+Lite', /html\.light\.lite body\s*\{([^}]+)\}/]
+    ]) {
+        const body = h.match(rule);
+        assert.ok(body, `${name} has a body wallpaper rule`);
+        assert.match(body[1], /url\('\/assets\/images\/ocean-topic-bg-[a-f0-9]{12}\.jpg'\)/, `${name} uses Ocean`);
+        assert.doesNotMatch(body[1], /assets\/images\/background(?:-lite)?(?:-[a-f0-9]{12})?\.jpg/, `${name} never uses the 0101 texture`);
+    }
+    assert.match(h, /html\.light body\s*\{[^}]*url\('\/assets\/images\/ocean-topic-bg-[a-f0-9]{12}\.jpg'\)[^}]*!important/s);
+    assert.match(h, /html\.light\.lite body\s*\{[^}]*url\('\/assets\/images\/ocean-topic-bg-[a-f0-9]{12}\.jpg'\)[^}]*!important/s);
     const lightPanels = h.match(/html\.light \.chat-container,\s*html\.light \.sidebar:not\(\.owner-mode\) \{([^}]+)\}/);
     assert.ok(lightPanels, 'Light and Light+Lite expose the wallpaper only through their large facing surfaces');
     assert.match(lightPanels[1], /background-color: rgba\(239,241,246,0\.58\) !important/);
     assert.match(lightPanels[1], /backdrop-filter: none !important/);
     assert.doesNotMatch(lightPanels[1], /--panel|padding|margin|width|height/, 'keep control backing and layout unchanged');
-    assert.match(pub('assets/ui/theme-light.css'), /url\('\/assets\/images\/background-7810a662211f\.jpg'\)/);
-    assert.match(pub('assets/ui/theme-term.css'), /url\('\/assets\/images\/background-7810a662211f\.jpg'\)/);
-    assert.match(h, /html\.term body \{ background: #000 !important; \}/);
-    assert.match(h, /html\.term \.chat-topic-hero \{[^}]*url\('\/assets\/images\/background-7810a662211f\.jpg'\)/s,
-        'Terminal hero shares the green-binary wallpaper while its body stays black');
+    const oceanGlass = h.match(/html:not\(\.term\):not\(\.balanced\):not\(\.lite\) \.chat-container,\s*html:not\(\.term\):not\(\.balanced\):not\(\.lite\) \.sidebar:not\(\.owner-mode\) \{([^}]+)\}/);
+    assert.ok(oceanGlass, 'desktop Ocean glass has its own blur override');
+    assert.match(oceanGlass[1], /backdrop-filter: blur\(10px\) saturate\(140%\)/);
+    const phoneStyles = h.slice(h.indexOf('@media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse)'), h.indexOf('/* ─── FIRST-VISIT INTRO'));
+    assert.match(phoneStyles, /html:not\(\.light\):not\(\.term\) \.chat-container,\s*html:not\(\.light\):not\(\.term\) \.sidebar \{\s*backdrop-filter: none !important;\s*-webkit-backdrop-filter: none !important;/,
+        'the phone keeps the Ocean panes unblurred');
+    const appUi = pub('assets/ui/app-ui.css');
+    const light = pub('assets/ui/theme-light.css');
+    const term = pub('assets/ui/theme-term.css');
+    assert.match(light, /url\('\/assets\/images\/ocean-topic-bg-[a-f0-9]{12}\.jpg'\)/);
+    assert.match(term, /url\('\/assets\/images\/ocean-topic-bg-[a-f0-9]{12}\.jpg'\)/);
+    assert.match(appUi, /html\.term body \{ background: #000 !important; background-image: none !important; \}/);
+    const terminalHero = h.match(/html\.term \.chat-topic-hero \{[^}]*\}/s)?.[0];
+    assert.ok(terminalHero, 'Terminal has an explicit hero background');
+    assert.match(terminalHero, /url\('\/assets\/images\/background-7810a662211f\.jpg'\)/);
+    assert.match(terminalHero, /!important/);
+    for (const [file, css] of [['index.html', h], ['app-ui.css', appUi], ['theme-light.css', light], ['theme-term.css', term]]) {
+        const outsideHero = css.replace(/html\.term\s+\.chat-topic-hero\s*\{[^}]*\}/gs, '');
+        assert.doesNotMatch(outsideHero, /assets\/images\/background(?:-lite)?-[a-f0-9]{12}\.jpg/, `${file} keeps 0101 off Terminal surfaces outside the hero`);
+    }
+    // Match both hash-suffixed and bare wallpaper asset names so stale cache-prone URLs cannot hide from this check.
+    const wallpaperUrl = /assets\/images\/(?:background(?:-lite)?|ocean-topic-bg)(?:-[a-f0-9]{12})?\.jpg/g;
     for (const file of ['index.html', 'legal.css', 'assets/ui/app-ui.css', 'assets/ui/theme-light.css', 'assets/ui/theme-term.css']) {
-        assert.doesNotMatch(pub(file), /assets\/images\/(?:background(?:-lite)?|ocean-topic-bg)\.jpg/,
-            `${file} must not reference a cache-prone wallpaper URL`);
+        for (const [reference] of pub(file).matchAll(wallpaperUrl)) {
+            assert.match(reference, /-[a-f0-9]{12}\.jpg$/, `${file} wallpaper references must include the content hash`);
+        }
     }
     const panels = h.match(/html\.lite:not\(\.light\):not\(\.term\) \.chat-container,\s*html\.lite:not\(\.light\):not\(\.term\) \.sidebar:not\(\.owner-mode\) \{([^}]+)\}/);
     assert.ok(panels, 'the visibility rule applies across viewports, without changing light, terminal, owner mode, or controls');
@@ -70,22 +109,32 @@ test('shared green-binary wallpaper and Ocean hero stay local JPEGs with translu
     assert.match(h, /html\.lite:not\(\.light\):not\(\.term\) \{ --panel: rgba\(12,24,52,0\.50\)/, 'retain the existing phone Lite treatment');
 });
 
-test('Ocean hero appears in every active chat and follows that chat’s escaped title', () => {
+test('fresh chats stay hero-free until a real title is ready, then sync the active hero', () => {
     const h = pub('index.html');
-    assert.match(h, /function renderChatTopicHero\(chat\)[\s\S]*?escapeHtml\(subject\)[\s\S]*?escapeHtml\(title\)/);
+    const readySource = h.match(/function chatTopicHeroReady\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(readySource, 'hero readiness is explicit');
+    const readyFor = new Function(`${readySource}; return chatTopicHeroReady;`)();
+    assert.equal(readyFor({ title: 'New Chat', titleReady: false, messages: [] }), false);
+    assert.equal(readyFor({ title: 'How do ocean currents affect climate?', titleReady: false, messages: [{ type: 'user' }] }), false);
+    assert.equal(readyFor({ title: 'Ocean currents: Climate effects', titleReady: true, messages: [{ type: 'user' }] }), true);
+    assert.equal(readyFor({ title: 'Photosynthesis: A quick guide', messages: [{ type: 'user' }] }), true, 'older saved chats keep their existing hero');
+    assert.equal(readyFor({ title: 'Photosynthesis', titleReady: true, messages: [] }), false, 'empty chats do not gain a hero');
+    assert.match(h, /function renderChatTopicHero\(chat\) \{\s*if \(!chatTopicHeroReady\(chat\)\) return '';\s*const title = chatTopicHeroTitle\(chat\);[\s\S]*?escapeHtml\(subject\)[\s\S]*?escapeHtml\(title\)/);
     assert.match(h, /\.chat-topic-hero-kicker #chatTopicHeroSubject \{ min-width: 0; max-width: 100%; overflow-wrap: anywhere; \}/,
         'a long no-colon subject wraps inside its own kicker flex item without changing the kicker layout');
     assert.match(h, /\.chat-topic-hero h2 \{[^}]*min-width: 0; max-width: min\(1100px, 100%\); overflow-wrap: anywhere;/);
     assert.match(h, /id="chatTopicHeroSubject">\$\{escapeHtml\(subject\)\}<\/span> <span>·<\/span> keep exploring/);
     assert.match(h, /Pick a question to start, or keep going where you left off\./);
     assert.doesNotMatch(h, /Ocean science|planet’s moving heat/, 'shared hero copy stays topic-neutral');
-    assert.match(h, /box\.insertAdjacentHTML\('beforeend', renderChatTopicHero\(chat\)\)/);
-    assert.match(h, /function renderEmptyState\(chat = getActiveChat\(\)\)[\s\S]*?box\.insertAdjacentHTML\('afterbegin', renderChatTopicHero\(chat\)\)/);
-    assert.match(h, /function renderChatTopicHero\(chat\) \{\s*const title = chatTopicHeroTitle\(chat\)/);
-    assert.match(h, /function syncChatTopicHeroTitle\(chat\)[\s\S]*?heading\.textContent = chatTopicHeroTitle\(chat\)[\s\S]*?subject\.textContent = chatTopicHeroSubject\(chat\)/);
-    assert.match(h, /if \(!chat\) \{\s*chat = createChat\(\);\s*const box = document\.getElementById\('chat-box'\);\s*if \(box && !box\.querySelector\('\.chat-topic-hero'\)\) box\.insertAdjacentHTML\('afterbegin', renderChatTopicHero\(chat\)\)/);
-    assert.match(h, /chat\.title = val \|\| chat\.title;\s*syncChatTopicHeroTitle\(chat\)/);
-    assert.match(h, /chat\.title = title;\s*syncChatTopicHeroTitle\(chat\)/);
+    assert.match(h, /const hero = renderChatTopicHero\(chat\);\s*if \(hero\) box\.insertAdjacentHTML\('beforeend', hero\)/);
+    const emptyState = h.match(/function renderEmptyState\(\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(emptyState);
+    assert.doesNotMatch(emptyState, /renderChatTopicHero/);
+    assert.match(h, /function syncChatTopicHeroTitle\(chat\)[\s\S]*?if \(!chatTopicHeroReady\(chat\)\) \{\s*hero\?\.remove\(\);\s*return;\s*\}[\s\S]*?if \(!hero && box\) \{\s*box\.insertAdjacentHTML\('afterbegin', renderChatTopicHero\(chat\)\)/);
+    assert.match(h, /titleReady: false/);
+    assert.match(h, /chat\.title = plain\.length > 42[\s\S]*?chat\.titleReady = false;/);
+    assert.match(h, /chat\.title = val \|\| chat\.title;\s*chat\.titleReady = true;\s*syncChatTopicHeroTitle\(chat\)/);
+    assert.match(h, /chat\.title = title;\s*chat\.titleReady = true;\s*syncChatTopicHeroTitle\(chat\)/);
     assert.doesNotMatch(h, /Ocean currents & climate/i, 'hero copy is no longer restricted to a single chat title');
 });
 
@@ -696,6 +745,21 @@ test('assistant PC action: feature-detected, sent only on "on"/"off", runs the d
     assert.match(a, /<div class="pc-task"><b>Mochi:<\/b> ' \+ escapeHtml\(pcTask\)/);
     assert.match(a, /window\.KnowuraDesk\.pcTask\(pcTask\)/); assert.match(a, /const pcGo = !!pcTask && pcAvailable\(\)/);
     assert.ok(a.indexOf('persist(); scrollChat();') < a.indexOf('window.KnowuraDesk.pcTask(pcTask)'), 'the chat is saved before the panel closes');
+});
+
+test('first GitHub commit is reachable from Settings as a static, strictly sandboxed preview', () => {
+    const h = pub('index.html'), archive = pub('first-version/index.html');
+    assert.match(h, /showMenuView\('history'\)/);
+    assert.match(h, /data-view="history"/);
+    assert.match(h, /Non-working preview/);
+    const frame = h.match(/<iframe id="firstVersionFrame"[^>]*>/)?.[0];
+    assert.ok(frame, 'historical iframe exists');
+    assert.match(frame, /src="\/first-version\/index\.html"/);
+    assert.match(frame, /sandbox=""/);
+    assert.doesNotMatch(frame, /allow-(?:scripts|same-origin|forms|popups|top-navigation)/);
+    assert.match(archive, /2f198d73e8d13668d58cb345b92a1efe6928df51/);
+    assert.match(archive, /disabled/);
+    assert.doesNotMatch(archive, /<script\b|<form\b|https?:\/\/|gsk_[A-Za-z0-9]{20,}/i);
 });
 
 test('phone layout: full-bleed app, safe areas, compact cookie bar, landscape phones use the mobile layout', () => {

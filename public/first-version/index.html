@@ -1,0 +1,77 @@
+<!-- Archived from Knowura first GitHub commit 2f198d73e8d13668d58cb345b92a1efe6928df51 (2026-01-10). Sanitized static snapshot: scripts and external sign-in removed; chat controls disabled. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Knowura AI | First GitHub Commit</title>
+    <style>
+        :root { --accent: #6366f1; --bg: #0f172a; --panel: rgba(255,255,255,0.1); }
+        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; overflow: hidden; }
+
+        .container {
+            width: 95%; max-width: 850px; height: 90vh;
+            background: var(--panel); backdrop-filter: blur(20px);
+            border-radius: 28px; border: 1px solid rgba(255,255,255,0.2);
+            display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        header {
+            padding: 20px; background: rgba(0,0,0,0.3);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #user-info { display: none; align-items: center; gap: 12px; }
+        #user-pic { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--accent); }
+        #welcome-text { font-weight: 600; font-size: 16px; }
+
+        .logo { font-weight: 800; font-size: 22px; color: var(--accent); letter-spacing: 1px; }
+
+        #chat { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 14px 20px; border-radius: 20px; max-width: 80%; line-height: 1.5; font-size: 15px; white-space: pre-wrap; }
+        .ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .user { background: var(--accent); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+
+        .input-area { padding: 20px; display: flex; gap: 12px; background: rgba(0,0,0,0.2); }
+        input {
+            min-width: 0; flex: 1; padding: 15px; border-radius: 15px; border: none; outline: none;
+            background: white; color: black; font-size: 16px;
+        }
+        button#sendBtn {
+            padding: 0 25px; border-radius: 15px; border: none;
+            background: var(--accent); color: white; font-weight: bold; cursor: pointer;
+        }
+
+        .prototype-label { display: inline-flex; align-items: center; padding: 7px 11px; border: 1px solid rgba(255,255,255,0.2); border-radius: 999px; color: #c7d2fe; background: rgba(99,102,241,0.16); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+        #userInput:disabled { cursor: not-allowed; opacity: .8; }
+        #sendBtn:disabled { cursor: not-allowed; opacity: .62; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo">KNOWURA</div>
+
+        <span class="prototype-label">FIRST PROTOTYPE</span>
+
+        <div id="user-info">
+            <span id="welcome-text"></span>
+            <img id="user-pic" src="">
+        </div>
+    </header>
+
+    <div id="chat">
+        <div class="msg ai">Welcome to Knowura. Please sign in to personalize your experience, or start asking questions below.</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Ask Knowura..." aria-label="Ask Knowura (disabled historical preview)" disabled>
+        <button id="sendBtn" type="button" disabled>Send</button>
+    </div>
+</div>
+
+</body>
+</html>
