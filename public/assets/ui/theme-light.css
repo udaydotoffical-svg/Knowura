@@ -7,6 +7,7 @@ html.light .chat-topic-hero { background: linear-gradient(90deg, rgba(237, 240, 
                         linear-gradient(0deg, rgba(237, 240, 245, 0.84), rgba(237, 240, 245, 0.06)),
                         url("/assets/images/ocean-topic-bg-440eadfff585.jpg") center 54% / cover no-repeat; }
 html.light .chat-topic-hero h2 { color: rgb(17, 29, 51); }
+html.light .chat-topic-hero-edit-input { background: rgba(237, 240, 246, 0.8); }
 html.light .chat-topic-hero p { color: rgb(28, 45, 68); }
 html.light .ai { background: rgba(222, 226, 236, 0.75); }
 html.light .teachback-card, html.light .visual-card { background: rgba(228, 231, 240, 0.42); }

@@ -109,7 +109,7 @@ test('Ocean wallpaper stays shared and the Terminal binary texture stays on its 
     assert.match(h, /html\.lite:not\(\.light\):not\(\.term\) \{ --panel: rgba\(12,24,52,0\.50\)/, 'retain the existing phone Lite treatment');
 });
 
-test('fresh chats stay hero-free until a real title is ready, then sync the active hero', () => {
+test('fresh chats stay hero-free until generated title and subject are ready, then sync the active hero', () => {
     const h = pub('index.html');
     const readySource = h.match(/function chatTopicHeroReady\(chat\) \{[\s\S]*?\n    \}/)?.[0];
     assert.ok(readySource, 'hero readiness is explicit');
@@ -117,13 +117,32 @@ test('fresh chats stay hero-free until a real title is ready, then sync the acti
     assert.equal(readyFor({ title: 'New Chat', titleReady: false, messages: [] }), false);
     assert.equal(readyFor({ title: 'How do ocean currents affect climate?', titleReady: false, messages: [{ type: 'user' }] }), false);
     assert.equal(readyFor({ title: 'Ocean currents: Climate effects', titleReady: true, messages: [{ type: 'user' }] }), true);
+    assert.equal(readyFor({ title: 'Ocean currents: Climate effects', subject: 'Ocean currents', titleReady: true, subjectReady: true, messages: [{ type: 'user' }] }), true);
+    assert.equal(readyFor({ title: 'Ocean currents: Climate effects', subject: 'Ocean currents', titleReady: true, subjectReady: false, messages: [{ type: 'user' }] }), false, 'a populated subject still waits while generation is pending');
+    assert.equal(readyFor({ title: 'Photosynthesis', titleReady: true, subject: '', subjectReady: false, messages: [{ type: 'user' }] }), true, 'legacy chats with an empty subject still show an editable placeholder');
     assert.equal(readyFor({ title: 'Photosynthesis: A quick guide', messages: [{ type: 'user' }] }), true, 'older saved chats keep their existing hero');
     assert.equal(readyFor({ title: 'Photosynthesis', titleReady: true, messages: [] }), false, 'empty chats do not gain a hero');
-    assert.match(h, /function renderChatTopicHero\(chat\) \{\s*if \(!chatTopicHeroReady\(chat\)\) return '';\s*const title = chatTopicHeroTitle\(chat\);[\s\S]*?escapeHtml\(subject\)[\s\S]*?escapeHtml\(title\)/);
+    assert.match(h, /function renderChatTopicHero\(chat\) \{\s*if \(!chatTopicHeroReady\(chat\)\) return '';\s*const title = chatTopicHeroTitle\(chat\);\s*const subject = chatTopicHeroSubject\(chat\);/);
+    assert.match(h, /aria-label="Edit conversation subject: \$\{escapeHtml\(subjectLabel\)\}"[^>]*onclick="editChatTopicField\('subject'\)"[\s\S]*?Add subject/);
+    assert.match(h, /aria-label="Edit conversation title: \$\{escapeHtml\(title\)\}"[^>]*onclick="editChatTopicField\('title'\)"/);
+    assert.doesNotMatch(h, /aria-label="Edit conversation title"(?:\s|>)/, 'generic edit labels do not hide the visible title');
+    assert.doesNotMatch(h, /aria-label="Edit conversation subject"(?:\s|>)/, 'generic edit labels do not hide the visible subject');
     assert.match(h, /\.chat-topic-hero-kicker #chatTopicHeroSubject \{ min-width: 0; max-width: 100%; overflow-wrap: anywhere; \}/,
         'a long no-colon subject wraps inside its own kicker flex item without changing the kicker layout');
+    assert.match(h, /\.chat-topic-hero h2 > \.chat-topic-hero-edit-input \{ font-size: 1em !important; \}/,
+        'the title keeps its display size while the title editor is open');
+    assert.match(h, /\.chat-topic-hero-kicker-tail \{ flex: 0 0 auto; white-space: nowrap; \}/,
+        'the kicker tail never breaks into cramped multi-line text');
+    assert.match(h, /\.chat-topic-hero\.is-long \{ aspect-ratio: auto; min-height: 252px; \}/,
+        'long desktop hero content gets a taller card');
+    assert.match(h, /\.chat-topic-hero\.is-long \{ min-height: 264px; \}/,
+        'long phone hero content keeps top breathing room');
+    assert.match(h, /\.chat-topic-hero-kicker > \.chat-topic-hero-edit-input \{ min-height: 44px; font-size: 16px !important; \}/,
+        'the subject editor keeps a readable font and 44px phone hit area');
+    assert.match(h, /\.chat-topic-hero h2 > \.chat-topic-hero-edit-input \{ min-height: 44px; font-size: 1em !important; \}/,
+        'the title editor keeps the display size and 44px phone hit area');
     assert.match(h, /\.chat-topic-hero h2 \{[^}]*min-width: 0; max-width: min\(1100px, 100%\); overflow-wrap: anywhere;/);
-    assert.match(h, /id="chatTopicHeroSubject">\$\{escapeHtml\(subject\)\}<\/span> <span>·<\/span> keep exploring/);
+    assert.match(h, /id="chatTopicHeroSubject" class="\$\{subject \? '' : 'subject-placeholder'\}">\$\{escapeHtml\(subjectLabel\)\}/);
     assert.match(h, /Pick a question to start, or keep going where you left off\./);
     assert.doesNotMatch(h, /Ocean science|planet’s moving heat/, 'shared hero copy stays topic-neutral');
     assert.match(h, /const hero = renderChatTopicHero\(chat\);\s*if \(hero\) box\.insertAdjacentHTML\('beforeend', hero\)/);
@@ -133,16 +152,134 @@ test('fresh chats stay hero-free until a real title is ready, then sync the acti
     assert.match(h, /function syncChatTopicHeroTitle\(chat\)[\s\S]*?if \(!chatTopicHeroReady\(chat\)\) \{\s*hero\?\.remove\(\);\s*return;\s*\}[\s\S]*?if \(!hero && box\) \{\s*box\.insertAdjacentHTML\('afterbegin', renderChatTopicHero\(chat\)\)/);
     assert.match(h, /titleReady: false/);
     assert.match(h, /chat\.title = plain\.length > 42[\s\S]*?chat\.titleReady = false;/);
-    assert.match(h, /chat\.title = val \|\| chat\.title;\s*chat\.titleReady = true;\s*syncChatTopicHeroTitle\(chat\)/);
-    assert.match(h, /chat\.title = title;\s*chat\.titleReady = true;\s*syncChatTopicHeroTitle\(chat\)/);
+    assert.match(h, /chat\.title = val \|\| chat\.title;\s*chat\.titleReady = true;\s*chat\.updatedAt = Math\.max\(Date\.now\(\), \(Number\(chat\.updatedAt\) \|\| 0\) \+ 1\);\s*syncChatTopicHeroTitle\(chat\)/);
+    assert.match(h, /chat\.title = metadata\.title;\s*chat\.titleReady = true;/);
+    assert.match(h, /chat\.subject = metadata\.subject;\s*chat\.subjectReady = true;/);
+    const syncSource = h.match(/function syncChatTopicHeroTitle\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(syncSource, 'hero synchronization is explicit');
+    assert.match(syncSource, /titleText\.textContent = title/);
+    assert.match(syncSource, /subjectText\.textContent = subjectLabel/);
+    assert.match(syncSource, /hero\.classList\.toggle\('is-long', chatTopicHeroIsLong\(chat\)\)/);
+    assert.doesNotMatch(syncSource, /outerHTML\s*=/, 'metadata updates do not replace the hero and discard browser focus');
+    const editSource = h.match(/function editChatTopicField\(field\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(editSource, 'hero title and subject use the same focused inline editor');
+    assert.match(editSource, /field === 'title' \? 48 : 64/);
+    assert.match(editSource, /chat\.titleReady = true/);
+    assert.match(editSource, /chat\.subject = value;\s*chat\.subjectReady = true/);
+    assert.match(editSource, /saveChatStore\(\)/, 'edits persist with the chat');
+    assert.match(editSource, /let restoreControlFocus = false/);
+    assert.match(editSource, /event\.key === 'Enter'[^\n]*restoreControlFocus = true/);
+    assert.match(editSource, /event\.key === 'Escape'[^\n]*restoreControlFocus = true/);
+    assert.match(editSource, /if \(restoreControlFocus && chatStore\.activeChatId === chat\.id\)/,
+        'only Enter and Escape restore focus to the edited control');
     assert.doesNotMatch(h, /Ocean currents & climate/i, 'hero copy is no longer restricted to a single chat title');
 });
 
-test('hero heading keeps the full live title while the kicker derives the subject', () => {
+test('long hero sizing activates only beyond the title and subject thresholds', () => {
     const h = pub('index.html');
     const titleSource = h.match(/function chatTopicHeroTitle\(chat\) \{[\s\S]*?\n    \}/)?.[0];
     const subjectSource = h.match(/function chatTopicHeroSubject\(chat\) \{[\s\S]*?\n    \}/)?.[0];
-    assert.ok(titleSource && subjectSource, 'shared helpers keep the full title and derived subject consistent');
+    const lengthSource = h.match(/function chatTopicHeroIsLong\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(titleSource && subjectSource && lengthSource, 'the threshold helper uses the independent title and subject values');
+    const isLong = new Function(`${titleSource}\n${subjectSource}\n${lengthSource}; return chatTopicHeroIsLong;`)();
+    assert.equal(isLong({ title: 'T'.repeat(60), subject: 'S'.repeat(48) }), false, 'values at both limits stay compact');
+    assert.equal(isLong({ title: 'T'.repeat(61), subject: 'Short topic' }), true, 'a title over 60 characters expands the hero');
+    assert.equal(isLong({ title: 'Short title', subject: 'S'.repeat(49) }), true, 'a subject over 48 characters expands the hero');
+    assert.match(h, /chatTopicHeroIsLong\(chat\) \? ' is-long' : ''/);
+});
+
+test('AI chat metadata uses separate title and subject fields and normalizes legacy records', () => {
+    const h = pub('index.html');
+    const parserSource = h.match(/function parseGeneratedChatMetadata\(raw\) \{[\s\S]*?\n    \}/)?.[0];
+    const normalizeSource = h.match(/function normalizeChatMetadata\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(parserSource && normalizeSource, 'metadata parsing and compatibility normalization are explicit helpers');
+    const parse = new Function(`${parserSource}; return parseGeneratedChatMetadata;`)();
+    const normalize = new Function(`${normalizeSource}; return normalizeChatMetadata;`)();
+    assert.deepEqual(parse('{"title":"How currents shape climate","subject":"Ocean currents"}'), {
+        title: 'How currents shape climate', subject: 'Ocean currents'
+    });
+    assert.deepEqual(parse('```json\n{"title":"Cells and their roles.","subject":"Cell biology"}\n```'), {
+        title: 'Cells and their roles', subject: 'Cell biology'
+    });
+    assert.equal(parse('{"title":"A title only"}'), null, 'a missing subject does not get inferred from the title');
+    assert.deepEqual(parse(JSON.stringify({ title: 'T'.repeat(60), subject: 'S'.repeat(60) })), {
+        title: 'T'.repeat(48), subject: 'S'.repeat(48)
+    }, 'both generated labels are bounded to the prompt maximum');
+    assert.deepEqual(
+        (({ subject, subjectReady }) => ({ subject, subjectReady }))(normalize({ title: 'Legacy title', messages: [] })),
+        { subject: '', subjectReady: false },
+        'legacy chats remain subject-free instead of copying their title'
+    );
+    assert.deepEqual(
+        (({ subject, subjectReady }) => ({ subject, subjectReady }))(normalize({ title: 'Current title', subject: 'Physics', subjectReady: true })),
+        { subject: 'Physics', subjectReady: true }
+    );
+    assert.deepEqual(
+        (({ subject, subjectReady }) => ({ subject, subjectReady }))(normalize({ title: 'Legacy title', subject: '', subjectReady: true })),
+        { subject: '', subjectReady: false },
+        'an empty subject is not treated as ready even if an old payload carries a stray flag'
+    );
+    const generation = h.slice(h.indexOf('async function generateChatTitle('), h.indexOf('// ─── THINKING ROW'));
+    assert.match(generation, /Name this chat and identify its subject/);
+    assert.match(generation, /exactly two string fields: "title" and "subject"/);
+    assert.match(generation, /clear 3-6 word summary \(max 48 characters\)/);
+    assert.match(generation, /concise topic label of 1-3 words \(max 48 characters\)/);
+    assert.match(generation, /do not copy the title into the subject/);
+    assert.match(generation, /chat\.titleReady !== true/);
+    assert.match(generation, /chat\.subjectReady !== true/);
+});
+
+test('pending AI metadata generation does not overwrite either user-edited field', async () => {
+    const h = pub('index.html');
+    const parserSource = h.match(/function parseGeneratedChatMetadata\(raw\) \{[\s\S]*?\n    \}/)?.[0];
+    const generateSource = h.match(/async function generateChatTitle\(chatId, userMsg, aiReply\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(parserSource && generateSource, 'the test exercises the actual parser and async generator');
+
+    async function runWithEdit(edit) {
+        const chat = { id: 'c_race', title: 'Question placeholder', titleReady: false, subject: '', subjectReady: false };
+        let finishFetch;
+        let saveCount = 0;
+        const fetchImpl = () => new Promise(resolve => {
+            finishFetch = () => resolve({
+                json: async () => ({ choices: [{ message: { content: '{"title":"AI-generated title","subject":"AI subject"}' } }] })
+            });
+        });
+        const generate = new Function(
+            'incognito', 'chatStore', 'fetch', 'ownerToken', 'userToken',
+            'syncChatTopicHeroTitle', 'saveChatStore', 'renderChatList',
+            `${parserSource}\n${generateSource}\nreturn generateChatTitle;`
+        )(
+            false, { chats: [chat] }, fetchImpl, 'owner', 'token', () => {}, () => { saveCount++; }, () => {}
+        );
+        const pending = generate('c_race', 'Question', 'Answer');
+        edit(chat);
+        finishFetch();
+        await pending;
+        return { chat, saveCount };
+    }
+
+    const titleEdit = await runWithEdit(chat => {
+        chat.title = 'User-renamed chat';
+        chat.titleReady = true;
+    });
+    assert.equal(titleEdit.chat.title, 'User-renamed chat');
+    assert.equal(titleEdit.chat.subject, 'AI subject', 'the independent untouched subject can still be generated');
+    assert.equal(titleEdit.saveCount, 1);
+
+    const subjectEdit = await runWithEdit(chat => {
+        chat.subject = 'User-picked subject';
+        chat.subjectReady = true;
+    });
+    assert.equal(subjectEdit.chat.title, 'AI-generated title', 'the independent untouched title can still be generated');
+    assert.equal(subjectEdit.chat.subject, 'User-picked subject');
+    assert.equal(subjectEdit.saveCount, 1);
+});
+
+test('hero subject is stored independently and never derived from the chat title', () => {
+    const h = pub('index.html');
+    const titleSource = h.match(/function chatTopicHeroTitle\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    const subjectSource = h.match(/function chatTopicHeroSubject\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(titleSource && subjectSource, 'shared helpers expose the full title and separately stored subject');
     const { titleFor, subjectFor } = new Function(`${titleSource}\n${subjectSource}; return { titleFor: chatTopicHeroTitle, subjectFor: chatTopicHeroSubject };`)();
     for (const [title, expected] of [
         ['', 'New conversation'], ['New Chat', 'New conversation'],
@@ -152,14 +289,15 @@ test('hero heading keeps the full live title while the kicker derives the subjec
         ['X'.repeat(100), 'X'.repeat(100)], ['<b>Safe & sound</b>: notes', '<b>Safe & sound</b>: notes']
     ]) assert.equal(titleFor({ title }), expected);
     for (const [title, expected] of [
-        ['', 'New conversation'], ['New Chat', 'New conversation'],
-        ['Ocean currents: How do they shape climate?', 'Ocean currents'],
-        ['  Biology : Cells: a closer look  ', 'Biology'],
-        ['Photosynthesis without a colon', 'Photosynthesis without a colon'],
-        ['X'.repeat(100), 'X'.repeat(100)], ['<b>Safe & sound</b>: notes', '<b>Safe & sound</b>']
-    ]) assert.equal(subjectFor({ title }), expected);
+        ['Ocean currents: How do they shape climate?', 'Earth science'],
+        ['  Biology : Cells: a closer look  ', 'Cells'],
+        ['Photosynthesis without a colon', 'Botany'],
+        ['X'.repeat(100), 'Photosynthesis'], ['<b>Safe & sound</b>: notes', 'Reading notes']
+    ]) assert.equal(subjectFor({ title, subject: expected }), expected, 'subject is read from its own field');
+    assert.equal(subjectFor({ title: 'Ocean currents: How do they shape climate?' }), '', 'missing legacy subject stays blank instead of copying the title');
+    assert.equal(subjectFor({ title: 'Biology: Cells', subject: '  Cell structure  ' }), 'Cell structure');
     assert.equal(titleFor(null), 'New conversation');
-    assert.equal(subjectFor(null), 'New conversation');
+    assert.equal(subjectFor(null), '');
 });
 
 test('prompt-bar glyphs are enlarged without changing their button dimensions', () => {

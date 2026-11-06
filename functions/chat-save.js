@@ -57,7 +57,17 @@ function cleanChat(c) {
         if (teachback) message.teachback = teachback;
         messages.push(message);
     }
-    return { id, title: cleanStr(c.title, 160) ?? 'Chat', ...(c.titleReady === false ? { titleReady: false } : {}), createdAt: num(c.createdAt), updatedAt: num(c.updatedAt), messages };
+    const subject = cleanStr(c.subject, 160) ?? '';
+    return {
+        id,
+        title: cleanStr(c.title, 160) ?? 'Chat',
+        ...(c.titleReady === false ? { titleReady: false } : {}),
+        subject,
+        subjectReady: !!subject.trim() && c.subjectReady === true,
+        createdAt: num(c.createdAt),
+        updatedAt: num(c.updatedAt),
+        messages
+    };
 }
 
 function cleanDoc(doc, sub) {

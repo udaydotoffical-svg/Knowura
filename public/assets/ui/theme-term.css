@@ -12,6 +12,7 @@ html.term .chat-topic-hero { background: linear-gradient(90deg, rgba(2, 9, 4, 0.
                         linear-gradient(0deg, rgba(2, 9, 4, 0.84), rgba(2, 9, 4, 0.06)),
                         url("/assets/images/ocean-topic-bg-440eadfff585.jpg") center 54% / cover no-repeat; }
 html.term .chat-topic-hero h2 { color: rgb(184, 249, 200); }
+html.term .chat-topic-hero-edit-input { background: rgba(2, 9, 4, 0.8); }
 html.term .chat-topic-hero p { color: rgb(184, 249, 200); }
 html.term .ai { background: rgba(7, 27, 14, 0.75); }
 html.term .reply-tools button.on::before { background: rgba(24, 135, 61, 0.16); }

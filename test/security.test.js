@@ -120,7 +120,7 @@ test('ask-ai handler: rejects bad payloads and enforces the cap before touching 
 test('chat-save rebuilds the document from a whitelist and drops junk', () => {
     const doc = chatSave._test.cleanDoc({
         chats: [
-            { id: 'c_1', title: 'ok', titleReady: false, createdAt: 1, updatedAt: 2, messages: [{ text: 'hi', type: 'user' }, { text: 'x', type: 'evil' }, { text: 5, type: 'ai' }], extra: 'zzz' },
+            { id: 'c_1', title: 'ok', titleReady: false, subject: 'Climate', subjectReady: true, createdAt: 1, updatedAt: 2, messages: [{ text: 'hi', type: 'user' }, { text: 'x', type: 'evil' }, { text: 5, type: 'ai' }], extra: 'zzz' },
             { id: '../../etc', messages: [] },     // bad id -> dropped
             'not an object'
         ],
@@ -130,10 +130,47 @@ test('chat-save rebuilds the document from a whitelist and drops junk', () => {
     assert.equal(doc.chats.length, 1);
     assert.deepEqual(doc.chats[0].messages, [{ text: 'hi', type: 'user' }]);
     assert.equal(doc.chats[0].titleReady, false);
+    assert.equal(doc.chats[0].subject, 'Climate');
+    assert.equal(doc.chats[0].subjectReady, true);
     assert.equal(doc.chats[0].extra, undefined);
     assert.equal(doc.activeChatId, null);
     assert.deepEqual(doc.memory.facts, ['a', 'b']);
     assert.equal(doc.admin, undefined);
+});
+
+test('chat-save normalizes missing or invalid legacy subject fields without deriving them from titles', () => {
+    const doc = chatSave._test.cleanDoc({
+        chats: [
+            { id: 'c_legacy', title: 'Legacy chat title', messages: [] },
+            { id: 'c_bad', title: 'Another title', subject: 'x'.repeat(161), subjectReady: true, messages: [] },
+            { id: 'c_pending', title: 'New title', subject: 'Ocean currents', subjectReady: false, messages: [] }
+        ],
+        profile: { sub: 'real-sub' }
+    }, 'real-sub');
+    assert.deepEqual(doc.chats.map(({ subject, subjectReady }) => ({ subject, subjectReady })), [
+        { subject: '', subjectReady: false },
+        { subject: '', subjectReady: false },
+        { subject: 'Ocean currents', subjectReady: false }
+    ]);
+});
+
+test('chat-save persists title and subject independently through the cloud whitelist', () => {
+    const doc = chatSave._test.cleanDoc({
+        chats: [{
+            id: 'c_separate_fields',
+            title: 'User-edited chat name',
+            titleReady: true,
+            subject: 'AI-generated topic',
+            subjectReady: true,
+            messages: []
+        }],
+        profile: { sub: 'real-sub' }
+    }, 'real-sub');
+    const saved = doc.chats[0];
+    assert.deepEqual({ title: saved.title, subject: saved.subject, subjectReady: saved.subjectReady }, {
+        title: 'User-edited chat name', subject: 'AI-generated topic', subjectReady: true
+    });
+    assert.notEqual(saved.title, saved.subject, 'the subject is never derived from the title');
 });
 
 test('chat-save retains safe feature metadata and rejects unsafe source URLs and visual payloads', () => {

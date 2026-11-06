@@ -499,17 +499,34 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                         url("/assets/images/ocean-topic-bg-440eadfff585.jpg") center 54% / cover no-repeat;
             box-shadow: 4px 4px 0 var(--ink);
         }
+        .chat-topic-hero.is-long { aspect-ratio: auto; min-height: 252px; }
         .chat-topic-hero::after { position: absolute; z-index: -1; content: ""; inset: 0; border-top: 1px solid rgba(34,229,255,.45); pointer-events: none; }
         .chat-topic-hero-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--cyan); font: 400 12px/1.2 "Geist Pixel", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; text-transform: uppercase; }
         .chat-topic-hero-kicker #chatTopicHeroSubject { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
         .chat-topic-hero-kicker::before { content: ""; width: 7px; height: 7px; border: 1px solid var(--ink); background: var(--cyan); }
         .chat-topic-hero h2 { min-width: 0; max-width: min(1100px, 100%); overflow-wrap: anywhere; margin: 0; color: #f4f8ff; font: 400 clamp(28px, 2.7vw, 44px)/1.08 "Geist Pixel", ui-monospace, Menlo, Consolas, monospace; letter-spacing: -.035em; }
+        .chat-topic-hero-editable { display: inline-flex; align-items: center; gap: .32em; max-width: 100%; min-width: 0; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; text-align: left; text-transform: inherit; overflow-wrap: anywhere; cursor: text; }
+        .chat-topic-hero-editable .icon { width: .72em; height: .72em; opacity: .7; }
+        .chat-topic-hero-editable:hover .icon { opacity: 1; }
+        .chat-topic-hero-editable:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+        .chat-topic-hero-edit-input { flex: 0 1 auto; width: min(40ch, 100%); min-width: 96px; max-width: 100%; padding: .2em .35em; border: 1px solid var(--cyan); border-radius: 5px; background: rgba(3,8,18,.8); color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; text-transform: none; outline: none; }
+        .chat-topic-hero h2 > .chat-topic-hero-edit-input { font-size: 1em !important; }
+        .chat-topic-hero-kicker > .chat-topic-hero-edit-input { font-size: inherit !important; }
+        .chat-topic-hero-edit-input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .chat-topic-hero-subject-button { min-height: 30px; }
+        .chat-topic-hero-subject-button .subject-placeholder { opacity: .76; }
+        .chat-topic-hero-kicker-tail { flex: 0 0 auto; white-space: nowrap; }
         .chat-topic-hero p { max-width: 900px; margin: 10px 0 0; color: #d6e0ee; font-size: 16px; line-height: 1.45; }
         html.light .chat-topic-hero-kicker { color: #006b82; }
         html.light .chat-topic-hero-kicker::before { background: #006b82; }
         @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             .chat-topic-hero { min-height: 176px; aspect-ratio: auto; margin-bottom: 3px; padding: 18px; border-radius: 10px; background-position: center 56%; }
+            .chat-topic-hero.is-long { min-height: 264px; }
             .chat-topic-hero-kicker { margin-bottom: 7px; font-size: 10px; }
+            .chat-topic-hero-editable { min-height: 44px; }
+            .chat-topic-hero-subject-button { padding-block: 6px; }
+            .chat-topic-hero-kicker > .chat-topic-hero-edit-input { min-height: 44px; font-size: 16px !important; }
+            .chat-topic-hero h2 > .chat-topic-hero-edit-input { min-height: 44px; font-size: 1em !important; }
             .chat-topic-hero h2 { max-width: 100%; font-size: 24px; line-height: 1.16; }
             .chat-topic-hero p { margin-top: 7px; font-size: 13px; line-height: 1.42; }
         }
@@ -3543,13 +3560,32 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         }
     }
 
-    // ─── AI-GENERATED CHAT TITLES (runs once, after a chat's first reply) ─────
-    // Same idea as ChatGPT's auto-titling — the instant truncated-first-message
-    // title from saveActiveChat is just a placeholder until this quietly swaps
-    // in something better a moment later.
+    // ─── AI-GENERATED CHAT TITLE + SUBJECT (runs after a chat's first reply) ──
+    // The generated subject is independent from the title. Both are stored on
+    // the chat so the UI can display and let the user edit them separately.
+    function parseGeneratedChatMetadata(raw) {
+        let content = typeof raw === 'string' ? raw.trim() : '';
+        const fenced = content.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+        if (fenced) content = fenced[1].trim();
+        let value;
+        try { value = JSON.parse(content); } catch (e) { return null; }
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+        const cleanLabel = (label, max) => {
+            if (typeof label !== 'string') return '';
+            return label.replace(/\s+/g, ' ').trim().replace(/^['"“”`]+|['"“”`]+$/g, '').replace(/[.!?]+$/, '').trim().slice(0, max).trim();
+        };
+        const title = cleanLabel(value.title, 48);
+        const subject = cleanLabel(value.subject, 48);
+        if (title.toLowerCase() === subject.toLowerCase()) return null;
+        return title && subject ? { title, subject } : null;
+    }
 
     async function generateChatTitle(chatId, userMsg, aiReply) {
         if (incognito) return;
+        const initialChat = chatStore.chats.find(c => c.id === chatId);
+        if (!initialChat) return;
+        const initialTitle = initialChat.title;
+        const initialSubject = initialChat.subject || '';
         try {
             const res = await fetch("/.netlify/functions/ask-ai", {
                 method: "POST",
@@ -3560,26 +3596,35 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                     messages: [
                         {
                             role: "user",
-                            content: `Write a short title (3-6 words, no quotes, no trailing punctuation, no markdown) summarizing this chat.\n\nUser: ${userMsg.replace(/<[^>]+>/g, '').slice(0, 300)}\nAssistant: ${aiReply.replace(/<[^>]+>/g, '').slice(0, 300)}\n\nReturn ONLY the title text, nothing else.`
+                            content: `Name this chat and identify its subject from the exchange below. Return ONLY a valid JSON object with exactly two string fields: "title" and "subject". The title should be a clear 3-6 word summary (max 48 characters); the subject should be a concise topic label of 1-3 words (max 48 characters). They must be distinct: do not copy the title into the subject. Use no markdown or extra text.\n\nUser: ${String(userMsg || '').replace(/<[^>]+>/g, '').slice(0, 300)}\nAssistant: ${String(aiReply || '').replace(/<[^>]+>/g, '').slice(0, 300)}`
                         }
                     ]
                 })
             });
             const data = await res.json();
-            let title = data?.choices?.[0]?.message?.content?.trim() || '';
-            title = title.replace(/^["'“”]+|["'“”]+$/g, '').replace(/[.!?]+$/, '').trim();
-            if (!title) return;
-            if (title.length > 48) title = title.slice(0, 48).trim() + '…';
+            const metadata = parseGeneratedChatMetadata(data?.choices?.[0]?.message?.content);
+            if (!metadata) return;
 
             const chat = chatStore.chats.find(c => c.id === chatId);
             if (!chat) return; // chat was deleted while this was in flight
-            chat.title = title;
-            chat.titleReady = true;
+            let changed = false;
+            if (chat.titleReady !== true && chat.title === initialTitle) {
+                chat.title = metadata.title;
+                chat.titleReady = true;
+                changed = true;
+            }
+            if (chat.subjectReady !== true && (chat.subject || '') === initialSubject) {
+                chat.subject = metadata.subject;
+                chat.subjectReady = true;
+                changed = true;
+            }
+            if (!changed) return;
+            chat.updatedAt = Math.max(Date.now(), (Number(chat.updatedAt) || 0) + 1);
             syncChatTopicHeroTitle(chat);
             saveChatStore();
             renderChatList();
         } catch (e) {
-            console.warn('Chat title generation failed silently:', e);
+            console.warn('Chat title and subject generation failed silently:', e);
         }
     }
 
@@ -4748,10 +4793,20 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     // ─── CHAT STORE (guest, client-side multi-chat) ────────────────────────
 
+    function normalizeChatMetadata(chat) {
+        if (!chat || typeof chat !== 'object' || Array.isArray(chat)) return chat;
+        const subject = typeof chat.subject === 'string' ? chat.subject : '';
+        return {
+            ...chat,
+            subject,
+            subjectReady: !!subject.trim() && (typeof chat.subjectReady === 'boolean' ? chat.subjectReady : true)
+        };
+    }
+
     function loadChatStore() {
         try {
             const raw = JSON.parse(localStorage.getItem('knowura_guest_chats') || 'null');
-            if (raw && Array.isArray(raw.chats)) return raw;
+            if (raw && Array.isArray(raw.chats)) return { ...raw, chats: raw.chats.map(normalizeChatMetadata) };
         } catch (e) { /* fall through */ }
         return { chats: [], activeChatId: null };
     }
@@ -4772,7 +4827,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         try { old = JSON.parse(localStorage.getItem('knowura_chat') || '[]'); } catch (e) { old = []; }
         if (!old.length) return;
         const chat = {
-            id: makeChatId(), title: 'Imported Chat', createdAt: Date.now(), updatedAt: Date.now(),
+            id: makeChatId(), title: 'Imported Chat', subject: '', subjectReady: false, createdAt: Date.now(), updatedAt: Date.now(),
             messages: old.map(m => ({ text: m.text, type: m.type }))
         };
         chatStore.chats.push(chat);
@@ -4823,9 +4878,12 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             if (!messages.length) return;
             if (!chatStore.chats.some(c => c.id === data.id)) {
                 const now = Date.now();
+                const subject = typeof data.subject === 'string' ? data.subject.slice(0, 160) : '';
                 chatStore.chats.unshift({
                     id: data.id,
                     title: String(data.title || 'Assistant chat').slice(0, 160),
+                    subject,
+                    subjectReady: !!subject.trim() && (typeof data.subjectReady === 'boolean' ? data.subjectReady : true),
                     createdAt: Number(data.createdAt) || now,
                     updatedAt: Number(data.updatedAt) || now,
                     messages
@@ -4858,7 +4916,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // chat (the default "land on empty state" resume mode relies on this: the
     // chat doesn't actually exist until you send something).
     function createChat() {
-        const chat = { id: makeChatId(), title: 'New Chat', titleReady: false, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
+        const chat = { id: makeChatId(), title: 'New Chat', titleReady: false, subject: '', subjectReady: false, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
         chatStore.chats.unshift(chat);
         if (chatStore.chats.length > 40) chatStore.chats.length = 40; // oldest fall off the end
         chatStore.activeChatId = chat.id;
@@ -4898,10 +4956,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     function chatTopicHeroSubject(chat) {
-        const title = chatTopicHeroTitle(chat);
-        if (title === 'New conversation') return title;
-        const colon = title.indexOf(':');
-        return colon < 0 ? title : (title.slice(0, colon).trim() || title);
+        return String(chat?.subject || '').trim();
+    }
+
+    function chatTopicHeroIsLong(chat) {
+        return chatTopicHeroTitle(chat).length > 60 || chatTopicHeroSubject(chat).length > 48;
     }
 
     function chatTopicHeroReady(chat) {
@@ -4910,6 +4969,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             && Array.isArray(chat.messages)
             && chat.messages.some(message => message?.type === 'user')
             && chat.titleReady !== false
+            && (chat.subjectReady !== false || !String(chat.subject || '').trim())
             && !!title
             && title !== 'New Chat';
     }
@@ -4918,10 +4978,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!chatTopicHeroReady(chat)) return '';
         const title = chatTopicHeroTitle(chat);
         const subject = chatTopicHeroSubject(chat);
+        const subjectLabel = subject || 'Add subject';
         return `
-            <section class="chat-topic-hero" aria-labelledby="chatTopicHeroTitle">
-                <div class="chat-topic-hero-kicker"><span id="chatTopicHeroSubject">${escapeHtml(subject)}</span> <span>·</span> keep exploring</div>
-                <h2 id="chatTopicHeroTitle">${escapeHtml(title)}</h2>
+            <section class="chat-topic-hero${chatTopicHeroIsLong(chat) ? ' is-long' : ''}" aria-labelledby="chatTopicHeroTitle">
+                <div class="chat-topic-hero-kicker"><button type="button" class="chat-topic-hero-editable chat-topic-hero-subject-button" aria-label="Edit conversation subject: ${escapeHtml(subjectLabel)}" title="Edit subject: ${escapeHtml(subjectLabel)}" onclick="editChatTopicField('subject')"><span id="chatTopicHeroSubject" class="${subject ? '' : 'subject-placeholder'}">${escapeHtml(subjectLabel)}</span><svg class="icon" aria-hidden="true"><use href="#icon-edit"/></svg></button> <span class="chat-topic-hero-kicker-tail" aria-hidden="true">· keep exploring</span></div>
+                <h2 id="chatTopicHeroTitle"><button type="button" class="chat-topic-hero-editable chat-topic-hero-title-button" aria-label="Edit conversation title: ${escapeHtml(title)}" title="Edit title: ${escapeHtml(title)}" onclick="editChatTopicField('title')"><span id="chatTopicHeroTitleText">${escapeHtml(title)}</span><svg class="icon" aria-hidden="true"><use href="#icon-edit"/></svg></button></h2>
                 <p>Pick a question to start, or keep going where you left off.</p>
             </section>
         `;
@@ -4931,6 +4992,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (!chat || chat.id !== chatStore.activeChatId) return;
         const box = document.getElementById('chat-box');
         let hero = box?.querySelector('.chat-topic-hero');
+        // Defer updates until blur closes the editor; keep its draft and selection intact.
+        if (hero?.querySelector('.chat-topic-hero-edit-input')) return;
         if (!chatTopicHeroReady(chat)) {
             hero?.remove();
             return;
@@ -4939,10 +5002,81 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             box.insertAdjacentHTML('afterbegin', renderChatTopicHero(chat));
             hero = box.querySelector('.chat-topic-hero');
         }
-        const heading = document.getElementById('chatTopicHeroTitle');
-        if (heading) heading.textContent = chatTopicHeroTitle(chat);
-        const subject = document.getElementById('chatTopicHeroSubject');
-        if (subject) subject.textContent = chatTopicHeroSubject(chat);
+        if (!hero) return;
+        const title = chatTopicHeroTitle(chat);
+        const subject = chatTopicHeroSubject(chat);
+        const subjectLabel = subject || 'Add subject';
+        const titleText = document.getElementById('chatTopicHeroTitleText');
+        const titleButton = titleText?.closest('button');
+        if (titleText) titleText.textContent = title;
+        titleButton?.setAttribute('aria-label', `Edit conversation title: ${title}`);
+        titleButton?.setAttribute('title', `Edit title: ${title}`);
+        const subjectText = document.getElementById('chatTopicHeroSubject');
+        const subjectButton = subjectText?.closest('button');
+        if (subjectText) {
+            subjectText.textContent = subjectLabel;
+            subjectText.classList.toggle('subject-placeholder', !subject);
+        }
+        subjectButton?.setAttribute('aria-label', `Edit conversation subject: ${subjectLabel}`);
+        subjectButton?.setAttribute('title', `Edit subject: ${subjectLabel}`);
+        hero.classList.toggle('is-long', chatTopicHeroIsLong(chat));
+    }
+
+    function editChatTopicField(field) {
+        if (field !== 'title' && field !== 'subject') return;
+        const chat = getActiveChat();
+        if (!chat || chat.id !== chatStore.activeChatId) return;
+        const spanId = field === 'title' ? 'chatTopicHeroTitleText' : 'chatTopicHeroSubject';
+        const label = document.getElementById(spanId);
+        const button = label?.closest('button');
+        if (!button) return;
+
+        const original = field === 'title' ? String(chat.title || '') : String(chat.subject || '');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = spanId;
+        input.className = 'chat-topic-hero-edit-input';
+        input.value = original;
+        input.maxLength = field === 'title' ? 48 : 64;
+        input.placeholder = field === 'subject' ? 'Add subject' : 'Conversation title';
+        const fieldLabel = field === 'title' ? 'Conversation title' : 'Conversation subject';
+        const updateInputAccessibleName = () => input.setAttribute('aria-label', `${fieldLabel}: ${input.value || input.placeholder}`);
+        updateInputAccessibleName();
+        input.addEventListener('input', updateInputAccessibleName);
+        button.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let cancelled = false;
+        let finished = false;
+        let restoreControlFocus = false;
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); restoreControlFocus = true; input.blur(); }
+            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); restoreControlFocus = true; cancelled = true; input.blur(); }
+        });
+        input.addEventListener('blur', () => {
+            if (finished) return;
+            finished = true;
+            if (!cancelled) {
+                const value = input.value.trim();
+                if (field === 'title') {
+                    if (value) chat.title = value;
+                    chat.titleReady = true;
+                } else {
+                    chat.subject = value;
+                    chat.subjectReady = true;
+                }
+                chat.updatedAt = Math.max(Date.now(), (Number(chat.updatedAt) || 0) + 1);
+                saveChatStore();
+                renderChatList();
+            }
+            input.replaceWith(button);
+            syncChatTopicHeroTitle(chat);
+            if (restoreControlFocus && chatStore.activeChatId === chat.id) {
+                const restoredButton = document.getElementById(spanId)?.closest('button');
+                restoredButton?.focus({ preventScroll: true });
+            }
+        }, { once: true });
     }
 
     function renderActiveChat() {
@@ -5089,6 +5223,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const val = input.value.trim();
             chat.title = val || chat.title;
             chat.titleReady = true;
+            chat.updatedAt = Math.max(Date.now(), (Number(chat.updatedAt) || 0) + 1);
             syncChatTopicHeroTitle(chat);
             saveChatStore();
             renderChatList();
@@ -5227,7 +5362,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             cloudBaseUpdatedAt = data.doc?.updatedAt || 0;
             if (data.found && data.doc) {
                 chatStore = {
-                    chats: Array.isArray(data.doc.chats) ? data.doc.chats : [],
+                    chats: Array.isArray(data.doc.chats) ? data.doc.chats.map(normalizeChatMetadata) : [],
                     activeChatId: data.doc.activeChatId || null
                 };
                 cloudMemory = data.doc.memory && typeof data.doc.memory === 'object'
