@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const pub = (f) => fs.readFileSync(path.join(__dirname, '..', 'public', f), 'utf8');
 const pkg = require('../package.json');
@@ -23,32 +24,103 @@ test('the version shown in the app matches package.json', () => {
 
 test('wallpaper variants and menu links use the requested photo credit and social accounts', () => {
     const h = pub('index.html');
-    assert.match(h, /url\('assets\/images\/background\.jpg'\)/);
-    assert.match(h, /url\('assets\/images\/background-lite\.jpg'\)/);
+    assert.match(h, /url\('\/(?:assets\/images\/background-7810a662211f\.jpg)'\)/);
+    assert.match(h, /url\('\/(?:assets\/images\/background-lite-1a7eee6b623f\.jpg)'\)/);
     for (const value of ['https://unsplash.com/@jensaber', 'CsMkikDbvcA', 'https://unsplash.com/license', 'https://www.instagram.com/knowura.ai/', 'https://youtube.com/@Knowura']) {
         assert.ok(h.includes(value), `missing requested attribution or social link: ${value}`);
     }
-    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background.jpg')));
-    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background-lite.jpg')));
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background-7810a662211f.jpg')));
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public/assets/images/background-lite-1a7eee6b623f.jpg')));
 });
 
-test('Ocean wallpaper stays a local JPEG and Auto/Lite photo-facing panels stay translucent on desktop and phone', () => {
+test('shared green-binary wallpaper and Ocean hero stay local JPEGs with translucent Auto/Lite panels', () => {
     const h = pub('index.html');
-    for (const file of ['background.jpg', 'background-lite.jpg', 'ocean-topic-bg.jpg']) {
+    for (const file of ['background-7810a662211f.jpg', 'background-lite-1a7eee6b623f.jpg', 'ocean-topic-bg-440eadfff585.jpg']) {
         const image = fs.readFileSync(path.join(__dirname, '..', 'public/assets/images', file));
         assert.deepEqual([...image.subarray(0, 3)], [0xff, 0xd8, 0xff], `${file} is a real standalone JPEG, not an embedded URL`);
+        const hash = crypto.createHash('sha256').update(image).digest('hex').slice(0, 12);
+        assert.ok(file.includes(hash), `${file} includes its content hash`);
     }
     const bodyRules = [...h.matchAll(/(?:^|\n)\s*(?:html\.(?:balanced|lite) )?body \{([^}]+)\}/g)].filter(([, css]) => /\bbackground\s*:/.test(css));
     assert.equal(bodyRules.length, 3, 'default, Balanced, and Lite each retain a global wallpaper rule');
     for (const [, css] of bodyRules) {
-        assert.match(css, /url\('assets\/images\/background(?:-lite)?\.jpg'\)/);
+        assert.match(css, /url\('\/assets\/images\/background(?:-lite)?-[a-f0-9]{12}\.jpg'\)/);
         assert.doesNotMatch(css, /url\(['"]?(?:data:|https?:)/, 'wallpaper must resolve to the same-origin file');
+    }
+    assert.match(h, /html\.light body\s*\{[^}]*url\('\/assets\/images\/background-7810a662211f\.jpg'\)[^}]*!important/s);
+    assert.match(h, /html\.light\.lite body\s*\{[^}]*url\('\/assets\/images\/background-lite-1a7eee6b623f\.jpg'\)[^}]*!important/s);
+    const lightPanels = h.match(/html\.light \.chat-container,\s*html\.light \.sidebar:not\(\.owner-mode\) \{([^}]+)\}/);
+    assert.ok(lightPanels, 'Light and Light+Lite expose the wallpaper only through their large facing surfaces');
+    assert.match(lightPanels[1], /background-color: rgba\(239,241,246,0\.58\) !important/);
+    assert.match(lightPanels[1], /backdrop-filter: none !important/);
+    assert.doesNotMatch(lightPanels[1], /--panel|padding|margin|width|height/, 'keep control backing and layout unchanged');
+    assert.match(pub('assets/ui/theme-light.css'), /url\('\/assets\/images\/background-7810a662211f\.jpg'\)/);
+    assert.match(pub('assets/ui/theme-term.css'), /url\('\/assets\/images\/background-7810a662211f\.jpg'\)/);
+    assert.match(h, /html\.term body \{ background: #000 !important; \}/);
+    assert.match(h, /html\.term \.chat-topic-hero \{[^}]*url\('\/assets\/images\/background-7810a662211f\.jpg'\)/s,
+        'Terminal hero shares the green-binary wallpaper while its body stays black');
+    for (const file of ['index.html', 'legal.css', 'assets/ui/app-ui.css', 'assets/ui/theme-light.css', 'assets/ui/theme-term.css']) {
+        assert.doesNotMatch(pub(file), /assets\/images\/(?:background(?:-lite)?|ocean-topic-bg)\.jpg/,
+            `${file} must not reference a cache-prone wallpaper URL`);
     }
     const panels = h.match(/html\.lite:not\(\.light\):not\(\.term\) \.chat-container,\s*html\.lite:not\(\.light\):not\(\.term\) \.sidebar:not\(\.owner-mode\) \{([^}]+)\}/);
     assert.ok(panels, 'the visibility rule applies across viewports, without changing light, terminal, owner mode, or controls');
     assert.match(panels[1], /background-color: rgba\(12,24,52,0\.50\)/);
     assert.doesNotMatch(panels[1], /--panel|backdrop-filter|background-image/, 'do not change controls, effects, or the image reference');
     assert.match(h, /html\.lite:not\(\.light\):not\(\.term\) \{ --panel: rgba\(12,24,52,0\.50\)/, 'retain the existing phone Lite treatment');
+});
+
+test('Ocean hero appears in every active chat and follows that chat’s escaped title', () => {
+    const h = pub('index.html');
+    assert.match(h, /function renderChatTopicHero\(chat\)[\s\S]*?escapeHtml\(subject\)[\s\S]*?escapeHtml\(title\)/);
+    assert.match(h, /\.chat-topic-hero-kicker #chatTopicHeroSubject \{ min-width: 0; max-width: 100%; overflow-wrap: anywhere; \}/,
+        'a long no-colon subject wraps inside its own kicker flex item without changing the kicker layout');
+    assert.match(h, /\.chat-topic-hero h2 \{[^}]*min-width: 0; max-width: min\(1100px, 100%\); overflow-wrap: anywhere;/);
+    assert.match(h, /id="chatTopicHeroSubject">\$\{escapeHtml\(subject\)\}<\/span> <span>·<\/span> keep exploring/);
+    assert.match(h, /Pick a question to start, or keep going where you left off\./);
+    assert.doesNotMatch(h, /Ocean science|planet’s moving heat/, 'shared hero copy stays topic-neutral');
+    assert.match(h, /box\.insertAdjacentHTML\('beforeend', renderChatTopicHero\(chat\)\)/);
+    assert.match(h, /function renderEmptyState\(chat = getActiveChat\(\)\)[\s\S]*?box\.insertAdjacentHTML\('afterbegin', renderChatTopicHero\(chat\)\)/);
+    assert.match(h, /function renderChatTopicHero\(chat\) \{\s*const title = chatTopicHeroTitle\(chat\)/);
+    assert.match(h, /function syncChatTopicHeroTitle\(chat\)[\s\S]*?heading\.textContent = chatTopicHeroTitle\(chat\)[\s\S]*?subject\.textContent = chatTopicHeroSubject\(chat\)/);
+    assert.match(h, /if \(!chat\) \{\s*chat = createChat\(\);\s*const box = document\.getElementById\('chat-box'\);\s*if \(box && !box\.querySelector\('\.chat-topic-hero'\)\) box\.insertAdjacentHTML\('afterbegin', renderChatTopicHero\(chat\)\)/);
+    assert.match(h, /chat\.title = val \|\| chat\.title;\s*syncChatTopicHeroTitle\(chat\)/);
+    assert.match(h, /chat\.title = title;\s*syncChatTopicHeroTitle\(chat\)/);
+    assert.doesNotMatch(h, /Ocean currents & climate/i, 'hero copy is no longer restricted to a single chat title');
+});
+
+test('hero heading keeps the full live title while the kicker derives the subject', () => {
+    const h = pub('index.html');
+    const titleSource = h.match(/function chatTopicHeroTitle\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    const subjectSource = h.match(/function chatTopicHeroSubject\(chat\) \{[\s\S]*?\n    \}/)?.[0];
+    assert.ok(titleSource && subjectSource, 'shared helpers keep the full title and derived subject consistent');
+    const { titleFor, subjectFor } = new Function(`${titleSource}\n${subjectSource}; return { titleFor: chatTopicHeroTitle, subjectFor: chatTopicHeroSubject };`)();
+    for (const [title, expected] of [
+        ['', 'New conversation'], ['New Chat', 'New conversation'],
+        ['Ocean currents: How do they shape climate?', 'Ocean currents: How do they shape climate?'],
+        ['  Biology : Cells: a closer look  ', 'Biology : Cells: a closer look'],
+        ['Photosynthesis without a colon', 'Photosynthesis without a colon'],
+        ['X'.repeat(100), 'X'.repeat(100)], ['<b>Safe & sound</b>: notes', '<b>Safe & sound</b>: notes']
+    ]) assert.equal(titleFor({ title }), expected);
+    for (const [title, expected] of [
+        ['', 'New conversation'], ['New Chat', 'New conversation'],
+        ['Ocean currents: How do they shape climate?', 'Ocean currents'],
+        ['  Biology : Cells: a closer look  ', 'Biology'],
+        ['Photosynthesis without a colon', 'Photosynthesis without a colon'],
+        ['X'.repeat(100), 'X'.repeat(100)], ['<b>Safe & sound</b>: notes', '<b>Safe & sound</b>']
+    ]) assert.equal(subjectFor({ title }), expected);
+    assert.equal(titleFor(null), 'New conversation');
+    assert.equal(subjectFor(null), 'New conversation');
+});
+
+test('prompt-bar glyphs are enlarged without changing their button dimensions', () => {
+    const h = pub('index.html');
+    assert.match(h, /\.pb-pick \.icon \{[^}]*width: 0\.95em; height: 0\.95em;[^}]*scale: 1\.35;/);
+    assert.match(h, /\.pb-send \.pb-glyph \{[^}]*width: 20px; height: 20px;[^}]*scale: 1\.2;/);
+    assert.match(h, /\.pb-send \.pb-mic \{[^}]*width: 18px; height: 18px; scale: 1\.2;/);
+    assert.match(h, /\.pb-pick \{[^}]*height: 30px;[^}]*padding: 0 12px 0 10px;/);
+    assert.match(h, /\.pb-send \{[^}]*width: 40px; height: 40px;/);
+    assert.match(h, /#pbEffortBtn, #pbStudyBtn \{ min-width: 44px; \}/);
 });
 
 test('incognito never writes to storage, memory or the cloud', () => {

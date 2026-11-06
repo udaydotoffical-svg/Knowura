@@ -350,7 +350,7 @@ test('main voice TTS media errors clean the analyser/audio and return to listeni
     assert.match(fn, /let playbackFinished = false/);
 });
 
-test('voice haptics respect the saved preference, user activation, platform support, and stronger mode', () => {
+test('received response text pulses are subtle, deduplicated, rate-limited, and respect voice haptic preferences', () => {
     const h = makeHarness();
     const pulses = [];
     let now = 1000;
@@ -362,27 +362,88 @@ test('voice haptics respect the saved preference, user activation, platform supp
     h.window.performance = { now: () => now };
     h.window.localStorage = { getItem(key) { assert.equal(key, 'knowura_settings'); return JSON.stringify({ haptics: preference }); } };
 
-    assert.equal(h.api.hapticEvent('speech-start'), false);
+    assert.equal(h.api.responseTextChunk('  '), false);
+    assert.equal(h.api.responseTextChunk('first chunk'), false);
     assert.equal(pulses.length, 0);
     preference = 'on';
     now += 100;
-    assert.equal(h.api.hapticEvent('speech-start'), true);
-    assert.deepEqual(pulses.at(-1), [12, 22, 8]);
-    preference = 'max';
+    h.api.resetResponseText();
+    assert.equal(h.api.responseTextChunk('first chunk'), true);
+    assert.deepEqual(pulses.at(-1), [7]);
+    assert.equal(h.api.responseTextChunk('first chunk'), false);
     now += 100;
+    assert.equal(h.api.responseTextChunk('first chunk plus another chunk'), false);
+    now += 130;
+    assert.equal(h.api.responseTextChunk('first chunk plus another chunk!'), true);
+    assert.deepEqual(pulses.at(-1), [7]);
+    preference = 'max';
+    now += 250;
     assert.equal(h.api.hapticEvent('interrupt'), true);
     assert.deepEqual(pulses.at(-1), [41, 28, 19]);
+    now += 250;
+    assert.equal(h.api.responseTextChunk('third fresh chunk'), true);
+    assert.deepEqual(pulses.at(-1), [17]);
     h.changeMotion(true);
-    now += 100;
-    assert.equal(h.api.hapticEvent('speech-end'), false);
-    assert.equal(pulses.length, 2);
+    now += 250;
+    assert.equal(h.api.responseTextChunk('fourth fresh chunk'), false);
+    assert.equal(pulses.length, 4);
     h.changeMotion(false);
     h.window.navigator.userActivation.hasBeenActive = false;
-    now += 100;
-    assert.equal(h.api.hapticEvent('speech-end'), false);
+    now += 250;
+    assert.equal(h.api.responseTextChunk('fifth fresh chunk'), false);
     h.window.navigator.userActivation.hasBeenActive = true;
-    h.window.navigator.vibrate = undefined;
+    assert.equal(h.api.hapticEvent('speech-start'), false);
     assert.equal(h.api.hapticEvent('speech-end'), false);
+    h.window.navigator.vibrate = undefined;
+    now += 250;
+    assert.equal(h.api.responseTextChunk('sixth fresh chunk'), false);
+});
+
+test('the first response-text pulse is not suppressed by page-load time', () => {
+    const h = makeHarness();
+    const pulses = [];
+    h.window.navigator = {
+        userActivation: { hasBeenActive: true },
+        vibrate(pattern) { pulses.push([...pattern]); return true; }
+    };
+    h.window.performance = { now: () => 100 };
+    h.window.localStorage = { getItem() { return JSON.stringify({ haptics: 'on' }); } };
+
+    assert.equal(h.api.responseTextChunk('first response'), true);
+    assert.deepEqual(pulses, [[7]]);
+});
+
+test('voice haptics fire on received reply text, never on audio playback alone', () => {
+    const main = pub('index.html');
+    const assistant = pub('assistant.html');
+    const mainAsk = main.slice(main.indexOf('    async function ask('), main.indexOf('    // ─── TYPEWRITER REPLY'));
+    const assistantTurn = assistant.slice(assistant.indexOf('    async function onCaptured('), assistant.indexOf('    function backToListening'));
+    const mainSpeech = main.slice(main.indexOf('    async function speakReply('), main.indexOf('    // ─── LIVE CAPTIONS'));
+    const assistantSpeech = assistant.slice(assistant.indexOf('    async function speakInCall('), assistant.indexOf('    let captionTimer'));
+    assert.match(mainAsk, /if \(opts\.fromVoice\) window\.KnowuraLiveAvatar\?\.responseTextChunk\?\.\(reply\)/);
+    assert.ok(mainAsk.indexOf('responseTextChunk?.(reply)') < mainAsk.indexOf('if (opts.speak) speakReply(reply)'));
+    assert.match(mainAsk, /typeReveal\(thinking, \{ haptics: !opts\.fromVoice \}\)/);
+    assert.match(assistantTurn, /window\.KnowuraLiveAvatar\?\.responseTextChunk\?\.\(reply\)/);
+    assert.ok(assistantTurn.indexOf('responseTextChunk?.(reply)') < assistantTurn.indexOf('await speakInCall(c, reply)'));
+    assert.doesNotMatch(mainSpeech + assistantSpeech, /hapticEvent\(['"]speech-(?:start|end)['"]\)/);
+    assert.doesNotMatch(assistantSpeech, /audio\.onplaying\s*=.*haptic/);
+});
+
+test('Study Mode banner uses the existing transparent 3D Dot embed in its original-size slot', () => {
+    const html = pub('index.html');
+    const dotRule = /\.study-strip \.study-dot-frame\s*\{([^}]*)\}/.exec(html);
+    const stripStart = html.indexOf('<div id="studyStrip"');
+    const stripEnd = html.indexOf('</div>', stripStart);
+    const studyStrip = html.slice(stripStart, stripEnd + 6);
+    assert.ok(dotRule);
+    assert.ok(stripStart >= 0 && stripEnd > stripStart);
+    assert.match(dotRule[1], /width:\s*36px/);
+    assert.match(dotRule[1], /height:\s*36px/);
+    assert.match(dotRule[1], /overflow:\s*hidden/);
+    assert.match(studyStrip, /<iframe class="study-dot-frame" src="\/assets\/avatar\/dot-avatar-live\.html\?embed=1"[^>]*aria-hidden="true"[^>]*loading="lazy"/);
+    assert.match(html, /background:\s*var\(--cyan\) url\(\/assets\/brand\/k-mark\.svg\)/);
+    assert.doesNotMatch(html, /study-mode-on \.ai::before/);
+    assert.doesNotMatch(studyStrip, /bloub-cercle-neutre-bleu\.gif/);
 });
 
 test('speech analysis is optional without AudioContext and direct playback remains available', async () => {

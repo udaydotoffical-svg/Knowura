@@ -211,7 +211,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             height: 100dvh; /* shrinks with the on-screen keyboard on mobile instead of getting covered by it */
             background:
                 linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)),
-                url('assets/images/background.jpg') no-repeat center center;
+                url('/assets/images/background-7810a662211f.jpg') no-repeat center center;
             background-size: cover;
             display: flex; align-items: center; justify-content: center;
             color: var(--text); overflow: hidden;
@@ -490,13 +490,14 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             border: 2px solid var(--ink); border-radius: 13px;
             background: linear-gradient(90deg, rgba(4,8,18,.91) 0%, rgba(4,8,18,.75) 55%, rgba(4,8,18,.42) 100%),
                         linear-gradient(0deg, rgba(4,8,18,.84), rgba(4,8,18,.06)),
-                        url("/assets/images/ocean-topic-bg.jpg") center 54% / cover no-repeat;
+                        url("/assets/images/ocean-topic-bg-440eadfff585.jpg") center 54% / cover no-repeat;
             box-shadow: 4px 4px 0 var(--ink);
         }
         .chat-topic-hero::after { position: absolute; z-index: -1; content: ""; inset: 0; border-top: 1px solid rgba(34,229,255,.45); pointer-events: none; }
         .chat-topic-hero-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--cyan); font: 400 12px/1.2 "Geist Pixel", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; text-transform: uppercase; }
+        .chat-topic-hero-kicker #chatTopicHeroSubject { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
         .chat-topic-hero-kicker::before { content: ""; width: 7px; height: 7px; border: 1px solid var(--ink); background: var(--cyan); }
-        .chat-topic-hero h2 { max-width: 1100px; margin: 0; color: #f4f8ff; font: 400 clamp(28px, 2.7vw, 44px)/1.08 "Geist Pixel", ui-monospace, Menlo, Consolas, monospace; letter-spacing: -.035em; }
+        .chat-topic-hero h2 { min-width: 0; max-width: min(1100px, 100%); overflow-wrap: anywhere; margin: 0; color: #f4f8ff; font: 400 clamp(28px, 2.7vw, 44px)/1.08 "Geist Pixel", ui-monospace, Menlo, Consolas, monospace; letter-spacing: -.035em; }
         .chat-topic-hero p { max-width: 900px; margin: 10px 0 0; color: #d6e0ee; font-size: 16px; line-height: 1.45; }
         html.light .chat-topic-hero-kicker { color: #006b82; }
         html.light .chat-topic-hero-kicker::before { background: #006b82; }
@@ -607,7 +608,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         html.term .teachback-card, html.term .visual-card, html.term .teachback-input { border-radius: 2px !important; }
         .study-strip { display: none; align-items: center; gap: 10px; margin: 0 0 8px; padding: 6px 8px 6px 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(34, 229, 255, 0.1); box-shadow: var(--shadow-sm); font-size: 12.5px; line-height: 1.35; }
         .study-strip.on { display: flex; }
-        .study-strip img { width: 36px; height: 36px; flex: none; border-radius: 50%; }
+        .study-strip .study-dot-frame { display: block; width: 36px; height: 36px; flex: none; overflow: hidden; border: 0; border-radius: 50%; background: transparent; pointer-events: none; }
         .study-strip b { color: var(--cyan); }
         .study-strip button { margin-left: auto; flex: none; padding: 5px 9px; border: 2px solid var(--ink); border-radius: 8px; background: var(--panel-strong); color: var(--text); font-size: 12px; cursor: pointer; }
         .pb-pick.on { color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
@@ -639,11 +640,26 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         @media (prefers-reduced-motion: reduce) { .pxburst { display: none; } }
         /* ─── THEMES: dark (default) · light · terminal (unlocked with the Konami code). Colours come from the :root variables. ─── */
         html.light { --dark: #eaf1fc; --text: #0b1530; --text-dim: #4a5f85; --cyan: #0b7f9e; --blue: #2f6bff; --blue-deep: #1f4fd6; --panel: rgba(255, 255, 255, 0.72); --panel-strong: rgba(255, 255, 255, 0.94); --owner: #d4143a; color-scheme: light; }
-        html.light body { background: linear-gradient(180deg, #f4f8ff, #d8e5fa) !important; }
+        html.light body {
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat !important;
+        }
+        html.light.lite body {
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') center / cover no-repeat !important;
+        }
+        /* Keep the wallpaper visible through large Light surfaces; controls retain their existing backing. */
+        html.light .chat-container,
+        html.light .sidebar:not(.owner-mode) {
+            background-color: rgba(239,241,246,0.58) !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        }
         html.light .msg.user, html.light .choice-pill.selected, html.light .choice-pill.selected .choice-hint, html.light .btn-ui.cta, html.light .new-chat-btn, html.light .cookie-btn { color: #fff; }
         html.light .empty-logo, html.light .sidebar-logo, html.light .credits-logo { background: #0b1530; border-radius: 12px; padding: 8px 14px; }
         html.term { --dark: #000; --blue: #19a64a; --blue-deep: #063d1a; --cyan: #39ff6a; --text: #c9ffd6; --text-dim: #3fbf68; --panel: rgba(0, 28, 8, 0.9); --panel-strong: rgba(0, 20, 6, 0.96); --owner: #ffb000; }
         html.term body { background: #000 !important; }
+        html.term .chat-topic-hero {
+            background: linear-gradient(90deg, rgba(0,8,2,.84), rgba(0,8,2,.35)),
+                        url('/assets/images/background-7810a662211f.jpg') center / 960px auto repeat;
+        }
         html.term *:not(svg):not(svg *):not(img) { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace !important; }
         html.term .msg, html.term button, html.term .prompt-bar, html.term .pb-inner, html.term input, html.term textarea, html.term .sheet, html.term .study-card { border-radius: 2px !important; }
         html.term img.orb-gif, html.term .study-strip img, html.term .empty-logo, html.term .sidebar-logo, html.term .credits-logo, html.term .ai::before, html.term .streak-chip img { filter: grayscale(1) sepia(1) hue-rotate(78deg) saturate(3) brightness(1.1) !important; }
@@ -973,7 +989,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             -webkit-tap-highlight-color: transparent; touch-action: manipulation;
             transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
         }
-        .pb-pick .icon { width: 0.95em; height: 0.95em; color: var(--cyan); flex-shrink: 0; }
+        .pb-pick .icon { width: 0.95em; height: 0.95em; color: var(--cyan); flex-shrink: 0; scale: 1.35; }
         .pb-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pb-pick:hover, .pb-pick[data-on] { background: rgba(255,255,255,0.15); color: var(--text); }
         .pb-pick:active { transform: scale(0.96); }
@@ -993,8 +1009,8 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         }
         .pb-send:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink), inset 1px 1px 0 rgba(255,255,255,0.55); }
         .pb-send:active { transform: translate(2px, 2px) scale(0.96); box-shadow: 1px 1px 0 var(--ink); }
-        .pb-send .pb-glyph { width: 20px; height: 20px; display: block; transform-origin: 50% 50%; }
-        .pb-send .pb-mic { display: none; width: 18px; height: 18px; }
+        .pb-send .pb-glyph { width: 20px; height: 20px; display: block; scale: 1.2; transform-origin: 50% 50%; }
+        .pb-send .pb-mic { display: none; width: 18px; height: 18px; scale: 1.2; }
         .pb-send.mic-mode {
             border-radius: 50%; color: var(--cyan);
             background: rgba(255,255,255,0.10);
@@ -1275,7 +1291,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             display: none; position: absolute; inset: 0; z-index: 60;
             background:
                 linear-gradient(180deg, rgba(3,6,16,0.55), rgba(3,6,16,0.78)),
-                url('assets/images/background.jpg') no-repeat center center;
+                url('/assets/images/background-7810a662211f.jpg') no-repeat center center;
             background-size: cover;
             backdrop-filter: blur(6px) saturate(140%);
             flex-direction: column; align-items: center; justify-content: center;
@@ -1853,7 +1869,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
            specular edge + soft gradient instead; blur stays only on the small prompt box
            and popups. The glow keeps its cursor-following ring but not the halo layers. */
         html.balanced body {
-            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('assets/images/background-lite.jpg') no-repeat center center;
+            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') no-repeat center center;
             background-size: cover;
         }
         html.balanced #startup, html.balanced .sidebar, html.balanced .chat-container, html.balanced .glass-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
@@ -1878,7 +1894,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         html.lite.light { --panel: rgba(255, 255, 255, 0.92) !important; --panel-strong: rgba(255, 255, 255, 0.98) !important; }
         html.lite.term { --panel: rgba(0, 28, 8, 0.94) !important; --panel-strong: rgba(0, 20, 6, 0.98) !important; }
         html.lite body {
-            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('assets/images/background-lite.jpg') no-repeat center center;
+            background: linear-gradient(180deg, rgba(3,6,16,0.1), rgba(3,6,16,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') no-repeat center center;
             background-size: cover;
         }
         html.lite *, html.lite *::before, html.lite *::after {
@@ -1889,8 +1905,8 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             scroll-behavior: auto !important;
         }
         html.lite .orb-gif { filter: none !important; }
-        /* Auto/Lite desktop must not bury the local ocean photo under an 86% veil.
-           Match the phone's photo-facing panels only; controls keep their stronger backing. */
+        /* Auto/Lite desktop must not bury the shared wallpaper under an 86% veil.
+           Match the phone's wallpaper-facing panels only; controls keep their stronger backing. */
         html.lite:not(.light):not(.term) .chat-container,
         html.lite:not(.light):not(.term) .sidebar:not(.owner-mode) {
             background-color: rgba(12,24,52,0.50);
@@ -1901,14 +1917,14 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         html.lite .pb-menu, html.lite .model-dd-menu, html.lite .music-panel, html.lite .cookie-banner { background: var(--panel-strong) !important; }
         html.lite #startup, html.lite .sidebar-backdrop, html.lite .hamburger-panel, html.lite .owner-modal { background: rgba(3,6,14,0.92) !important; }
 
-        /* Keep the ocean photo clear and recognizable on phones, including low-performance tiers. */
+        /* Keep the shared wallpaper clear and recognizable on phones, including low-performance tiers. */
         @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
             html:not(.light):not(.term) { --panel: rgba(18,34,68,0.18); --panel-strong: rgba(9,18,40,0.34); }
             html.lite:not(.light):not(.term) { --panel: rgba(12,24,52,0.50) !important; --panel-strong: rgba(9,18,40,0.66) !important; }
             html:not(.light):not(.term) body,
             html.balanced:not(.light):not(.term) body,
             html.lite:not(.light):not(.term) body {
-                background-image: linear-gradient(180deg, rgba(3,6,16,0.02), rgba(3,6,16,0.10)), url('assets/images/background.jpg');
+                background-image: linear-gradient(180deg, rgba(3,6,16,0.02), rgba(3,6,16,0.10)), url('/assets/images/background-7810a662211f.jpg');
                 background-position: center center;
                 background-size: cover;
             }
@@ -1972,9 +1988,9 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             color: #eaf6ff; border-right: 2px solid var(--ink);
             background: linear-gradient(90deg, rgba(4, 9, 20, 0.48), rgba(4, 9, 20, 0.2)),
                 linear-gradient(180deg, rgba(4, 9, 20, 0.08) 0%, rgba(4, 9, 20, 0.22) 42%, rgba(4, 9, 20, 0.82) 100%),
-                url('/assets/images/background.jpg') center / cover no-repeat;
+                url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat;
         }
-        html.light .login-story { color: #eaf6ff; background: linear-gradient(90deg, rgba(4, 9, 20, 0.48), rgba(4, 9, 20, 0.2)), linear-gradient(180deg, rgba(4, 9, 20, 0.08) 0%, rgba(4, 9, 20, 0.22) 42%, rgba(4, 9, 20, 0.82) 100%), url('/assets/images/background.jpg') center / cover no-repeat; }
+        html.light .login-story { color: #eaf6ff; background: linear-gradient(90deg, rgba(4, 9, 20, 0.48), rgba(4, 9, 20, 0.2)), linear-gradient(180deg, rgba(4, 9, 20, 0.08) 0%, rgba(4, 9, 20, 0.22) 42%, rgba(4, 9, 20, 0.82) 100%), url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat; }
         html.light .login-story-sub { color: rgba(234, 246, 255, 0.82); }
         .login-story-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 13px; }
         .login-story-mark { width: 38px; height: 38px; flex: none; display: grid; place-items: center; background: var(--cyan); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
@@ -2198,7 +2214,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                             <div class="pb-field" id="pbField">
                                 <div id="attBar" class="att-bar" hidden aria-label="Attachments"></div>
                                 <canvas id="pbSparks" class="pb-sparks" aria-hidden="true"></canvas>
-                                <div id="studyStrip" class="study-strip" role="status"><img src="assets/images/bloub-cercle-neutre-bleu.gif" alt="" width="36" height="36" loading="lazy"><span><b>Study mode</b> I'll guide you step by step instead of just giving answers.</span><button type="button" onclick="toggleStudyMode()">Turn off</button></div>
+                                <div id="studyStrip" class="study-strip" role="status"><iframe class="study-dot-frame" src="/assets/avatar/dot-avatar-live.html?embed=1" title="Dot" aria-hidden="true" tabindex="-1" loading="lazy"></iframe><span><b>Study mode</b> I'll guide you step by step instead of just giving answers.</span><button type="button" onclick="toggleStudyMode()">Turn off</button></div>
                                 <textarea id="userInput" class="pb-input" rows="1" placeholder="Ask Knowura anything" autocomplete="off" aria-label="Prompt"></textarea>
                                 <div class="pb-bar">
                                     <button type="button" id="pbAttachBtn" class="pb-pick pb-attach" aria-label="Add attachment" title="Add photos, files or take a picture" onclick="attachPick()"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg></button>
@@ -3530,6 +3546,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const chat = chatStore.chats.find(c => c.id === chatId);
             if (!chat) return; // chat was deleted while this was in flight
             chat.title = title;
+            syncChatTopicHeroTitle(chat);
             saveChatStore();
             renderChatList();
         } catch (e) {
@@ -3893,6 +3910,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         if (opts.fromVoice) {
             setOrbState('thinking');
             setLiveStatus(ultraThinkMode ? 'Ultra thinking…' : 'Thinking…');
+            window.KnowuraLiveAvatar?.resetResponseText?.();
         }
 
         const controller = new AbortController();
@@ -3953,7 +3971,8 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 thinking.innerHTML = html;
                 saveActiveChat(thinking.innerHTML, 'ai', { sources: data.sources, search: searchInfo });
                 if (data.study && !opts.fromVoice) setTimeout(() => openStudy(data.study), 900); // pop it on screen
-                typeReveal(thinking); // typewriter reveal (+ soft haptic ticks on phones); the saved copy is already complete
+                if (opts.fromVoice) window.KnowuraLiveAvatar?.responseTextChunk?.(reply);
+                typeReveal(thinking, { haptics: !opts.fromVoice }); // spoken replies pulse on received text, not while the voice plays
 
                 // First exchange of a chat — quietly generate a real title in the
                 // background instead of leaving the instant truncated-message one.
@@ -4029,7 +4048,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     let activeTyper = null;
     function finishTyping() { activeTyper?.finish(); }
 
-    function typeReveal(root) {
+    function typeReveal(root, { haptics = true } = {}) {
         finishTyping();
         // Only the OS "reduce motion" setting skips it — Lite-mode phones still get the light text-only effect + haptics.
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -4055,7 +4074,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             nodes.forEach((n, i) => { n.nodeValue = full[i]; });
             if (activeTyper === api) activeTyper = null;
             navigator.vibrate?.(0);
-            if (natural === true) { lastHaptic = 0; haptic('success'); } // reply finished typing (bypass the tick throttle)
+            if (natural === true && haptics) { lastHaptic = 0; haptic('success'); } // typed reply finished (bypass the tick throttle)
         }
         function tick(now) {
             if (done) return;
@@ -4068,7 +4087,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 nodes[idx].nodeValue = full[idx].slice(0, offset);
                 if (offset >= full[idx].length) { idx++; offset = 0; }
             }
-            if (want > shown - 1 && now - lastBuzz > 28) {
+            if (haptics && want > shown - 1 && now - lastBuzz > 28) {
                 lastBuzz = now;
                 haptic('tick'); // one tiny tick per burst of letters, like ChatGPT's mobile app
             }
@@ -4843,6 +4862,39 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         closeSidebarMobile();
     }
 
+    function chatTopicHeroTitle(chat) {
+        const title = String(chat?.title || '').trim();
+        if (!title || title === 'New Chat') return 'New conversation';
+        return title;
+    }
+
+    function chatTopicHeroSubject(chat) {
+        const title = chatTopicHeroTitle(chat);
+        if (title === 'New conversation') return title;
+        const colon = title.indexOf(':');
+        return colon < 0 ? title : (title.slice(0, colon).trim() || title);
+    }
+
+    function renderChatTopicHero(chat) {
+        const title = chatTopicHeroTitle(chat);
+        const subject = chatTopicHeroSubject(chat);
+        return `
+            <section class="chat-topic-hero" aria-labelledby="chatTopicHeroTitle">
+                <div class="chat-topic-hero-kicker"><span id="chatTopicHeroSubject">${escapeHtml(subject)}</span> <span>·</span> keep exploring</div>
+                <h2 id="chatTopicHeroTitle">${escapeHtml(title)}</h2>
+                <p>Pick a question to start, or keep going where you left off.</p>
+            </section>
+        `;
+    }
+
+    function syncChatTopicHeroTitle(chat) {
+        if (!chat || chat.id !== chatStore.activeChatId) return;
+        const heading = document.getElementById('chatTopicHeroTitle');
+        if (heading) heading.textContent = chatTopicHeroTitle(chat);
+        const subject = document.getElementById('chatTopicHeroSubject');
+        if (subject) subject.textContent = chatTopicHeroSubject(chat);
+    }
+
     function renderActiveChat() {
         finishTyping();
         const box = document.getElementById('chat-box');
@@ -4850,17 +4902,9 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         conversationMessages = [];
         const chat = getActiveChat();
         if (!chat || chat.messages.length === 0) {
-            renderEmptyState();
+            renderEmptyState(chat);
         } else {
-            if ((chat.title || '').trim().toLowerCase() === 'ocean currents & climate') {
-                box.insertAdjacentHTML('beforeend', `
-                    <section class="chat-topic-hero" aria-labelledby="chatTopicHeroTitle">
-                        <div class="chat-topic-hero-kicker">Ocean science <span>·</span> guided thread</div>
-                        <h2 id="chatTopicHeroTitle">How ocean currents shape climate</h2>
-                        <p>A clearer picture of the planet’s moving heat.</p>
-                    </section>
-                `);
-            }
+            box.insertAdjacentHTML('beforeend', renderChatTopicHero(chat));
             chat.messages.forEach((m) => {
                 const bubble = addBubble(safeHtml(m.text), m.type, false);
                 restoreChatArtifacts(bubble, m);
@@ -4885,7 +4929,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         { icon: 'icon-search', label: "What's new today", prompt: "What's the latest news today?" }
     ];
 
-    function renderEmptyState() {
+    function renderEmptyState(chat = getActiveChat()) {
         const box = document.getElementById('chat-box');
         box.innerHTML = `
             <div class="empty-state">
@@ -4902,6 +4946,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 <div class="study-home" id="studyHome"></div>
             </div>
         `;
+        box.insertAdjacentHTML('afterbegin', renderChatTopicHero(chat));
         refreshStudyHome();
     }
 
@@ -4911,7 +4956,11 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function saveActiveChat(text, type, metadata = {}) {
         let chat = getActiveChat();
-        if (!chat) chat = createChat();
+        if (!chat) {
+            chat = createChat();
+            const box = document.getElementById('chat-box');
+            if (box && !box.querySelector('.chat-topic-hero')) box.insertAdjacentHTML('afterbegin', renderChatTopicHero(chat));
+        }
         const message = { text, type };
         if (type === 'ai' && Array.isArray(metadata.sources) && metadata.sources.length) message.sources = metadata.sources;
         if (type === 'ai' && metadata.search && typeof metadata.search === 'object' && metadata.search.attempted) {
@@ -4932,6 +4981,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const plain = bubblePlain(text) || (/att-chip[^>]*data-n="([^"]+)"/.exec(text)?.[1] || '');
             chat.title = plain.length > 42 ? plain.slice(0, 42).trim() + '…' : (plain || 'New Chat');
         }
+        syncChatTopicHeroTitle(chat);
         saveChatStore();
         renderChatList();
     }
@@ -4989,6 +5039,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const commit = () => {
             const val = input.value.trim();
             chat.title = val || chat.title;
+            syncChatTopicHeroTitle(chat);
             saveChatStore();
             renderChatList();
         };
@@ -5801,9 +5852,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
                 if (callActive) enterListeningState(); else setOrbState('idle');
             };
             finishTtsPlayback = finishPlayback;
-            finished.onplaying = () => window.KnowuraLiveAvatar?.hapticEvent('speech-start');
             finished.onended = () => {
-                window.KnowuraLiveAvatar?.hapticEvent('speech-end');
                 finishPlayback();
             };
             finished.onerror = () => finishPlayback(finished.error || new Error('Audio playback failed'));

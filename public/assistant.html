@@ -894,11 +894,13 @@ function showAlert(message) { window.__note && window.__note(message); }
             const text = (d.text || '').trim();
             if (!text) { $('liveTranscript').textContent = 'Didn\'t catch that. Try again.'; setTimeout(() => { if (!c.dead) $('liveTranscript').textContent = ''; }, 2500); backToListening(c); return; }
             $('liveTranscript').textContent = '\u201c' + text.slice(0, 120) + '\u201d'; status('Thinking…');
+            window.KnowuraLiveAvatar?.resetResponseText?.();
             addBubble(userHTML(text), 'user'); chat.messages.push({ text: userHTML(text), type: 'user' });
             if (chat.messages.length === 1) chat.title = text.slice(0, 40);
             const { reply, study, pcTask } = await askModel(text, { voice: true });
-            finishReply(addBubble('', 'ai'), reply, study, pcTask);
             if (c.dead) return;
+            finishReply(addBubble('', 'ai'), reply, study, pcTask);
+            window.KnowuraLiveAvatar?.responseTextChunk?.(reply);
             await speakInCall(c, reply);
         } catch (e) { if (c.dead) return; chat.messages.length && chat.messages[chat.messages.length - 1].type === 'user' && chat.messages.pop(); if (e.blocked) { const u = $('chat-box').querySelectorAll('.msg.user'); if (u.length) u[u.length - 1].remove(); } showError(e); status(e.limit ? 'Limit reached' : 'Something went wrong'); $('liveTranscript').textContent = String(e.message || 'Something went wrong.').slice(0, 140); setTimeout(() => { if (!c.dead) $('liveTranscript').textContent = ''; backToListening(c); }, 4500); return; }
         backToListening(c);
@@ -945,8 +947,7 @@ function showAlert(message) { window.__note && window.__note(message); }
                 window.KnowuraLiveAvatar?.setSpeechLevel(0);
                 ok();
             };
-            audio.onplaying = () => window.KnowuraLiveAvatar?.hapticEvent('speech-start');
-            audio.onended = () => { window.KnowuraLiveAvatar?.hapticEvent('speech-end'); finish(); };
+            audio.onended = finish;
             audio.onerror = finish;
             audio.onpause = () => { if (!audio.ended) finish(); };
             audio.play().catch(finish);

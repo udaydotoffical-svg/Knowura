@@ -161,7 +161,7 @@ Knowura runs on either platform from this same repo, unmodified:
   (default: Lite on devices reporting ≤4 GB RAM or ≤2 cores, or after a runtime lag watchdog sees
   sustained slow frames while you interact), **Lite**, or **Full**. It's decided in a tiny inline
   script in `<head>` so weak devices never paint the heavy version first.
-- The wallpaper is 1920px (`background.jpg`, ~9 MB decoded) with a 1280px `background-lite.jpg`;
+- The shared green-binary wallpaper is 1920px (`background-7810a662211f.jpg`, ~9 MB decoded) with a 1280px `background-lite-1a7eee6b623f.jpg`;
   don't drop a multi-thousand-pixel original back in — a 6000×4000 JPEG decodes to ~96 MB of RAM.
 - The Live Voice avatar gif is only loaded while a call is open, music doesn't preload, and very
   long sessions/guest chat lists are capped.

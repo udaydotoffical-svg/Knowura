@@ -17,11 +17,12 @@
     });
     const VOICE_HAPTICS = Object.freeze({
         'listening-start': [9],
-        'speech-start': [12, 22, 8],
-        'speech-end': [7],
+        'text-received': [7],
         interrupt: [17, 28, 8]
     });
     let lastVoiceHaptic = 0;
+    let lastResponseText = '';
+    let lastResponseTextHaptic = null;
 
     function hapticEvent(name) {
         const pattern = VOICE_HAPTICS[name];
@@ -44,6 +45,26 @@
             lastVoiceHaptic = now;
             return true;
         } catch (_) { return false; }
+    }
+
+    function resetResponseText() {
+        lastResponseText = '';
+        lastResponseTextHaptic = null;
+    }
+
+    function responseTextChunk(value) {
+        const text = String(value || '').replace(/\s+/g, ' ').trim();
+        if (!text) return false;
+        const freshText = text.startsWith(lastResponseText)
+            ? text.slice(lastResponseText.length).trim()
+            : text;
+        if (!freshText) return false;
+        lastResponseText = text;
+        const now = window.performance?.now?.() ?? Date.now();
+        if (lastResponseTextHaptic !== null && now - lastResponseTextHaptic < 220) return false;
+        const played = hapticEvent('text-received');
+        if (played) lastResponseTextHaptic = now;
+        return played;
     }
 
     function init() {
@@ -379,6 +400,8 @@
             setSpeechLevel,
             attachSpeechAudio,
             hapticEvent,
+            resetResponseText,
+            responseTextChunk,
             getState: () => activeState,
             getLevel: () => Number(wrap.style.getPropertyValue('--avatar-level') || 0),
             isReady: () => ready,

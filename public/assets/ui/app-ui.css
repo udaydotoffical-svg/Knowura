@@ -147,7 +147,7 @@
         html.term .teachback-card, html.term .visual-card, html.term .teachback-input { border-radius: 2px !important; }
         .study-strip { display: none; align-items: center; gap: 10px; margin: 0 0 8px; padding: 6px 8px 6px 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: rgba(34, 229, 255, 0.1); box-shadow: var(--shadow-sm); font-size: 12.5px; line-height: 1.35; }
         .study-strip.on { display: flex; }
-        .study-strip img { width: 36px; height: 36px; flex: none; border-radius: 50%; }
+        .study-strip .study-dot-frame { display: block; width: 36px; height: 36px; flex: none; overflow: hidden; border: 0; border-radius: 50%; background: transparent; pointer-events: none; }
         .study-strip b { color: var(--cyan); }
         .study-strip button { margin-left: auto; flex: none; padding: 5px 9px; border: 2px solid var(--ink); border-radius: 8px; background: var(--panel-strong); color: var(--text); font-size: 12px; cursor: pointer; }
         .pb-pick.on { color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
@@ -179,11 +179,26 @@
         @media (prefers-reduced-motion: reduce) { .pxburst { display: none; } }
         /* ─── THEMES: dark (default) · light · terminal (unlocked with the Konami code). Colours come from the :root variables. ─── */
         html.light { --dark: #eaf1fc; --text: #0b1530; --text-dim: #4a5f85; --cyan: #0b7f9e; --blue: #2f6bff; --blue-deep: #1f4fd6; --panel: rgba(255, 255, 255, 0.72); --panel-strong: rgba(255, 255, 255, 0.94); --owner: #d4143a; color-scheme: light; }
-        html.light body { background: linear-gradient(180deg, #f4f8ff, #d8e5fa) !important; }
+        html.light body {
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-7810a662211f.jpg') center / cover no-repeat !important;
+        }
+        html.light.lite body {
+            background: linear-gradient(180deg, rgba(238,240,246,0.10), rgba(238,240,246,0.25)), url('/assets/images/background-lite-1a7eee6b623f.jpg') center / cover no-repeat !important;
+        }
+        /* Keep the wallpaper visible through large Light surfaces; controls retain their existing backing. */
+        html.light .chat-container,
+        html.light .sidebar:not(.owner-mode) {
+            background-color: rgba(239,241,246,0.58) !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        }
         html.light .msg.user, html.light .choice-pill.selected, html.light .choice-pill.selected .choice-hint, html.light .btn-ui.cta, html.light .new-chat-btn, html.light .cookie-btn { color: #fff; }
         html.light .empty-logo, html.light .sidebar-logo, html.light .credits-logo { background: #0b1530; border-radius: 12px; padding: 8px 14px; }
         html.term { --dark: #000; --blue: #19a64a; --blue-deep: #063d1a; --cyan: #39ff6a; --text: #c9ffd6; --text-dim: #3fbf68; --panel: rgba(0, 28, 8, 0.9); --panel-strong: rgba(0, 20, 6, 0.96); --owner: #ffb000; }
         html.term body { background: #000 !important; }
+        html.term .chat-topic-hero {
+            background: linear-gradient(90deg, rgba(0,8,2,.84), rgba(0,8,2,.35)),
+                        url('/assets/images/background-7810a662211f.jpg') center / 960px auto repeat;
+        }
         html.term *:not(svg):not(svg *):not(img) { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace !important; }
         html.term .msg, html.term button, html.term .prompt-bar, html.term .pb-inner, html.term input, html.term textarea, html.term .sheet, html.term .study-card { border-radius: 2px !important; }
         html.term img.orb-gif, html.term .study-strip img, html.term .empty-logo, html.term .sidebar-logo, html.term .credits-logo, html.term .ai::before, html.term .streak-chip img { filter: grayscale(1) sepia(1) hue-rotate(78deg) saturate(3) brightness(1.1) !important; }
@@ -428,7 +443,7 @@
             -webkit-tap-highlight-color: transparent; touch-action: manipulation;
             transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
         }
-        .pb-pick .icon { width: 0.95em; height: 0.95em; color: var(--cyan); flex-shrink: 0; }
+        .pb-pick .icon { width: 0.95em; height: 0.95em; color: var(--cyan); flex-shrink: 0; scale: 1.35; }
         .pb-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pb-pick:hover, .pb-pick[data-on] { background: rgba(255,255,255,0.15); color: var(--text); }
         .pb-pick:active { transform: scale(0.96); }
@@ -448,8 +463,8 @@
         }
         .pb-send:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink), inset 1px 1px 0 rgba(255,255,255,0.55); }
         .pb-send:active { transform: translate(2px, 2px) scale(0.96); box-shadow: 1px 1px 0 var(--ink); }
-        .pb-send .pb-glyph { width: 20px; height: 20px; display: block; transform-origin: 50% 50%; }
-        .pb-send .pb-mic { display: none; width: 18px; height: 18px; }
+        .pb-send .pb-glyph { width: 20px; height: 20px; display: block; scale: 1.2; transform-origin: 50% 50%; }
+        .pb-send .pb-mic { display: none; width: 18px; height: 18px; scale: 1.2; }
         .pb-send.mic-mode {
             border-radius: 50%; color: var(--cyan);
             background: rgba(255,255,255,0.10);
@@ -532,7 +547,7 @@
             display: none; position: absolute; inset: 0; z-index: 60;
             background:
                 linear-gradient(180deg, rgba(3,6,16,0.55), rgba(3,6,16,0.78)),
-                url('/assets/images/background.jpg') no-repeat center center;
+                url('/assets/images/background-7810a662211f.jpg') no-repeat center center;
             background-size: cover;
             backdrop-filter: blur(6px) saturate(140%);
             flex-direction: column; align-items: center; justify-content: center;
