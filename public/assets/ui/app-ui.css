@@ -234,6 +234,16 @@
             -webkit-background-clip: text; background-clip: text; color: transparent;
         }
         .empty-sub { color: var(--text-dim); font-size: 13.5px; margin: 0 0 22px; }
+        html:not(.light):not(.term) .empty-greeting,
+        html:not(.light):not(.term) .empty-sub {
+            text-shadow: 0 1px 8px rgba(47,107,255,0.38), 0 1px 4px rgba(3,12,31,0.62);
+        }
+        @media (min-width: 681px) and (pointer: fine) {
+            html:not(.light):not(.term) .empty-sub {
+                color: color-mix(in srgb, var(--text-dim) 45%, var(--text));
+                text-shadow: 0 1px 10px rgba(47,107,255,0.48), 0 1px 5px rgba(3,12,31,0.74);
+            }
+        }
         .empty-suggestions {
             display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 560px;
         }

@@ -724,6 +724,16 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             -webkit-background-clip: text; background-clip: text; color: transparent;
         }
         .empty-sub { color: var(--text-dim); font-size: 13.5px; margin: 0 0 22px; }
+        html:not(.light):not(.term) .empty-greeting,
+        html:not(.light):not(.term) .empty-sub {
+            text-shadow: 0 1px 8px rgba(47,107,255,0.38), 0 1px 4px rgba(3,12,31,0.62);
+        }
+        @media (min-width: 681px) and (pointer: fine) {
+            html:not(.light):not(.term) .empty-sub {
+                color: color-mix(in srgb, var(--text-dim) 45%, var(--text));
+                text-shadow: 0 1px 10px rgba(47,107,255,0.48), 0 1px 5px rgba(3,12,31,0.74);
+            }
+        }
         .empty-suggestions {
             display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 560px;
         }
@@ -1980,6 +1990,21 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
             }
+        }
+
+        /* Dark-only Ocean dimming; the subtle overlay keeps the wallpaper clear while improving home-text contrast. */
+        html:not(.light):not(.term) { --home-ocean-overlay: linear-gradient(180deg, rgba(3,6,16,0.13), rgba(3,6,16,0.28)); }
+        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
+            html:not(.light):not(.term),
+            html.balanced:not(.light):not(.term),
+            html.lite:not(.light):not(.term) {
+                --home-ocean-overlay: linear-gradient(180deg, rgba(3,6,16,0.04), rgba(3,6,16,0.12));
+            }
+        }
+        html:not(.light):not(.term) body,
+        html.balanced:not(.light):not(.term) body,
+        html.lite:not(.light):not(.term) body {
+            background-image: var(--home-ocean-overlay), url('/assets/images/ocean-topic-bg-440eadfff585.jpg');
         }
 
         /* ─── FIRST-VISIT INTRO (autoplaying welcome video, once per browser) ──── */
