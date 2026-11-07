@@ -358,7 +358,7 @@ exports.handler = async (event, context) => {
         let sourceCitations = [];
         let searchEvidence = [];
         let searchMeta = null;
-        if (!isAux && needsSearch(lastUserMsg)) {
+        if (!isAux && feature?.type !== 'visual' && needsSearch(lastUserMsg)) {
             // A bare follow-up like "search it" / "look that up" has no topic of its own —
             // fold in the previous user message so the search query means something.
             const userTurns = messages.filter(m => m.role === "user");

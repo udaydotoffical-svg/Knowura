@@ -314,7 +314,7 @@ test('incognito never writes to storage, memory or the cloud', () => {
     const h = pub('index.html');
     const fn = (name) => { const i = h.indexOf(name); return h.slice(i, i + 400); };
     assert.match(fn('    function saveChatStore() {'), /if \(incognito\) return;/);
-    assert.match(fn('    function scheduleCloudSave() {'), /incognito/);
+    assert.match(h, /function scheduleCloudSave\([^)]*\) \{[\s\S]{0,400}if \(incognito \|\| !isCloudUser\(\) \|\| cloudLoadFailed\) return;/);
     assert.match(fn('    async function persistCloudStore('), /incognito/);
     assert.match(fn('    function getMemory() {'), /incognito/);
     for (const f of ['    async function extractFacts(', '    async function maybeSummarize(', '    async function generateChatTitle(']) assert.match(fn(f), /if \(incognito\) return;/, f);

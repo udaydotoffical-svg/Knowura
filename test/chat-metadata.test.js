@@ -95,12 +95,12 @@ function harness({ fetchImpl, now = 1000, updatedAt = 100 } = {}) {
     const functions = [
         'parseGeneratedChatMetadata', 'generateChatTitle', 'chatTopicHeroTitle',
         'chatTopicHeroSubject', 'chatTopicHeroIsLong', 'chatTopicHeroReady',
-        'syncChatTopicHeroTitle', 'editChatTopicField', 'renameChat', 'mergeChats', 'persistCloudStore'
+        'syncChatTopicHeroTitle', 'editChatTopicField', 'renameChat', 'mergeDeletedChatIds', 'mergeChats', 'persistCloudStore'
     ].map(source).join('\n');
     const api = new Function('document', 'chatStore', 'fetch', 'Date', 'saveChatStore', 'renderChatList', `
         const incognito = false, ownerToken = '', userToken = 'test-token', userSub = 'test-user';
         const userProfile = { sub: userSub };
-        let cloudBaseUpdatedAt = 10, cloudLoadFailed = false, cloudMemory = { summary: '', facts: [] };
+        let cloudBaseUpdatedAt = 10, cloudLoadFailed = false, cloudMemory = { summary: '', facts: [] }, cloudSaveQueue = Promise.resolve();
         function isCloudUser() { return true; }
         function getActiveChat() { return chatStore.chats.find(c => c.id === chatStore.activeChatId); }
         function renderChatTopicHero(chat) { return JSON.stringify({ title: chat.title, subject: chat.subject }); }
@@ -234,7 +234,7 @@ for (const edit of ['hero title', 'hero subject', 'sidebar title', 'AI metadata'
             requests.push(JSON.parse(options.body));
             return requests.length === 1
                 ? { status: 409, ok: false, json: async () => ({ doc: remote }) }
-                : { status: 200, ok: true, json: async () => ({ updatedAt: 2000 }) };
+                : { status: 200, ok: true, json: async () => ({ saved: true, updatedAt: 2000 }) };
         } });
         remote = { updatedAt: 700, chats: [{ ...JSON.parse(JSON.stringify(h.chat)), updatedAt: 200 }] };
         if (edit === 'AI metadata') {

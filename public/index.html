@@ -402,6 +402,12 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         }
         .chat-action-btn:hover { color: var(--owner); background: rgba(255,48,87,0.18); }
 
+        /* Touch users cannot reveal hover-only chat actions. */
+        @media (hover: none), (pointer: coarse) {
+            .chat-actions { display: flex; }
+            .chat-action-btn { width: 44px; height: 44px; }
+        }
+
         .sidebar-footer { flex-shrink: 0; padding: 10px 14px 14px; border-top: 2px solid rgba(148,163,184,0.15); }
         .sidebar-footer-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .sidebar-user {
@@ -3059,6 +3065,42 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
     async function logOut(skipConfirm = false) {
         if (skipConfirm !== true && !(await showConfirm('Log out of Knowura?', 'Log Out', 'Log Out', 'Cancel'))) return;
+        if (cloudLogoutInProgress) return;
+        cloudLogoutInProgress = true;
+        if (cloudSaveTimer) {
+            clearTimeout(cloudSaveTimer);
+            cloudSaveTimer = null;
+        }
+        if (!incognito && isCloudUser() && !cloudLoadFailed) {
+            let flushedRevision = cloudChangeRevision;
+            while (true) {
+                if (cloudSaveTimer) {
+                    clearTimeout(cloudSaveTimer);
+                    cloudSaveTimer = null;
+                }
+                if (!(await persistCloudStore())) {
+                    const retry = await showConfirm('Your chat changes could not be saved. Retry the save before logging out?', 'Save Failed', 'Retry', 'Stay Signed In');
+                    if (!retry) {
+                        cloudLogoutInProgress = false;
+                        scheduleCloudSave(1500, false);
+                        return;
+                    }
+                    continue;
+                }
+                // Drain writes queued during the flush, including changes made while its
+                // request was in flight. Debounced edits are folded into the next pass.
+                await cloudSaveQueue;
+                if (cloudSaveTimer) {
+                    clearTimeout(cloudSaveTimer);
+                    cloudSaveTimer = null;
+                }
+                if (cloudChangeRevision === flushedRevision) break;
+                flushedRevision = cloudChangeRevision;
+            }
+        } else {
+            // A signed-in save may already be queued behind the Incognito switch.
+            await cloudSaveQueue;
+        }
         document.getElementById('hamburgerPanel')?.classList.remove('open');
         syncAssistantLink({ unlink: true }); // the assistant panel signs out too
         endCall();
@@ -3078,6 +3120,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         ownerMode = false;
         ownerEligible = false;
         ownerToken = null;
+        cloudLogoutInProgress = false;
         localStorage.removeItem('knowura_owner_token');
         document.getElementById('owner-badge').style.display = 'none';
         document.getElementById('sidebar')?.classList.remove('owner-mode');
@@ -3451,7 +3494,8 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
     async function deleteAllChats() {
         if (!(await showConfirm('Delete all chats? This can\'t be undone.', 'Delete All Chats', 'Delete All', 'Cancel'))) return;
         document.getElementById('hamburgerPanel')?.classList.remove('open');
-        chatStore = { chats: [], activeChatId: null };
+        recordChatDeletions(chatStore.chats.map(c => c.id));
+        chatStore = { ...chatStore, chats: [], activeChatId: null };
         saveChatStore();
         newChat();
     }
@@ -4678,7 +4722,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
 
     function setIncognito(on) {
         on = !!on;
-        if (on === incognito) return;
+        if (on === incognito || cloudLogoutInProgress) return;
         finishTyping();
         abortAsk();
         // flush any pending cloud save of the REAL chats before we set them aside
@@ -4872,6 +4916,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
             const data = JSON.parse(decodeURIComponent(escape(atob(b64 + '==='.slice((b64.length + 3) % 4)))));
             if (!data || typeof data.id !== 'string' || !/^[\w-]{1,60}$/.test(data.id) || !Array.isArray(data.messages)) return;
+            if (mergeDeletedChatIds(chatStore.deletedChatIds).includes(data.id)) return;
             const messages = data.messages.slice(-40)
                 .filter(x => x && typeof x.text === 'string' && (x.type === 'user' || x.type === 'ai'))
                 .map(x => ({ text: safeHtml(x.text.slice(0, 100000)), type: x.type }));
@@ -4929,6 +4974,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // so tapping the logo / New Chat repeatedly never piles up blank chats.
     function newChat() {
         // sweep out any blank chats left over from older versions that eagerly created them
+        recordChatDeletions(chatStore.chats.filter(c => !c.messages || !c.messages.length).map(c => c.id));
         chatStore.chats = chatStore.chats.filter(c => c.messages && c.messages.length);
         chatStore.activeChatId = null;
         saveChatStore();
@@ -5239,6 +5285,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const chat = chatStore.chats.find(c => c.id === id);
         if (!chat) return;
         if (!(await showConfirm(`Delete "${chat.title}"? This can't be undone.`, 'Delete Chat', 'Delete', 'Cancel'))) return;
+        recordChatDeletions([id]);
         chatStore.chats = chatStore.chats.filter(c => c.id !== id);
         if (chatStore.activeChatId === id) {
             chatStore.activeChatId = chatStore.chats[0]?.id || null;
@@ -5269,10 +5316,13 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     // ─── CLOUD CHAT SYNC (signed-in users — no local chat storage) ─────────
-    // Full-document debounced writes, same simplicity trade-off as the plan:
-    // personal-scale app, no per-chat granularity or locking needed.
+    // Full-document debounced writes are serialized within this tab so a stale
+    // request cannot finish after and overwrite a newer deletion-marker save.
 
     let cloudSaveTimer = null;
+    let cloudSaveQueue = Promise.resolve();
+    let cloudChangeRevision = 0;
+    let cloudLogoutInProgress = false;
     // updatedAt of the cloud doc this tab last loaded/saved — sent with every save so
     // the server can tell if another device wrote in between (409 → merge, retry).
     let cloudBaseUpdatedAt = 0;
@@ -5280,16 +5330,32 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     // save overwrite the real cloud copy with it.
     let cloudLoadFailed = false;
 
-    function scheduleCloudSave() {
+    function scheduleCloudSave(delay = 1500, countChange = true) {
         if (incognito || !isCloudUser() || cloudLoadFailed) return;
+        if (countChange) cloudChangeRevision++;
         clearTimeout(cloudSaveTimer);
-        cloudSaveTimer = setTimeout(persistCloudStore, 1500);
+        cloudSaveTimer = setTimeout(() => {
+            cloudSaveTimer = null;
+            persistCloudStore();
+        }, delay);
     }
 
-    // Union by chat id; when both sides have the chat, the newer updatedAt wins.
-    function mergeChats(local, remote) {
+    function mergeDeletedChatIds(...lists) {
+        return [...new Set(lists.flatMap(ids => Array.isArray(ids) ? ids : [])
+            .filter(id => typeof id === 'string' && /^[\w-]{1,60}$/.test(id)))];
+    }
+
+    function recordChatDeletions(ids) {
+        if (incognito || !isCloudUser()) return;
+        chatStore.deletedChatIds = mergeDeletedChatIds(chatStore.deletedChatIds, ids);
+    }
+
+    // Deletion wins across devices; otherwise the newer same-ID chat wins.
+    function mergeChats(local, remote, deletedChatIds = []) {
+        const deleted = new Set(deletedChatIds);
         const byId = new Map();
         for (const c of [...(remote || []), ...(local || [])]) {
+            if (deleted.has(c.id)) continue;
             const prev = byId.get(c.id);
             if (!prev || (c.updatedAt || 0) >= (prev.updatedAt || 0)) byId.set(c.id, c);
         }
@@ -5297,36 +5363,53 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     async function persistCloudStore(retry = true) {
-        if (incognito || !isCloudUser() || cloudLoadFailed) return; // (chatStore is the throwaway chat while incognito — never save it over the real one)
-        const doc = {
-            version: 1,
-            profile: userProfile || { sub: userSub },
-            chats: chatStore.chats,
-            activeChatId: chatStore.activeChatId,
-            memory: cloudMemory,
-            updatedAt: Date.now()
-        };
-        try {
-            const res = await fetch("/.netlify/functions/chat-save", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: userToken, doc, baseUpdatedAt: cloudBaseUpdatedAt })
-            });
-            if (res.status === 409 && retry) {
-                const { doc: remote } = await res.json();
-                if (remote) {
-                    chatStore.chats = mergeChats(chatStore.chats, remote.chats);
-                    if (!chatStore.chats.some(c => c.id === chatStore.activeChatId)) chatStore.activeChatId = chatStore.chats[0]?.id || null;
+        if (incognito || !isCloudUser() || cloudLoadFailed) return Promise.resolve(false);
+        // Capture synchronously before queuing. Incognito swaps chatStore immediately;
+        // queued signed-in saves must keep this store, even if they start afterward.
+        const signedInStore = chatStore;
+        const saveToken = userToken;
+        const saveProfile = userProfile || { sub: userSub };
+        const snapshot = () => JSON.parse(JSON.stringify({
+                version: 1,
+                profile: saveProfile,
+                chats: signedInStore.chats,
+                deletedChatIds: mergeDeletedChatIds(signedInStore.deletedChatIds),
+                activeChatId: signedInStore.activeChatId,
+                memory: cloudMemory,
+                updatedAt: Date.now()
+            }));
+        const save = async (allowConflictRetry, doc) => {
+            try {
+                const res = await fetch("/.netlify/functions/chat-save", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: saveToken, doc, baseUpdatedAt: cloudBaseUpdatedAt })
+                });
+                if (res.status === 409 && allowConflictRetry) {
+                    const { doc: remote } = await res.json();
+                    if (!remote) return false;
+                    signedInStore.deletedChatIds = mergeDeletedChatIds(signedInStore.deletedChatIds, remote.deletedChatIds);
+                    signedInStore.chats = mergeChats(signedInStore.chats, remote.chats, signedInStore.deletedChatIds);
+                    if (!signedInStore.chats.some(c => c.id === signedInStore.activeChatId)) signedInStore.activeChatId = signedInStore.chats[0]?.id || null;
                     if (remote.memory && !cloudMemory.summary && !(cloudMemory.facts || []).length) cloudMemory = remote.memory;
                     cloudBaseUpdatedAt = remote.updatedAt || 0;
-                    renderChatList();
-                    return persistCloudStore(false);
+                    if (signedInStore === chatStore) renderChatList();
+                    return save(false, snapshot());
                 }
+                if (!res.ok) return false;
+                const result = await res.json();
+                if (result?.saved !== true || !Number.isFinite(result.updatedAt)) return false;
+                cloudBaseUpdatedAt = result.updatedAt;
+                return true;
+            } catch (e) {
+                console.warn('Cloud chat save failed:', e);
+                return false;
             }
-            if (res.ok) cloudBaseUpdatedAt = (await res.json()).updatedAt || cloudBaseUpdatedAt;
-        } catch (e) {
-            console.warn('Cloud chat save failed silently:', e);
-        }
+        };
+        const doc = snapshot();
+        const pending = cloudSaveQueue.then(() => save(retry, doc), () => save(retry, doc));
+        cloudSaveQueue = pending.then(() => undefined, () => undefined);
+        return pending;
     }
 
     // Flush a pending debounced save immediately when the tab is hidden/closed
@@ -5361,8 +5444,10 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             ownerEligible = !!data.ownerEligible;   // only a flag: owner mode stays off until it is turned on from the secret menu
             cloudBaseUpdatedAt = data.doc?.updatedAt || 0;
             if (data.found && data.doc) {
+                const deletedChatIds = mergeDeletedChatIds(data.doc.deletedChatIds);
                 chatStore = {
-                    chats: Array.isArray(data.doc.chats) ? data.doc.chats.map(normalizeChatMetadata) : [],
+                    chats: mergeChats([], Array.isArray(data.doc.chats) ? data.doc.chats.map(normalizeChatMetadata) : [], deletedChatIds),
+                    deletedChatIds,
                     activeChatId: data.doc.activeChatId || null
                 };
                 cloudMemory = data.doc.memory && typeof data.doc.memory === 'object'
@@ -5756,16 +5841,19 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         });
     }
 
-    async function transcribeBlob(blob) {
+    async function transcribeBlob(blob, attempt = callAttempt) {
         const base64 = await blobToBase64(blob);
+        if (!callActive || attempt !== callAttempt) return '';
         const res = await fetch("/.netlify/functions/transcribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ audio: base64, mimeType: blob.type, ownerToken: ownerToken, token: userToken })
         });
         const data = await res.json();
-        if (data.limitReached) { showLimit(data); endCall(); return ''; }
-        return (data.text || '').trim();
+        if (!callActive || attempt !== callAttempt) return '';
+        if (data?.limitReached) { showLimit(data); endCall(); return ''; }
+        if (!res.ok || typeof data?.text !== 'string') throw new Error('Transcription failed. Please try again.');
+        return data.text.trim();
     }
 
     // ─── LIVE CALL (hands-free — auto-listens, auto-detects when you stop talking) ────
@@ -5980,18 +6068,22 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         const blob = new Blob(callChunks, { type: callRecorder.mimeType || 'audio/webm' });
         if (blob.size < VAD_MIN_BYTES) { enterListeningState(); return; }
 
+        const attempt = callAttempt;
         callState = 'processing';
         setOrbState('thinking');
         setLiveStatus(ultraThinkMode ? 'Ultra thinking…' : 'Thinking…');
         try {
-            const text = await transcribeBlob(blob);
-            if (!callActive) return;
+            const text = await transcribeBlob(blob, attempt);
+            if (!callActive || attempt !== callAttempt) return;
             if (!text) { enterListeningState(); return; }
             document.getElementById('liveTranscript').innerText = text;
             await ask(text, { speak: true, fromVoice: true });
         } catch (e) {
             console.error('Transcription failed:', e);
-            if (callActive) { setLiveStatus('Something went wrong'); enterListeningState(); }
+            if (callActive && attempt === callAttempt) {
+                enterListeningState();
+                setLiveStatus('Transcription failed. Please try again.');
+            }
         }
     }
 

@@ -517,6 +517,8 @@ function showAlert(message) { window.__note && window.__note(message); }
         const loaded = await r.json();
         let doc = loaded.found && loaded.doc ? loaded.doc : { version: 1, profile: { sub: session.sub, given_name: session.user, email: session.email, picture: session.picture }, chats: [], activeChatId: null, memory: { summary: '', facts: [] } };
         for (let attempt = 0; attempt < 2; attempt++) {
+            // A panel left open on another device must not restore a deleted chat.
+            if (Array.isArray(doc.deletedChatIds) && doc.deletedChatIds.includes(chat.id)) return;
             const mine = { id: chat.id, title: chat.title, createdAt: chat.createdAt, updatedAt: chat.updatedAt, messages: chat.messages };
             const i = doc.chats.findIndex((c) => c.id === mine.id);
             if (i >= 0) doc.chats[i] = mine; else doc.chats.unshift(mine);

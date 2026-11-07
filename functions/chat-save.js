@@ -8,6 +8,7 @@
 // 409 with the stored doc instead of silently overwriting it; the client merges and retries.
 
 const { getPlatformStore } = require('./_lib/_store');
+const { withChatSaveLock, ChatSaveLockError } = require('./_lib/_chat-save-lock');
 const { verify } = require('./_lib/_userToken');
 const { json, guard, readJson, cleanStr, isPlainObject, rateLimit, tooMany } = require('./_lib/_util');
 const { sanitizeTeachbackPayload, sanitizeVisualPayload } = require('./_lib/_study');
@@ -70,9 +71,16 @@ function cleanChat(c) {
     };
 }
 
+function cleanDeletedChatIds(value) {
+    if (!Array.isArray(value)) return [];
+    return [...new Set(value.filter(id => typeof id === 'string' && /^[\w-]{1,60}$/.test(id)))];
+}
+
 function cleanDoc(doc, sub) {
     if (!isPlainObject(doc) || !Array.isArray(doc.chats)) return null;
-    const chats = doc.chats.slice(0, MAX_CHATS).map(cleanChat).filter(Boolean);
+    const deletedChatIds = cleanDeletedChatIds(doc.deletedChatIds);
+    const deleted = new Set(deletedChatIds);
+    const chats = doc.chats.slice(0, MAX_CHATS).map(cleanChat).filter(c => c && !deleted.has(c.id));
     const memory = isPlainObject(doc.memory) ? doc.memory : {};
     const p = isPlainObject(doc.profile) ? doc.profile : {};
     return {
@@ -84,6 +92,7 @@ function cleanDoc(doc, sub) {
             picture: typeof p.picture === 'string' && /^https:\/\//.test(p.picture) && p.picture.length <= 500 ? p.picture : undefined
         },
         chats,
+        deletedChatIds,
         activeChatId: chats.some(c => c.id === doc.activeChatId) ? doc.activeChatId : null,
         memory: {
             summary: cleanStr(memory.summary, 4000) ?? '',
@@ -112,18 +121,37 @@ exports.handler = async (event) => {
         }
         const doc = cleanDoc(body.doc, session.sub);
         if (!doc) return json(400, { error: "Malformed document" });
-        if (Buffer.byteLength(JSON.stringify(doc), "utf8") > MAX_DOC_BYTES) return json(413, { error: "Document too large" });
 
         const base = Number(body.baseUpdatedAt);
-        const existing = await store().get(session.sub, { type: "json" });
-        if (existing?.updatedAt && existing.updatedAt > (Number.isFinite(base) ? base : 0)) {
-            return json(409, { conflict: true, doc: existing });
-        }
+        const cloudStore = store();
+        return await withChatSaveLock(session.sub, async ({ assertHeld }) => {
+            // Read, conflict-check, merge deletion intent and write while holding the
+            // cross-instance lock. The platform Blob APIs have no compare-and-swap.
+            const existing = await cloudStore.get(session.sub, { type: "json" });
+            if (existing?.updatedAt && existing.updatedAt > (Number.isFinite(base) ? base : 0)) {
+                return json(409, { conflict: true, doc: existing });
+            }
 
-        doc.updatedAt = Math.max(Date.now(), (existing?.updatedAt || 0) + 1);
-        await store().setJSON(session.sub, doc);
-        return json(200, { saved: true, updatedAt: doc.updatedAt });
+            // Deletion wins over stale copies, including saves from older clients that omit
+            // this field. Never prune markers by age: an offline device may return later.
+            // The document size cap fails safely rather than dropping deletion intent.
+            doc.deletedChatIds = cleanDeletedChatIds([
+                ...(Array.isArray(existing?.deletedChatIds) ? existing.deletedChatIds : []),
+                ...doc.deletedChatIds
+            ]);
+            const deleted = new Set(doc.deletedChatIds);
+            doc.chats = doc.chats.filter(c => !deleted.has(c.id));
+            if (!doc.chats.some(c => c.id === doc.activeChatId)) doc.activeChatId = null;
+            doc.updatedAt = Math.max(Date.now(), (existing?.updatedAt || 0) + 1);
+            if (Buffer.byteLength(JSON.stringify(doc), "utf8") > MAX_DOC_BYTES) return json(413, { error: "Document too large" });
+            await assertHeld();
+            await cloudStore.setJSON(session.sub, doc);
+            return json(200, { saved: true, updatedAt: doc.updatedAt });
+        });
     } catch (error) {
+        if (error instanceof ChatSaveLockError || error?.name === 'ChatSaveLockError') {
+            return json(503, { error: "Chat saves are temporarily unavailable. Please try again shortly." }, { "Retry-After": "3" });
+        }
         return json(500, { error: "Couldn't save your chats." });
     }
 };
