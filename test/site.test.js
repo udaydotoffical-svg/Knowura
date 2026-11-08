@@ -896,8 +896,40 @@ test('first GitHub commit is reachable from Settings as a static, strictly sandb
     assert.match(frame, /sandbox=""/);
     assert.doesNotMatch(frame, /allow-(?:scripts|same-origin|forms|popups|top-navigation)/);
     assert.match(archive, /2f198d73e8d13668d58cb345b92a1efe6928df51/);
-    assert.match(archive, /disabled/);
+    const prompt = archive.match(/<input\b[^>]*id="userInput"[^>]*>/)?.[0];
+    const send = archive.match(/<button\b[^>]*id="sendBtn"[^>]*>/)?.[0];
+    assert.ok(prompt && send, 'archived prompt and Send control exist');
+    for (const control of [prompt, send]) {
+        assert.match(control, /\sdisabled(?:\s|>)/, 'control is natively disabled');
+        assert.match(control, /aria-disabled="true"/, 'disabled state is explicit to assistive technology');
+        assert.match(control, /aria-describedby="archiveControlsStatus"/);
+    }
+    assert.match(archive, /#userInput:disabled \{[^}]*background:/);
+    assert.match(archive, /#sendBtn:disabled \{[^}]*filter:/);
+    assert.match(archive, /id="archiveControlsStatus" class="visually-hidden"/);
     assert.doesNotMatch(archive, /<script\b|<form\b|https?:\/\/|gsk_[A-Za-z0-9]{20,}/i);
+});
+
+test('history preview browses all commits before e0d656b, including merges, without changing its static mobile snapshot', () => {
+    const h = pub('index.html');
+    const history = JSON.parse(pub('assets/data/commit-history-before-e0d656b.json'));
+    assert.equal(history.boundaryRelease, 'e0d656b');
+    assert.equal(history.count, 216);
+    assert.equal(history.count, history.commits.length);
+    assert.equal(history.commits.filter(commit => commit.isMerge).length, 17);
+    assert.equal(history.commits[0].sha, '2f198d73e8d13668d58cb345b92a1efe6928df51');
+    assert.equal(history.commits[history.commits.length - 1].shortSha, '6ee692e');
+    assert.equal(history.commits.some(commit => commit.sha.startsWith('e0d656b')), false);
+    for (const id of ['historyBrowser', 'historyPrevious', 'historyNext', 'historyScrubber', 'historyCommitTitle', 'historyCommitNote']) assert.match(h, new RegExp(`id="${id}"`));
+    assert.match(h, /event\.key === 'ArrowLeft'/);
+    assert.match(h, /event\.key === 'ArrowRight'/);
+    assert.match(h, /@media \(min-width: 681px\) and \(min-height: 501px\)/);
+    assert.match(h, /\.hamburger-panel\.history-open \.hamburger-modal-card/);
+    assert.match(h, /\.history-preview-frame \{ height: 42vh; min-height: 250px; \}/);
+    const frame = h.match(/<iframe id="firstVersionFrame"[^>]*>/)?.[0];
+    assert.match(frame || '', /src="\/first-version\/index\.html"/);
+    assert.match(frame || '', /sandbox=""/);
+    assert.doesNotMatch(frame || '', /allow-(?:scripts|same-origin|forms|popups|top-navigation)/);
 });
 
 test('phone layout: full-bleed app, safe areas, compact cookie bar, landscape phones use the mobile layout', () => {

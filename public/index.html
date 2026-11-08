@@ -1492,6 +1492,61 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .history-preview-frame { display: block; width: 100%; height: clamp(250px, 42vh, 360px); border: 2px solid var(--ink); border-radius: 16px; background: #0f172a; box-shadow: var(--shadow-sm); }
         .history-preview-note { margin: 8px 2px 0; color: var(--text-dim); font-size: 11px; line-height: 1.45; }
         @media (max-width: 480px) { .history-preview-frame { height: 42vh; min-height: 250px; } }
+        .history-content { display: flex; flex-direction: column; gap: 0; }
+        .history-browser { display: none; }
+        .history-snapshot { display: flex; flex-direction: column; min-height: 0; gap: 0; }
+        .history-snapshot-heading { display: none; }
+        @media (min-width: 681px) and (min-height: 501px) {
+            .hamburger-panel.history-open { padding: clamp(16px, 2.4vh, 28px); }
+            .hamburger-panel.history-open .hamburger-modal-card {
+                box-sizing: border-box; width: min(1520px, 94vw); height: min(920px, 94vh); max-width: 1520px; max-height: calc(100dvh - 40px);
+                overflow: hidden; padding: clamp(22px, 2.25vw, 36px); gap: 10px;
+            }
+            .hamburger-panel.history-open .menu-head { margin-bottom: 2px; }
+            .hamburger-panel.history-open .menu-view[data-view="history"].active { flex: 1; min-height: 0; overflow: hidden; gap: 10px; }
+            .hamburger-panel.history-open .history-preview-copy { flex: none; margin: 0; }
+            .hamburger-panel.history-open .history-preview-title { font-size: clamp(19px, 1.8vw, 25px); }
+            .hamburger-panel.history-open .history-preview-description { font-size: 13px; }
+            .history-content { display: grid; grid-template-columns: minmax(320px, 0.42fr) minmax(0, 0.58fr); gap: 22px; flex: 1; min-height: 0; }
+            .history-browser {
+                display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: clamp(16px, 1.7vw, 24px);
+                border: 2px solid var(--ink); border-radius: 18px; background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+                box-shadow: var(--shadow-sm); outline: none;
+            }
+            .history-browser:focus-visible { border-color: var(--cyan); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 24%, transparent), var(--shadow-sm); }
+            .history-browser-head, .history-commit-meta, .history-commit-stats, .history-control-row, .history-range-labels { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+            .history-browser-eyebrow, .history-snapshot-heading { color: var(--cyan); font-size: 10px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; }
+            .history-browser-count { margin-top: 4px; color: var(--text); font-size: 14px; font-weight: 800; }
+            .history-boundary, .history-commit-kind, .history-snapshot-state { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(148,163,184,0.24); border-radius: 999px; padding: 6px 9px; color: var(--text-dim); font-size: 9px; font-weight: 800; letter-spacing: 0.55px; white-space: nowrap; }
+            .history-boundary strong { color: var(--cyan); font-family: 'Geist Pixel', monospace; font-size: 10px; }
+            .history-commit-card { display: flex; flex: 1; flex-direction: column; justify-content: center; min-height: 0; overflow: auto; margin: 18px 0 14px; padding: clamp(18px, 2.2vw, 30px); border: 1px solid rgba(148,163,184,0.22); border-radius: 16px; background: linear-gradient(145deg, rgba(10,18,34,0.82), rgba(20,31,53,0.44)); }
+            .history-commit-date { color: var(--text-dim); font-size: 11px; font-weight: 700; letter-spacing: 0.2px; }
+            .history-commit-kind { color: var(--cyan); }
+            .history-commit-title { margin: 20px 0 10px; color: var(--text); font-size: clamp(21px, 2.2vw, 31px); font-weight: 850; line-height: 1.18; overflow-wrap: anywhere; }
+            .history-commit-note { margin: 0; max-height: 36%; overflow: auto; color: var(--text-dim); font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+            .history-commit-note.empty { font-style: italic; opacity: 0.78; }
+            .history-commit-stats { justify-content: flex-start; flex-wrap: wrap; margin-top: 20px; color: var(--text-dim); font-size: 11px; }
+            .history-commit-sha { padding: 5px 8px; border: 1px solid rgba(148,163,184,0.25); border-radius: 7px; color: var(--cyan); font-family: 'Geist Pixel', monospace; font-size: 10px; }
+            .history-control-row { justify-content: center; gap: 18px; }
+            .history-step { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 38px; border: 2px solid var(--ink); border-radius: 11px; background: var(--panel-strong); color: var(--text); box-shadow: var(--shadow-sm); cursor: pointer; font-size: 22px; line-height: 1; transition: transform 0.12s ease, box-shadow 0.12s ease, color 0.12s ease; }
+            .history-step:hover:not(:disabled) { transform: translateY(-1px); color: var(--cyan); box-shadow: 4px 4px 0 var(--ink); }
+            .history-step:active:not(:disabled) { transform: translateY(1px); box-shadow: 1px 1px 0 var(--ink); }
+            .history-step:disabled { cursor: not-allowed; opacity: 0.38; }
+            .history-step:focus-visible, .history-scrubber:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+            .history-position { min-width: 86px; color: var(--text); font-family: 'Geist Pixel', monospace; font-size: 12px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+            .history-scrubber-label { margin: 13px 0 8px; color: var(--text-dim); font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; }
+            .history-scrubber { display: block; width: 100%; height: 8px; margin: 0; appearance: none; border: 0; border-radius: 999px; background: linear-gradient(90deg, var(--cyan) var(--history-progress, 0%), rgba(148,163,184,0.22) var(--history-progress, 0%)); cursor: pointer; }
+            .history-scrubber::-webkit-slider-thumb { width: 16px; height: 16px; appearance: none; border: 2px solid var(--ink); border-radius: 50%; background: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 18%, transparent); }
+            .history-scrubber::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 50%; background: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 18%, transparent); }
+            .history-range-labels { margin-top: 8px; color: var(--text-dim); font-size: 10px; }
+            .history-key-hint { margin: 12px 0 0; color: var(--text-dim); font-size: 10px; text-align: center; }
+            .history-key-hint kbd { display: inline-block; min-width: 21px; margin: 0 2px; padding: 2px 5px; border: 1px solid rgba(148,163,184,0.28); border-radius: 5px; color: var(--text); font: inherit; }
+            .history-snapshot { min-width: 0; }
+            .history-snapshot-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 8px; }
+            .history-snapshot-state { color: var(--text-dim); font-size: 9px; }
+            .hamburger-panel.history-open .history-preview-frame { flex: 1; width: 100%; height: auto; min-height: 0; border-radius: 16px; }
+            .hamburger-panel.history-open .history-preview-note { flex: none; margin-top: 8px; }
+        }
         .menu-nav {
             display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin-bottom: 8px;
             background: rgba(255,255,255,0.04); color: var(--text); border: 2.5px solid var(--ink); border-radius: 12px;
@@ -2593,8 +2648,43 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                     <h2 class="history-preview-title">Look how far we’ve grown</h2>
                     <p class="history-preview-description">A snapshot of Knowura’s earliest build, kept here for nostalgia.</p>
                 </div>
-                <iframe id="firstVersionFrame" class="history-preview-frame" src="/first-version/index.html" sandbox="" loading="lazy" referrerpolicy="no-referrer" title="Static historical preview of Knowura’s first version"></iframe>
-                <p class="history-preview-note" role="note">Static, non-working preview — sign-in and chat are intentionally disabled.</p>
+                <div class="history-content">
+                    <section id="historyBrowser" class="history-browser" tabindex="-1" aria-label="Knowura commit history">
+                        <div class="history-browser-head">
+                            <div>
+                                <div class="history-browser-eyebrow">Project timeline</div>
+                                <div class="history-browser-count" id="historyCount">216 commits</div>
+                            </div>
+                            <span class="history-boundary">BEFORE <strong>e0d656b</strong></span>
+                        </div>
+                        <article class="history-commit-card" id="historyCommitCard" aria-live="polite" aria-atomic="true">
+                            <div class="history-commit-meta">
+                                <time class="history-commit-date" id="historyCommitDate">January 10, 2026</time>
+                                <span class="history-commit-kind" id="historyCommitKind">FIRST COMMIT</span>
+                            </div>
+                            <h3 class="history-commit-title" id="historyCommitTitle">Add files via upload</h3>
+                            <p class="history-commit-note empty" id="historyCommitNote">No additional note was included in this commit message.</p>
+                            <div class="history-commit-stats">
+                                <code class="history-commit-sha" id="historyCommitSha">2f198d7</code>
+                                <span id="historyCommitFiles">1 file · +146 −0</span>
+                            </div>
+                        </article>
+                        <div class="history-control-row" aria-label="Commit navigation">
+                            <button type="button" id="historyPrevious" class="history-step" aria-label="Previous commit (Left Arrow)" title="Previous commit" onclick="stepHistoryCommit(-1)" disabled><span aria-hidden="true">←</span></button>
+                            <span class="history-position" id="historyPosition" aria-live="polite">001 / 216</span>
+                            <button type="button" id="historyNext" class="history-step" aria-label="Next commit (Right Arrow)" title="Next commit" onclick="stepHistoryCommit(1)"><span aria-hidden="true">→</span></button>
+                        </div>
+                        <label class="history-scrubber-label" for="historyScrubber">Browse commits</label>
+                        <input id="historyScrubber" class="history-scrubber" type="range" min="0" max="215" value="0" step="1" aria-label="Browse commits from the first version to the commit before the latest release" aria-controls="historyCommitCard" aria-valuetext="Commit 1 of 216" oninput="selectHistoryCommit(this.value)">
+                        <div class="history-range-labels"><span>First version</span><span>Before latest</span></div>
+                        <p class="history-key-hint"><kbd>←</kbd><kbd>→</kbd> Use arrow keys to browse</p>
+                    </section>
+                    <section class="history-snapshot" aria-label="Original static snapshot">
+                        <div class="history-snapshot-heading"><span>Earliest version</span><span class="history-snapshot-state">Static snapshot · read only</span></div>
+                        <iframe id="firstVersionFrame" class="history-preview-frame" src="/first-version/index.html" sandbox="" loading="lazy" referrerpolicy="no-referrer" title="Static historical preview of Knowura’s first version"></iframe>
+                        <p class="history-preview-note" role="note">Static, non-working preview — sign-in and chat are intentionally disabled.</p>
+                    </section>
+                </div>
             </div>
 
             <div class="menu-view" data-view="about">
@@ -2810,12 +2900,17 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
     // ─── SETTINGS MENU NAVIGATION (main list → sub-menus) ─────────────────────
     const MENU_TITLES = { main: 'Menu', appearance: 'Appearance', chat: 'Chat', memory: 'Memory & Data', voice: 'Voice', about: 'About & Legal', credits: 'Credits', history: 'Our first version' };
+    const HISTORY_DESKTOP_LAYOUT = window.matchMedia ? window.matchMedia('(min-width: 681px) and (min-height: 501px)') : { matches: false };
     let menuView = 'main';
+    let historyData = null;
+    let historyIndex = 0;
+    let historyLoading = false;
 
     function showMenuView(name, { focus = true } = {}) {
         if (!MENU_TITLES[name]) name = 'main';
         const goingBack = name === 'main' && menuView !== 'main';
         menuView = name;
+        document.getElementById('hamburgerPanel')?.classList.toggle('history-open', name === 'history');
         document.querySelectorAll('#hamburgerPanel .menu-view').forEach(v => {
             const on = v.dataset.view === name;
             v.classList.toggle('active', on);
@@ -2829,10 +2924,104 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         if (focus) {
             const target = name === 'main'
                 ? document.querySelector('#hamburgerPanel .menu-view[data-view="main"] button')
+                : name === 'history' && HISTORY_DESKTOP_LAYOUT.matches
+                    ? document.getElementById('historyBrowser')
                 : document.getElementById('menuBack');
             target?.focus({ preventScroll: true });
         }
+        if (name === 'history' && HISTORY_DESKTOP_LAYOUT.matches) void loadCommitHistory();
     }
+
+    function historyCommitKind(index, total, commit) {
+        if (index === 0) return 'FIRST COMMIT';
+        if (index === total - 1) return 'BEFORE LATEST';
+        if (commit.isMerge) return 'MERGE';
+        const match = String(commit.subject || '').match(/^(feat(?:ure)?|fix|ui|security|docs|chore|refactor|perf|test|build|style)(?=[: (])/i);
+        const labels = { feat: 'FEATURE', feature: 'FEATURE', fix: 'FIX', ui: 'DESIGN', security: 'SECURITY', docs: 'DOCS', chore: 'CHORE', refactor: 'REFACTOR', perf: 'PERFORMANCE', test: 'TEST', build: 'BUILD', style: 'STYLE' };
+        return labels[(match?.[1] || '').toLowerCase()] || 'COMMIT';
+    }
+
+    function renderHistoryCommit() {
+        const commits = historyData?.commits;
+        if (!Array.isArray(commits) || !commits.length) return;
+        historyIndex = Math.max(0, Math.min(historyIndex, commits.length - 1));
+        const commit = commits[historyIndex];
+        const date = new Date(commit.date);
+        const dateEl = document.getElementById('historyCommitDate');
+        dateEl.textContent = Number.isNaN(date.getTime()) ? commit.date : date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        dateEl.dateTime = commit.date;
+        document.getElementById('historyCommitKind').textContent = historyCommitKind(historyIndex, commits.length, commit);
+        document.getElementById('historyCommitTitle').textContent = commit.subject || 'Untitled commit';
+        const note = document.getElementById('historyCommitNote');
+        const body = String(commit.body || '').trim();
+        note.textContent = body || 'No additional note was included in this commit message.';
+        note.classList.toggle('empty', !body);
+        document.getElementById('historyCommitSha').textContent = commit.shortSha;
+        const files = Number(commit.filesChanged) || 0;
+        document.getElementById('historyCommitFiles').textContent = `${files} file${files === 1 ? '' : 's'} · +${Number(commit.insertions) || 0} −${Number(commit.deletions) || 0}`;
+        document.getElementById('historyPosition').textContent = `${String(historyIndex + 1).padStart(3, '0')} / ${String(commits.length).padStart(3, '0')}`;
+        document.getElementById('historyPrevious').disabled = historyIndex === 0;
+        document.getElementById('historyNext').disabled = historyIndex === commits.length - 1;
+        const scrubber = document.getElementById('historyScrubber');
+        scrubber.max = String(commits.length - 1);
+        scrubber.value = String(historyIndex);
+        scrubber.setAttribute('aria-valuetext', `Commit ${historyIndex + 1} of ${commits.length}: ${commit.subject}`);
+        scrubber.style.setProperty('--history-progress', `${commits.length > 1 ? (historyIndex / (commits.length - 1)) * 100 : 0}%`);
+        document.getElementById('historyCount').textContent = `${commits.length} commits · merged branches included`;
+    }
+
+    async function loadCommitHistory() {
+        if (historyData || historyLoading) return;
+        historyLoading = true;
+        try {
+            const response = await fetch('/assets/data/commit-history-before-e0d656b.json', { credentials: 'same-origin' });
+            if (!response.ok) throw new Error('History request failed');
+            const payload = await response.json();
+            if (payload.boundaryRelease !== 'e0d656b' || !Array.isArray(payload.commits) || payload.commits.length !== payload.count) throw new Error('History data is invalid');
+            historyData = payload;
+            historyIndex = 0;
+            renderHistoryCommit();
+        } catch (_) {
+            document.getElementById('historyCount').textContent = 'Timeline unavailable';
+            document.getElementById('historyCommitTitle').textContent = 'Couldn’t load the commit history';
+            document.getElementById('historyCommitNote').textContent = 'The original read-only snapshot is still available.';
+            document.getElementById('historyPrevious').disabled = true;
+            document.getElementById('historyNext').disabled = true;
+            document.getElementById('historyScrubber').disabled = true;
+        } finally {
+            historyLoading = false;
+        }
+    }
+
+    function stepHistoryCommit(direction) {
+        if (!historyData?.commits?.length) return;
+        historyIndex += direction;
+        renderHistoryCommit();
+    }
+
+    function selectHistoryCommit(value) {
+        if (!historyData?.commits?.length) return;
+        historyIndex = Number(value) || 0;
+        renderHistoryCommit();
+    }
+
+    document.addEventListener('keydown', event => {
+        const panel = document.getElementById('hamburgerPanel');
+        const browser = document.getElementById('historyBrowser');
+        if (!HISTORY_DESKTOP_LAYOUT.matches || menuView !== 'history' || !panel?.classList.contains('open') || !browser?.contains(document.activeElement)) return;
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (event.key === 'ArrowLeft') { event.preventDefault(); stepHistoryCommit(-1); }
+        else if (event.key === 'ArrowRight') { event.preventDefault(); stepHistoryCommit(1); }
+    });
+
+    HISTORY_DESKTOP_LAYOUT.addEventListener?.('change', event => {
+        const panel = document.getElementById('hamburgerPanel');
+        if (event.matches && menuView === 'history' && panel?.classList.contains('open')) {
+            void loadCommitHistory();
+            document.getElementById('historyBrowser')?.focus({ preventScroll: true });
+        }
+    });
 
     // Esc / back: one level up first, close only from the top level. Returns true if it handled the key.
     function menuEscape() {

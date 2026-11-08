@@ -45,8 +45,10 @@
         }
 
         .prototype-label { display: inline-flex; align-items: center; padding: 7px 11px; border: 1px solid rgba(255,255,255,0.2); border-radius: 999px; color: #c7d2fe; background: rgba(99,102,241,0.16); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
-        #userInput:disabled { cursor: not-allowed; opacity: .8; }
-        #sendBtn:disabled { cursor: not-allowed; opacity: .62; }
+        #userInput:disabled { cursor: not-allowed; opacity: 1; border: 1px solid rgba(148,163,184,.24); background: rgba(148,163,184,.13); color: rgba(226,232,240,.68); }
+        #userInput:disabled::placeholder { color: #94a3b8; opacity: 1; }
+        #sendBtn:disabled { cursor: not-allowed; opacity: 1; background: rgba(99,102,241,.22); color: rgba(226,232,240,.62); filter: grayscale(.55); }
+        .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     </style>
 </head>
 <body>
@@ -67,10 +69,11 @@
         <div class="msg ai">Welcome to Knowura. Please sign in to personalize your experience, or start asking questions below.</div>
     </div>
 
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="Ask Knowura..." aria-label="Ask Knowura (disabled historical preview)" disabled>
-        <button id="sendBtn" type="button" disabled>Send</button>
+    <div class="input-area" role="group" aria-label="Disabled historical chat controls">
+        <input type="text" id="userInput" placeholder="Ask Knowura..." aria-label="Ask Knowura (disabled historical preview)" aria-disabled="true" aria-describedby="archiveControlsStatus" disabled>
+        <button id="sendBtn" type="button" aria-label="Send (disabled in this static historical preview)" aria-disabled="true" aria-describedby="archiveControlsStatus" disabled>Send</button>
     </div>
+    <p id="archiveControlsStatus" class="visually-hidden">This is a static archive. The prompt and Send button are disabled; chat is unavailable.</p>
 </div>
 
 </body>
