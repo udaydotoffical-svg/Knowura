@@ -885,16 +885,17 @@ test('assistant PC action: feature-detected, sent only on "on"/"off", runs the d
     assert.ok(a.indexOf('persist(); scrollChat();') < a.indexOf('window.KnowuraDesk.pcTask(pcTask)'), 'the chat is saved before the panel closes');
 });
 
-test('first GitHub commit is reachable from Settings as a static, strictly sandboxed preview', () => {
+test('first GitHub commit uses an inert image preview while the archived controls remain disabled', () => {
     const h = pub('index.html'), archive = pub('first-version/index.html');
+    const history = JSON.parse(pub('assets/data/commit-history-before-e0d656b.json'));
     assert.match(h, /showMenuView\('history'\)/);
     assert.match(h, /data-view="history"/);
-    assert.match(h, /Non-working preview/);
-    const frame = h.match(/<iframe id="firstVersionFrame"[^>]*>/)?.[0];
-    assert.ok(frame, 'historical iframe exists');
-    assert.match(frame, /src="\/first-version\/index\.html"/);
-    assert.match(frame, /sandbox=""/);
-    assert.doesNotMatch(frame, /allow-(?:scripts|same-origin|forms|popups|top-navigation)/);
+    assert.ok(h.includes(`src="${history.commits[0].indexPreview}"`), 'the initial image matches the first commit');
+    assert.match(h, /id="historyPreviewImage"[^>]*class="history-preview-image"/);
+    assert.match(h, /id="historyPlayButton"[^>]*aria-pressed="false"[^>]*onclick="toggleHistorySlideshow\(\)"/);
+    assert.match(h, /Static image · no code runs/);
+    assert.match(h, /Static image of the selected commit’s index\.html/);
+    assert.doesNotMatch(h, /id="firstVersionFrame"/);
     assert.match(archive, /2f198d73e8d13668d58cb345b92a1efe6928df51/);
     const prompt = archive.match(/<input\b[^>]*id="userInput"[^>]*>/)?.[0];
     const send = archive.match(/<button\b[^>]*id="sendBtn"[^>]*>/)?.[0];
@@ -910,9 +911,10 @@ test('first GitHub commit is reachable from Settings as a static, strictly sandb
     assert.doesNotMatch(archive, /<script\b|<form\b|https?:\/\/|gsk_[A-Za-z0-9]{20,}/i);
 });
 
-test('history preview browses all commits before e0d656b, including merges, without changing its static mobile snapshot', () => {
+test('history preview browses all commits before e0d656b, plays inert index snapshots, and preserves mobile frame sizing', () => {
     const h = pub('index.html');
     const history = JSON.parse(pub('assets/data/commit-history-before-e0d656b.json'));
+    const slideDir = path.join(__dirname, '..', 'public', 'assets', 'history-slides');
     assert.equal(history.boundaryRelease, 'e0d656b');
     assert.equal(history.count, 216);
     assert.equal(history.count, history.commits.length);
@@ -920,16 +922,37 @@ test('history preview browses all commits before e0d656b, including merges, with
     assert.equal(history.commits[0].sha, '2f198d73e8d13668d58cb345b92a1efe6928df51');
     assert.equal(history.commits[history.commits.length - 1].shortSha, '6ee692e');
     assert.equal(history.commits.some(commit => commit.sha.startsWith('e0d656b')), false);
-    for (const id of ['historyBrowser', 'historyPrevious', 'historyNext', 'historyScrubber', 'historyCommitTitle', 'historyCommitNote']) assert.match(h, new RegExp(`id="${id}"`));
+    assert.equal(history.commits[0].indexPreviewSource, 'index.html');
+    assert.equal(history.commits.at(-1).indexPreviewSource, 'public/index.html');
+    assert.ok(history.indexPreviewImageCount > 0);
+    assert.ok(history.indexPreviewSlideCount > 0);
+    assert.equal(new Set(history.commits.map(commit => commit.indexPreviewHash)).size, history.indexPreviewImageCount);
+    assert.equal(new Set(history.commits.map(commit => commit.indexPreview)).size, history.indexPreviewImageCount);
+    assert.equal(history.commits.filter(commit => commit.indexPreviewChanged).length, history.indexPreviewSlideCount);
+    assert.deepEqual(fs.readdirSync(slideDir).sort(), [...new Set(history.commits.map(commit => path.basename(commit.indexPreview)))].sort());
+    let lastSlide = 0;
+    for (const commit of history.commits) {
+        assert.match(commit.indexPreview, /^\/assets\/history-slides\/[a-f0-9]{64}\.webp$/);
+        assert.match(commit.indexPreviewHash, /^[a-f0-9]{64}$/);
+        assert.ok(['index.html', 'public/index.html'].includes(commit.indexPreviewSource));
+        if (commit.indexPreviewChanged) lastSlide++;
+        assert.equal(commit.indexPreviewSlide, lastSlide);
+        const bytes = fs.readFileSync(path.join(__dirname, '..', 'public', commit.indexPreview.slice(1)));
+        assert.equal(bytes.toString('ascii', 8, 12), 'WEBP', `valid static image for ${commit.shortSha}`);
+    }
+    for (const id of ['historyBrowser', 'historyPrevious', 'historyNext', 'historyScrubber', 'historyCommitTitle', 'historyCommitNote', 'historyPreviewImage', 'historyPlayButton', 'historySlidePosition']) assert.match(h, new RegExp(`id="${id}"`));
     assert.match(h, /event\.key === 'ArrowLeft'/);
     assert.match(h, /event\.key === 'ArrowRight'/);
+    assert.match(h, /function toggleHistorySlideshow\(\)/);
+    assert.match(h, /const HISTORY_SLIDESHOW_MS = 4000/);
+    assert.match(h, /item\.commit\.indexPreviewChanged/);
+    assert.match(h, /aria-pressed', 'true'/);
+    assert.match(h, /stopHistorySlideshow\(\)/);
     assert.match(h, /@media \(min-width: 681px\) and \(min-height: 501px\)/);
     assert.match(h, /\.hamburger-panel\.history-open \.hamburger-modal-card/);
     assert.match(h, /\.history-preview-frame \{ height: 42vh; min-height: 250px; \}/);
-    const frame = h.match(/<iframe id="firstVersionFrame"[^>]*>/)?.[0];
-    assert.match(frame || '', /src="\/first-version\/index\.html"/);
-    assert.match(frame || '', /sandbox=""/);
-    assert.doesNotMatch(frame || '', /allow-(?:scripts|same-origin|forms|popups|top-navigation)/);
+    assert.doesNotMatch(h, /id="firstVersionFrame"/);
+    assert.match(h, /if \(name === 'history'\) void loadCommitHistory\(\);/);
 });
 
 test('phone layout: full-bleed app, safe areas, compact cookie bar, landscape phones use the mobile layout', () => {

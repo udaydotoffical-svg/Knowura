@@ -72,6 +72,7 @@ html.term .live-panel { background: linear-gradient(180deg, rgba(2, 8, 4, 0.55),
 html.term .mic-btn.end-call:hover { background: rgb(28, 158, 71); }
 html.term .hamburger-panel { background: rgba(2, 7, 3, 0.5); }
 html.term .history-preview-frame { background: rgb(7, 21, 12); }
+html.term .history-preview-watermark { background: rgba(2, 12, 6, 0.84); }
 @media (min-width: 681px) and (min-height: 501px) { html.term .history-commit-card { background: linear-gradient(145deg, rgba(5, 17, 9, 0.82), rgba(10, 26, 16, 0.44)); } }
 @media (min-width: 681px) and (min-height: 501px) { html.term .history-scrubber { background: linear-gradient(90deg, var(--cyan) var(--history-progress, 0%), rgba(55, 128, 79, 0.22) var(--history-progress, 0%)); } }
 html.term .menu-nav:hover { background: rgba(25, 141, 64, 0.15); }
