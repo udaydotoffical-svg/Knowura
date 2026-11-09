@@ -885,16 +885,20 @@ test('assistant PC action: feature-detected, sent only on "on"/"off", runs the d
     assert.ok(a.indexOf('persist(); scrollChat();') < a.indexOf('window.KnowuraDesk.pcTask(pcTask)'), 'the chat is saved before the panel closes');
 });
 
-test('first GitHub commit uses an inert image preview while the archived controls remain disabled', () => {
+test('historical welcome screen is excluded from chat previews while archived controls remain disabled', () => {
     const h = pub('index.html'), archive = pub('first-version/index.html');
     const history = JSON.parse(pub('assets/data/commit-history-before-e0d656b.json'));
     assert.match(h, /showMenuView\('history'\)/);
     assert.match(h, /data-view="history"/);
-    assert.ok(h.includes(`src="${history.commits[0].indexPreview}"`), 'the initial image matches the first commit');
-    assert.match(h, /id="historyPreviewImage"[^>]*class="history-preview-image"/);
-    assert.match(h, /id="historyPlayButton"[^>]*aria-pressed="false"[^>]*onclick="toggleHistorySlideshow\(\)"/);
-    assert.match(h, /Static image · no code runs/);
-    assert.match(h, /Static image of the selected commit’s index\.html/);
+    const initialPreview = h.match(/<img id="historyPreviewImage"[^>]*>/)?.[0];
+    assert.ok(initialPreview, 'the historical preview image element exists');
+    assert.doesNotMatch(initialPreview, /\ssrc=/, 'a historical login/welcome image cannot flash before metadata loads');
+    assert.match(initialPreview, /\shidden(?:\s|>)/);
+    assert.match(h, /id="historyPreviewFallback"[^>]*>No chat preview available<\/div>/);
+    assert.equal(history.commits.filter(commit => commit.chatUiPreview === true).length, 0);
+    assert.match(h, /id="historyPlayButton"[^>]*aria-label="Play historical chat preview slideshow"[^>]*aria-pressed="false"[^>]*onclick="toggleHistorySlideshow\(\)"/);
+    assert.match(h, /Static preview · no code runs/);
+    assert.match(h, /Only commits with a matching chat UI snapshot show an image/);
     assert.doesNotMatch(h, /id="firstVersionFrame"/);
     assert.match(archive, /2f198d73e8d13668d58cb345b92a1efe6928df51/);
     const prompt = archive.match(/<input\b[^>]*id="userInput"[^>]*>/)?.[0];
@@ -911,6 +915,21 @@ test('first GitHub commit uses an inert image preview while the archived control
     assert.doesNotMatch(archive, /<script\b|<form\b|https?:\/\/|gsk_[A-Za-z0-9]{20,}/i);
 });
 
+test('current app screenshot is a separate genuine static capture outside the historical timeline', () => {
+    const h = pub('index.html');
+    const history = JSON.parse(pub('assets/data/commit-history-before-e0d656b.json'));
+    const card = h.indexOf('<section id="currentAppScreenshot"');
+    const content = h.indexOf('<div class="history-content">', card);
+    const timeline = h.indexOf('<section id="historyBrowser"', content);
+    assert.ok(card >= 0 && card < content && content < timeline, 'current screenshot card is before and outside the timeline');
+    assert.match(h, /<h3 id="currentAppScreenshotTitle"[^>]*>Current app screenshot<\/h3>/);
+    assert.match(h, /Fresh guest demo · separate from the historical timeline\./);
+    assert.match(h, /src="\/assets\/images\/current-app-screenshot-demo\.png"/);
+    assert.equal(history.commits.some(commit => commit.indexPreview === '/assets/images/current-app-screenshot-demo.png'), false);
+    const image = fs.readFileSync(path.join(__dirname, '..', 'public', 'assets', 'images', 'current-app-screenshot-demo.png'));
+    assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+});
+
 test('history preview browses all commits before e0d656b, plays inert index snapshots, and preserves mobile frame sizing', () => {
     const h = pub('index.html');
     const history = JSON.parse(pub('assets/data/commit-history-before-e0d656b.json'));
@@ -924,6 +943,8 @@ test('history preview browses all commits before e0d656b, plays inert index snap
     assert.equal(history.commits.some(commit => commit.sha.startsWith('e0d656b')), false);
     assert.equal(history.commits[0].indexPreviewSource, 'index.html');
     assert.equal(history.commits.at(-1).indexPreviewSource, 'public/index.html');
+    assert.notEqual(history.commits[0].chatUiPreview, true);
+    assert.equal(history.commits.filter(commit => commit.chatUiPreview === true).length, 0);
     assert.ok(history.indexPreviewImageCount > 0);
     assert.ok(history.indexPreviewSlideCount > 0);
     assert.equal(new Set(history.commits.map(commit => commit.indexPreviewHash)).size, history.indexPreviewImageCount);
@@ -941,15 +962,24 @@ test('history preview browses all commits before e0d656b, plays inert index snap
         assert.equal(bytes.toString('ascii', 8, 12), 'WEBP', `valid static image for ${commit.shortSha}`);
     }
     for (const id of ['historyBrowser', 'historyPrevious', 'historyNext', 'historyScrubber', 'historyCommitTitle', 'historyCommitNote', 'historyPreviewImage', 'historyPlayButton', 'historySlidePosition']) assert.match(h, new RegExp(`id="${id}"`));
+    assert.match(h, /id="historyPreviewFallback"[^>]*>No chat preview available<\/div>/);
+    assert.match(h, /\.history-preview-image\[hidden\] \{ display: none; \}/);
+    assert.match(h, /Browse every commit note\. Only matching chat UI snapshots appear; play steps through changes\./);
     assert.match(h, /event\.key === 'ArrowLeft'/);
     assert.match(h, /event\.key === 'ArrowRight'/);
     assert.match(h, /function toggleHistorySlideshow\(\)/);
-    assert.match(h, /const HISTORY_SLIDESHOW_MS = 4000/);
+    assert.match(h, /const HISTORY_SLIDESHOW_MS = 3000/);
+    assert.match(h, /const isChatPreview = commit\.chatUiPreview === true/);
+    assert.match(h, /image\.removeAttribute\('src'\)/);
+    assert.match(h, /fallback\.textContent = 'No chat preview available'/);
+    assert.match(h, /position\.textContent = `Change \$\{String\(slide\)\.padStart\(2, '0'\)\}/);
+    assert.doesNotMatch(h, /preferredChat|const chatPreview/);
     assert.match(h, /item\.commit\.indexPreviewChanged/);
     assert.match(h, /aria-pressed', 'true'/);
     assert.match(h, /stopHistorySlideshow\(\)/);
     assert.match(h, /@media \(min-width: 681px\) and \(min-height: 501px\)/);
     assert.match(h, /\.hamburger-panel\.history-open \.hamburger-modal-card/);
+    assert.match(h, /\.hamburger-panel\.history-open \.hamburger-modal-card \{ max-height: calc\(100vh - 20px\); max-height: calc\(100dvh - 20px\); \}/);
     assert.match(h, /\.history-preview-frame \{ height: 42vh; min-height: 250px; \}/);
     assert.doesNotMatch(h, /id="firstVersionFrame"/);
     assert.match(h, /if \(name === 'history'\) void loadCommitHistory\(\);/);

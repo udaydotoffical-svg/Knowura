@@ -34,6 +34,7 @@ html.light .input-area { background: linear-gradient(180deg, transparent, rgba(2
 html.light .live-panel { background: linear-gradient(180deg, rgba(238, 240, 246, 0.55), rgba(238, 240, 246, 0.78)),
                 url('/assets/images/ocean-topic-bg-440eadfff585.jpg') no-repeat center center; }
 html.light .hamburger-panel { background: rgba(239, 241, 246, 0.5); }
+html.light .history-current-screenshot-thumb { background: rgb(227, 230, 237); }
 html.light .history-preview-frame { background: rgb(227, 230, 237); }
 html.light .history-preview-watermark { background: rgba(235, 238, 244, 0.84); }
 @media (min-width: 681px) and (min-height: 501px) { html.light .history-commit-card { background: linear-gradient(145deg, rgba(230, 234, 240, 0.82), rgba(222, 225, 233, 0.44)); } }

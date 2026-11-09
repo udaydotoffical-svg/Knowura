@@ -1489,8 +1489,17 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .history-preview-kicker { margin: 0 0 6px; color: var(--cyan); font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
         .history-preview-title { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.25; }
         .history-preview-description { margin: 5px 0 0; color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+        .history-current-screenshot { display: flex; align-items: center; gap: 14px; flex: none; margin: 0 0 10px; padding: 10px 12px; border: 1px solid rgba(148,163,184,0.22); border-radius: 14px; background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)); }
+        .history-current-screenshot-copy { flex: 1; min-width: 0; }
+        .history-current-screenshot-title { margin: 0; color: var(--text); font-size: 13px; font-weight: 800; line-height: 1.25; }
+        .history-current-screenshot-detail { margin: 4px 0 0; color: var(--text-dim); font-size: 10px; line-height: 1.4; }
+        .history-current-screenshot-link { display: inline-flex; margin-top: 5px; color: var(--cyan); font-size: 10px; font-weight: 800; text-underline-offset: 2px; }
+        .history-current-screenshot-link:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
+        .history-current-screenshot-thumb { display: block; flex: none; width: clamp(120px, 20vw, 220px); overflow: hidden; border: 1px solid rgba(148,163,184,0.28); border-radius: 9px; background: #0f172a; }
+        .history-current-screenshot-thumb img { display: block; width: 100%; height: auto; max-height: 130px; object-fit: contain; }
         .history-preview-frame { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: clamp(250px, 42vh, 360px); margin: 0; overflow: hidden; border: 2px solid var(--ink); border-radius: 16px; background: #0f172a; box-shadow: var(--shadow-sm); }
         .history-preview-image { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; pointer-events: none; user-select: none; }
+        .history-preview-image[hidden] { display: none; }
         .history-preview-watermark { position: absolute; top: 10px; left: 10px; padding: 5px 8px; border: 1px solid rgba(34,229,255,0.36); border-radius: 999px; background: rgba(5,12,24,0.84); color: var(--cyan); font-size: 9px; font-weight: 800; letter-spacing: 0.7px; }
         .history-preview-fallback { display: grid; place-items: center; width: 100%; height: 100%; color: var(--text-dim); font-size: 13px; }
         .history-preview-fallback[hidden] { display: none; }
@@ -1948,6 +1957,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             }
             .cookie-btn { width: auto; padding: 9px 14px; }
             .hamburger-panel { padding: 10px; }
+            .hamburger-panel.history-open .hamburger-modal-card { max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px); }
             input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select { font-size: 16px; }
         }
         @media (max-width: 420px) {
@@ -2656,8 +2666,18 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                 <div class="history-preview-copy">
                     <div class="history-preview-kicker">216 commits · Before e0d656b</div>
                     <h2 class="history-preview-title">Watch Knowura evolve</h2>
-                    <p class="history-preview-description">Each commit note pairs with its index.html snapshot. Play steps through visible changes.</p>
+                    <p class="history-preview-description">Browse every commit note. Only matching chat UI snapshots appear; play steps through changes.</p>
                 </div>
+                <section id="currentAppScreenshot" class="history-current-screenshot" aria-labelledby="currentAppScreenshotTitle">
+                    <div class="history-current-screenshot-copy">
+                        <h3 id="currentAppScreenshotTitle" class="history-current-screenshot-title">Current app screenshot</h3>
+                        <p class="history-current-screenshot-detail">Fresh guest demo · separate from the historical timeline.</p>
+                        <a class="history-current-screenshot-link" href="/assets/images/current-app-screenshot-demo.png" target="_blank" rel="noopener">Open full screenshot</a>
+                    </div>
+                    <a class="history-current-screenshot-thumb" href="/assets/images/current-app-screenshot-demo.png" target="_blank" rel="noopener" aria-label="Open the full Current app screenshot">
+                        <img src="/assets/images/current-app-screenshot-demo.png" alt="Current Knowura chat interface in a fresh guest session, showing a harmless answer about why the sky is blue." loading="lazy" decoding="async">
+                    </a>
+                </section>
                 <div class="history-content">
                     <section id="historyBrowser" class="history-browser" tabindex="-1" aria-label="Knowura commit history">
                         <div class="history-browser-head">
@@ -2689,18 +2709,18 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                         <div class="history-range-labels"><span>First version</span><span>Before latest</span></div>
                         <p class="history-key-hint"><kbd>←</kbd><kbd>→</kbd> Use arrow keys to browse</p>
                     </section>
-                    <section class="history-snapshot" aria-label="Selected commit index.html slideshow preview">
-                        <div class="history-snapshot-heading"><span>Index.html preview</span><span class="history-snapshot-state">Static image · no code runs</span></div>
+                    <section class="history-snapshot" aria-label="Selected commit chat UI preview">
+                        <div class="history-snapshot-heading"><span>Chat UI preview</span><span class="history-snapshot-state">Static preview · no code runs</span></div>
                         <figure class="history-preview-frame">
-                            <img id="historyPreviewImage" class="history-preview-image" src="/assets/history-slides/373f7198053a4566e759b4bcff158d2cec5b56da2423313a7719b52e7669b921.webp" alt="Static screenshot of Knowura at the first commit, 2f198d7" aria-describedby="historyPreviewNote" decoding="async">
-                            <span class="history-preview-watermark" aria-hidden="true">STATIC IMAGE · INERT</span>
-                            <div id="historyPreviewFallback" class="history-preview-fallback" hidden>Preview image unavailable</div>
+                            <img id="historyPreviewImage" class="history-preview-image" alt="" aria-describedby="historyPreviewNote" decoding="async" hidden>
+                            <span class="history-preview-watermark" aria-hidden="true">STATIC · NO CODE RUNS</span>
+                            <div id="historyPreviewFallback" class="history-preview-fallback">No chat preview available</div>
                         </figure>
-                        <div class="history-playback-row" role="group" aria-label="Index preview slideshow controls">
-                            <button type="button" id="historyPlayButton" class="history-play-button" aria-label="Play historical index slideshow" aria-pressed="false" onclick="toggleHistorySlideshow()" disabled>Play</button>
+                        <div class="history-playback-row" role="group" aria-label="Chat UI preview slideshow controls">
+                            <button type="button" id="historyPlayButton" class="history-play-button" aria-label="Play historical chat preview slideshow" aria-pressed="false" onclick="toggleHistorySlideshow()" disabled>Play</button>
                             <span id="historySlidePosition" class="history-slide-position" aria-live="polite">Loading preview…</span>
                         </div>
-                        <p class="history-preview-note" id="historyPreviewNote" role="note">Static image of the selected commit’s index.html. Historical scripts are stripped; controls and forms are never interactive.</p>
+                        <p class="history-preview-note" id="historyPreviewNote" role="note">Only commits with a matching chat UI snapshot show an image. Other commits show a neutral placeholder; historical code never runs.</p>
                     </section>
                 </div>
             </div>
@@ -2924,7 +2944,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
     let historyIndex = 0;
     let historyLoading = false;
     let historySlideshowTimer = null;
-    const HISTORY_SLIDESHOW_MS = 4000;
+    const HISTORY_SLIDESHOW_MS = 3000;
 
     function showMenuView(name, { focus = true } = {}) {
         if (!MENU_TITLES[name]) name = 'main';
@@ -2968,7 +2988,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         const button = document.getElementById('historyPlayButton');
         if (!button) return;
         button.textContent = 'Play';
-        button.setAttribute('aria-label', 'Play historical index slideshow');
+        button.setAttribute('aria-label', 'Play historical chat preview slideshow');
         button.setAttribute('aria-pressed', 'false');
     }
 
@@ -2983,22 +3003,27 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             image.dataset.errorHandler = 'true';
         }
         const src = String(commit.indexPreview || '');
-        if (!src.startsWith('/assets/history-slides/') || !src.endsWith('.webp')) {
+        const isChatPreview = commit.chatUiPreview === true
+            && src.startsWith('/assets/history-slides/')
+            && src.endsWith('.webp');
+        if (!isChatPreview) {
             image.hidden = true;
-            if (fallback) fallback.hidden = false;
-            if (button) button.disabled = true;
-            if (position) position.textContent = 'Preview unavailable';
-            return;
+            image.removeAttribute('src');
+            if (fallback) { fallback.textContent = 'No chat preview available'; fallback.hidden = false; }
+        } else {
+            image.hidden = false;
+            if (fallback) fallback.hidden = true;
+            if (image.getAttribute('src') !== src) image.setAttribute('src', src);
+            image.alt = `Static screenshot of Knowura at commit ${commit.shortSha}: ${commit.subject || 'Untitled commit'}`;
+            if (image.complete && !image.naturalWidth) {
+                image.hidden = true;
+                if (fallback) { fallback.textContent = 'No chat preview available'; fallback.hidden = false; }
+            }
         }
-        image.hidden = false;
-        if (fallback) fallback.hidden = true;
-        if (image.getAttribute('src') !== src) image.setAttribute('src', src);
-        image.alt = `Static screenshot of Knowura at commit ${commit.shortSha}: ${commit.subject || 'Untitled commit'}`;
         const slide = Number(commit.indexPreviewSlide) || 1;
         const total = Number(historyData?.indexPreviewSlideCount) || slide;
-        if (position) position.textContent = `HTML ${String(slide).padStart(2, '0')} / ${String(total).padStart(2, '0')} · ${commit.subject || 'Untitled commit'}`;
+        if (position) position.textContent = `Change ${String(slide).padStart(2, '0')} / ${String(total).padStart(2, '0')} · ${commit.subject || 'Untitled commit'}`;
         if (button) button.disabled = false;
-        if (image.complete && !image.naturalWidth) { image.hidden = true; if (fallback) fallback.hidden = false; }
     }
 
     function toggleHistorySlideshow() {
@@ -3023,7 +3048,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         const button = document.getElementById('historyPlayButton');
         if (button) {
             button.textContent = 'Pause';
-            button.setAttribute('aria-label', 'Pause historical index slideshow');
+            button.setAttribute('aria-label', 'Pause historical chat preview slideshow');
             button.setAttribute('aria-pressed', 'true');
         }
         historySlideshowTimer = window.setInterval(() => {
