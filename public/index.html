@@ -2067,15 +2067,8 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             }
         }
 
-        /* Dark-only Ocean dimming; the subtle overlay keeps the wallpaper clear while improving home-text contrast. */
-        html:not(.light):not(.term) { --home-ocean-overlay: linear-gradient(180deg, rgba(3,6,16,0.13), rgba(3,6,16,0.28)); }
-        @media (max-width: 680px), (max-height: 500px) and (max-width: 960px) and (pointer: coarse) {
-            html:not(.light):not(.term),
-            html.balanced:not(.light):not(.term),
-            html.lite:not(.light):not(.term) {
-                --home-ocean-overlay: linear-gradient(180deg, rgba(3,6,16,0.04), rgba(3,6,16,0.12));
-            }
-        }
+        /* Deep-blue Ocean tint at 34–40%: adds color and keeps light text clear on the wallpaper. */
+        html:not(.light):not(.term) { --home-ocean-overlay: linear-gradient(180deg, rgba(8, 46, 111, 0.34), rgba(4, 33, 91, 0.40)); }
         html:not(.light):not(.term) body,
         html.balanced:not(.light):not(.term) body,
         html.lite:not(.light):not(.term) body {
@@ -2127,6 +2120,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
                 url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat;
         }
         html.light .login-story { color: #eaf6ff; background: linear-gradient(90deg, rgba(4, 9, 20, 0.48), rgba(4, 9, 20, 0.2)), linear-gradient(180deg, rgba(4, 9, 20, 0.08) 0%, rgba(4, 9, 20, 0.22) 42%, rgba(4, 9, 20, 0.82) 100%), url('/assets/images/ocean-topic-bg-440eadfff585.jpg') center / cover no-repeat; }
+        html:not(.light):not(.term) .login-story::after { content: ''; position: absolute; z-index: 0; inset: 0; background: var(--home-ocean-overlay); pointer-events: none; }
         html.light .login-story-sub { color: rgba(234, 246, 255, 0.82); }
         .login-story-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 13px; }
         .login-story-mark { width: 38px; height: 38px; flex: none; display: grid; place-items: center; background: var(--cyan); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
