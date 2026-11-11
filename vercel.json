@@ -44,6 +44,10 @@
       "destination": "/api/misc?op=owner-enable"
     },
     {
+      "source": "/.netlify/functions/feedback",
+      "destination": "/api/misc?op=feedback"
+    },
+    {
       "source": "/.netlify/functions/:path*",
       "destination": "/api/:path*"
     }

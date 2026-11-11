@@ -372,6 +372,28 @@ test('fonts are self-hosted: no page or CSP contacts Google Fonts, and the legal
     assert.match(pub('index.html'), /confirm you are 13 or older/);
 });
 
+test('cookie and privacy copy disclose first-party active browser sessions and seven-day feedback retention', () => {
+    const main = pub('index.html'), privacy = pub('privacy.html');
+    assert.match(main, /No ads or third-party tracking\./i);
+    assert.match(main, /configured Redis store; deployments that share a store also share counts/i);
+    assert.doesNotMatch(main, /Vercel and Netlify have separate counts/i);
+    assert.match(main, /first-party activity pulse estimates the approximate count of active browser sessions over 5 minutes/i);
+    assert.match(main, /optional “Other” feedback notes are kept for up to 7 days/i);
+    assert.match(main, /5-minute metric is an approximate count of active browser sessions[\s\S]*?not a count of unique people or users/i);
+    assert.match(main, /Clearing cookies or using another browser profile can create another session/i);
+    assert.match(privacy, /no ads or third-party tracking/i);
+    assert.match(privacy, /approximate count of active browser sessions—not unique people or users—based on first-party activity pulses[\s\S]*?last five minutes/i);
+    assert.match(privacy, /note[\s\S]*?retained for up to seven days[\s\S]*?never shown in the owner dashboard/i);
+    assert.match(privacy, /hashed per-note index marker[\s\S]*?expire independently within seven days/i);
+    assert.match(privacy, /hash of its random one-time vote key also expire independently within seven days/i);
+    assert.match(privacy, /Cumulative aggregate reaction and reason totals are kept separately from identifying details with no automatic expiry/i);
+    assert.match(privacy, /daily aggregate hashes expire within 35 days/i);
+    assert.match(privacy, /server-issued token in a first-party, HttpOnly cookie is reused/i);
+    assert.match(privacy, /A first-party, HttpOnly cookie reuses the server-issued token/i);
+    assert.match(privacy, /Clearing or withholding the cookie[\s\S]*?subject to the issuance limit[\s\S]*?not a fraud-resistant unique-person count/i);
+    assert.doesNotMatch(main, /no ads or tracking\./i, 'the banner must not imply there is no first-party activity metric');
+});
+
 test('no unlicensed music ships: the Free To Use tracks are gone and the player has no dangling references', () => {
     const dir = path.join(__dirname, '..', 'public/assets/audio');
     for (const f of ['apple-tree', 'bean', 'flower-cup', 'spaceship', 'sunflower']) assert.ok(!fs.existsSync(path.join(dir, f + '.mp3')), f);
@@ -826,7 +848,8 @@ test('the assistant panel has the same study features, and the shared quiz code 
     for (const f of ['weakAdd', 'weakRate', 'markStudyDay', 'refreshStudyHome', 'startWeakReview']) assert.match(ui, new RegExp('function ' + f), f + ' ships with the shared UI');
     assert.doesNotMatch(ui, /const store =/, 'no clash with the panel\'s own store()');
     assert.match(a, /id="studyBtn"/); assert.match(a, /id="studyStrip"[^>]*>[^]*?bloub-cercle-neutre-bleu\.gif/); assert.match(a, /studyMode: studyOn/);
-    for (const f of ['regenerate', 'loadFollowups', 'rate', 'applyLook', 'toggleStudy']) assert.match(a, new RegExp('function ' + f));
+    for (const f of ['regenerate', 'loadFollowups', 'addReplyActions', 'applyLook', 'toggleStudy']) assert.match(a, new RegExp('function ' + f));
+    assert.match(a, /window\.KnowuraFeedback\?\.createPanel/); assert.match(a, /feedback\?\.open\('like'\)/); assert.match(a, /feedback\?\.open\('dislike'\)/);
     assert.doesNotMatch(a, /id="(aaBtn|hcBtn|themeBtn)"/, 'no display settings in the panel: it follows the main app'); assert.match(a, /function applyLook/); assert.match(a, /applyLook\(prefs\)/); assert.match(a, /Quiz from a photo/); assert.match(a, /id="studyHome"/);
 });
 

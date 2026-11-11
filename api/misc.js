@@ -7,7 +7,8 @@ const HANDLERS = {
     'device-link': toVercelHandler(require('../functions/device-link').handler),
     'device-session': toVercelHandler(require('../functions/device-session').handler),
     'models': toVercelHandler(require('../functions/models').handler),
-    'owner-enable': toVercelHandler(require('../functions/owner-enable').handler)
+    'owner-enable': toVercelHandler(require('../functions/owner-enable').handler),
+    'feedback': toVercelHandler(require('../functions/feedback').handler)
 };
 
 module.exports = (req, res) => {

@@ -120,6 +120,7 @@
     <link rel="stylesheet" href="/assets/ui/theme-term.css">
     <link rel="stylesheet" href="/assets/ui/live-avatar.css">
     <script src="/assets/ui/live-avatar.js" defer></script>
+    <script src="/assets/ui/feedback.js" defer></script>
 </head>
 <body>
 <div id="boot" class="boot" aria-hidden="true">
@@ -568,6 +569,19 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         .reply-tools button.on::before { border-color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
         .reply-tools button:focus-visible, .reply-enhancements button:focus-visible, .followups button:focus-visible, .feature-close:focus-visible, .visual-step button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         .reply-tools .icon { width: 16px; height: 16px; }
+        .reply-feedback-panel { display: grid; gap: 7px; width: min(520px, calc(100% - 42px)); margin: -2px 0 8px 34px; padding: 9px 10px; border: 1px solid var(--ink); border-radius: 10px; background: var(--panel-strong); box-shadow: var(--shadow-sm); }
+        .reply-feedback-panel[hidden] { display: none !important; }
+        .reply-feedback-title { font-size: 12px; font-weight: 700; color: var(--text); }
+        .reply-feedback-options { display: flex; flex-wrap: wrap; gap: 5px; }
+        .reply-feedback-reason { padding: 5px 8px; border: 1px solid var(--ink); border-radius: 999px; background: transparent; color: var(--text-dim); font: 600 11px var(--font); cursor: pointer; }
+        .reply-feedback-reason[aria-pressed="true"] { border-color: var(--cyan); background: rgba(34, 229, 255, 0.14); color: var(--text); }
+        .reply-feedback-reason:disabled { opacity: .65; cursor: default; }
+        .reply-feedback-other { width: 100%; min-height: 46px; padding: 7px 9px; border: 1px solid var(--ink); border-radius: 8px; background: var(--panel); color: var(--text); font: 500 12px/1.4 var(--font); resize: vertical; }
+        .reply-feedback-controls { display: flex; align-items: center; gap: 8px; }
+        .reply-feedback-status { margin-right: auto; color: var(--text-dim); font-size: 11px; }
+        .reply-feedback-controls button { padding: 5px 9px; border: 1px solid var(--ink); border-radius: 7px; background: transparent; color: var(--text-dim); font: 600 11px var(--font); cursor: pointer; }
+        .reply-feedback-controls .reply-feedback-send { background: var(--cyan); color: #001018; }
+        .reply-feedback-controls button:disabled { opacity: .55; cursor: default; }
         .followups { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
         .followups button { position: relative; isolation: isolate; min-height: 44px; padding: 0 10px; border: 0; border-radius: 0; background: transparent; color: var(--text); font-size: 11px; line-height: 1.1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; box-shadow: none; }
         .followups button::before { content: ''; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--ink); border-radius: 999px; background: var(--panel-strong); box-shadow: none; pointer-events: none; }
@@ -1831,6 +1845,47 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             animation: cardIn 0.25s cubic-bezier(.16,1,.3,1);
         }
 
+        .feedback-dashboard-modal { z-index: 220; }
+        .feedback-dashboard-card { max-width: 960px; max-height: min(90dvh, 900px); overflow: auto; padding: 22px; text-align: left; }
+        .feedback-dashboard-head { position: relative; margin-bottom: 12px; padding-right: 42px; }
+        .feedback-dashboard-kicker { margin-bottom: 4px; color: var(--cyan); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .feedback-dashboard-head h2 { margin: 0; color: var(--text); font-size: 22px; }
+        .feedback-dashboard-head p, .feedback-data-note { margin: 5px 0 0; color: var(--text-dim); font-size: 11px; line-height: 1.45; }
+        .feedback-dashboard-status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: var(--text-dim); font-size: 11px; }
+        .feedback-refresh { padding: 6px 10px; border: 1px solid var(--ink); border-radius: 8px; background: var(--panel); color: var(--text); font: 700 11px var(--font); cursor: pointer; }
+        .feedback-stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+        .feedback-stat-grid article, .feedback-chart-card, .feedback-reason-card, .feedback-notes-card { min-width: 0; padding: 11px; border: 1px solid var(--ink); border-radius: 12px; background: var(--panel); }
+        .feedback-stat-grid article { display: grid; gap: 4px; }
+        .feedback-stat-grid span { color: var(--text-dim); font-size: 11px; }
+        .feedback-stat-grid strong { color: var(--text); font-size: 23px; line-height: 1; }
+        .feedback-stat-grid small { color: var(--text-dim); font-size: 9px; line-height: 1.3; }
+        .feedback-chart-card { margin-bottom: 10px; }
+        .feedback-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+        .feedback-section-head h3, .feedback-reason-card h3 { margin: 0 0 8px; color: var(--text); font-size: 13px; }
+        .feedback-section-head span { color: var(--text-dim); font-size: 10px; }
+        #feedbackTrendChart { display: block; width: 100%; height: auto; min-height: 150px; overflow: visible; }
+        #feedbackTrendChart text { fill: var(--text-dim); font: 10px var(--font); }
+        .feedback-chart-legend { display: flex; gap: 14px; color: var(--text-dim); font-size: 10px; }
+        .feedback-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .feedback-chart-legend i { width: 8px; height: 8px; border-radius: 50%; }
+        .feedback-chart-legend .like-dot { background: var(--cyan); }
+        .feedback-chart-legend .dislike-dot { background: #ff718f; }
+        .feedback-reasons-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .feedback-reason-line { display: grid; grid-template-columns: minmax(74px, 100px) 1fr 28px; align-items: center; gap: 7px; margin: 7px 0; color: var(--text-dim); font-size: 10px; }
+        .feedback-reason-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .feedback-reason-track { height: 7px; overflow: hidden; border-radius: 99px; background: rgba(148,163,184,.2); }
+        .feedback-reason-fill { height: 100%; border-radius: inherit; background: var(--cyan); }
+        .feedback-reason-card.dislike .feedback-reason-fill { background: #ff718f; }
+        .feedback-reason-count { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+        .feedback-empty { color: var(--text-dim); font-size: 11px; }
+        .feedback-data-note { margin-top: 9px; }
+        @media (max-width: 620px) {
+            .feedback-dashboard-card { max-height: 92dvh; padding: 16px 12px; }
+            .feedback-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .feedback-reasons-grid { grid-template-columns: 1fr; }
+            .feedback-dashboard-head h2 { font-size: 19px; }
+        }
+
         .owner-modal-divider {
             display: flex; align-items: center; gap: 10px; margin: 2px 0 16px;
             font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
@@ -2281,7 +2336,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
     <div id="cookieBanner" class="cookie-banner" role="dialog" aria-live="polite" aria-label="Cookie notice" hidden>
     <div class="cookie-text">
             <strong>Cookies &amp; local storage.</strong>
-            Knowura only uses essential storage (your settings, guest chats, and sign-in) &mdash; no ads or tracking.
+            No ads or third-party tracking. A first-party activity pulse estimates the approximate count of active browser sessions over 5 minutes; optional “Other” feedback notes are kept for up to 7 days.
             <a href="/privacy" target="_blank" rel="noopener">Learn more</a>
     </div>
     <button class="cookie-btn" onclick="dismissCookieBanner()">Got it</button>
@@ -2758,6 +2813,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
             <div id="ownerActivePanel" hidden>
                 <div class="brand-title" style="font-size:16px;">Owner Mode is on</div>
                 <div class="brand-sub" style="margin-bottom:20px;">Limits and the safety check are off for you right now</div>
+                <button id="ownerDashboardBtn" class="btn-ui" style="width:100%; justify-content:center; margin-bottom:10px;" onclick="openFeedbackDashboard()">Feedback dashboard</button>
                 <button id="ownerDisableBtn" class="btn-ui" style="width:100%; justify-content:center;" onclick="disableOwnerMode()">
                     <svg class="icon"><use href="#icon-lock"/></svg> Disable Owner Mode
                 </button>
@@ -2803,6 +2859,39 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
             <div id="ownerModalStatus" class="owner-modal-status"></div>
     </div>
+    </div>
+
+    <div id="feedbackDashboard" class="owner-modal feedback-dashboard-modal" role="dialog" aria-modal="true" aria-labelledby="feedbackDashboardTitle" aria-describedby="feedbackDashboardSummary" onclick="if (event.target === this) closeFeedbackDashboard()">
+        <div class="owner-modal-card feedback-dashboard-card">
+            <div class="feedback-dashboard-head">
+                <div>
+                    <div class="feedback-dashboard-kicker">Owner Mode</div>
+                    <h2 id="feedbackDashboardTitle">Feedback dashboard</h2>
+                    <p id="feedbackDashboardSummary">Counts come from this app’s configured Redis store; deployments that share a store also share counts.</p>
+                </div>
+                <button type="button" class="live-close" onclick="closeFeedbackDashboard()" title="Close dashboard" aria-label="Close dashboard"><svg class="icon"><use href="#icon-x"/></svg></button>
+            </div>
+            <div class="feedback-dashboard-status-row">
+                <button type="button" class="feedback-refresh" onclick="refreshFeedbackDashboard()">Refresh</button>
+                <span id="feedbackDashboardStatus" role="status" aria-live="polite">Loading feedback…</span>
+            </div>
+            <div class="feedback-stat-grid">
+                <article><span>Likes</span><strong id="feedbackLikeTotal">—</strong></article>
+                <article><span>Dislikes</span><strong id="feedbackDislikeTotal">—</strong></article>
+                <article><span>Total ratings</span><strong id="feedbackAllTotal">—</strong></article>
+                <article><span>Active sessions</span><strong id="feedbackActiveTotal">—</strong><small>Recent visible activity · 5-minute window</small></article>
+            </div>
+            <section class="feedback-chart-card" aria-labelledby="feedbackTrendTitle">
+                <div class="feedback-section-head"><h3 id="feedbackTrendTitle">Feedback over the last 30 days</h3><span>Daily ratings</span></div>
+                <svg id="feedbackTrendChart" viewBox="0 0 720 220" role="img" aria-label="Daily likes and dislikes over the last 30 days"></svg>
+                <div class="feedback-chart-legend"><span><i class="like-dot"></i>Likes</span><span><i class="dislike-dot"></i>Dislikes</span></div>
+            </section>
+            <div class="feedback-reasons-grid">
+                <section class="feedback-reason-card" aria-labelledby="feedbackLikeReasonsTitle"><h3 id="feedbackLikeReasonsTitle">Why people liked it</h3><div id="feedbackLikeReasons"></div></section>
+                <section class="feedback-reason-card" aria-labelledby="feedbackDislikeReasonsTitle"><h3 id="feedbackDislikeReasonsTitle">Why people disliked it</h3><div id="feedbackDislikeReasons"></div></section>
+            </div>
+            <p class="feedback-data-note">The 5-minute metric is an approximate count of active browser sessions with a visible activity pulse; it is not a count of unique people or users. Clearing cookies or using another browser profile can create another session. Optional “Other” text is used only for feedback triage, kept for up to 7 days, and never shown in this dashboard. Avoid personal details. Prompts and answers are not stored.</p>
+        </div>
     </div>
 
     <div id="studyOverlay" class="study-overlay" role="dialog" aria-modal="true" aria-labelledby="studyTitle" onclick="if (event.target === this) closeStudy()">
@@ -3648,7 +3737,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         }
     }
 
-    // ─── OWNER MODE (security key OR password, both issue a signed token) ─────
+    // ─── OWNER MODE (security key, password, or owner's Google session) ─────
 
     function openOwnerModal() {
         document.getElementById('hamburgerPanel')?.classList.remove('open');
@@ -3661,7 +3750,7 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
         document.getElementById('ownerModal').classList.add('open');
     }
 
-    // Owner Google account: turn owner mode on with no password. The server only agrees for the verified owner account.
+    // The server issues an owner token only when this signed-in Google session belongs to the owner.
     async function enableOwnerWithGoogle() {
         const statusEl = document.getElementById('ownerModalStatus');
         statusEl.innerText = 'Turning it on…';
@@ -3685,6 +3774,87 @@ window.addEventListener('load', function () { setTimeout(window.kwBootDone, 400)
 
     function closeOwnerModal() {
         document.getElementById('ownerModal').classList.remove('open');
+    }
+
+    function openFeedbackDashboard() {
+        if (!ownerMode || !ownerToken) return;
+        document.getElementById('feedbackDashboard').classList.add('open');
+        refreshFeedbackDashboard();
+    }
+    function closeFeedbackDashboard() {
+        document.getElementById('feedbackDashboard')?.classList.remove('open');
+    }
+    async function refreshFeedbackDashboard() {
+        const status = document.getElementById('feedbackDashboardStatus');
+        if (!ownerMode || !ownerToken) { status.textContent = 'Unlock Owner Mode to view these metrics.'; return; }
+        status.textContent = 'Loading feedback…';
+        try {
+            const response = await fetch('/.netlify/functions/feedback', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'dashboard', ownerToken })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || 'Could not load feedback metrics.');
+            renderFeedbackDashboard(data);
+            const updated = data.generatedAt ? new Date(data.generatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+            status.textContent = `Updated ${updated} · active window ${Math.round((data.activeWindowSeconds || 300) / 60)} min`;
+        } catch (error) { status.textContent = error?.message || 'Feedback metrics are unavailable right now.'; }
+    }
+    function renderFeedbackDashboard(data) {
+        const likes = Math.max(0, Number(data?.totals?.like) || 0);
+        const dislikes = Math.max(0, Number(data?.totals?.dislike) || 0);
+        document.getElementById('feedbackLikeTotal').textContent = likes.toLocaleString();
+        document.getElementById('feedbackDislikeTotal').textContent = dislikes.toLocaleString();
+        document.getElementById('feedbackAllTotal').textContent = (likes + dislikes).toLocaleString();
+        document.getElementById('feedbackActiveTotal').textContent = Math.max(0, Number(data?.activeSessions) || 0).toLocaleString();
+        const reasonLabels = { clear: 'Clear', accurate: 'Accurate', example: 'Helpful example', relevant: 'Relevant', incorrect: 'Incorrect', unclear: 'Unclear', too_short: 'Too short', too_long: 'Too long', off_topic: 'Off topic', other: 'Other' };
+        function renderReasons(id, values, sentiment) {
+            const root = document.getElementById(id);
+            root.replaceChildren();
+            const entries = Object.entries(values || {}).filter(([key]) => reasonLabels[key]);
+            const max = Math.max(1, ...entries.map(([, value]) => Number(value) || 0));
+            if (!entries.some(([, value]) => Number(value) > 0)) { root.appendChild(Object.assign(document.createElement('p'), { className: 'feedback-empty', textContent: 'No ratings yet.' })); return; }
+            entries.forEach(([key, value]) => {
+                const count = Math.max(0, Number(value) || 0);
+                const row = document.createElement('div'); row.className = `feedback-reason-line ${sentiment}`;
+                const label = document.createElement('span'); label.className = 'feedback-reason-label'; label.textContent = reasonLabels[key];
+                const track = document.createElement('span'); track.className = 'feedback-reason-track';
+                const fill = document.createElement('span'); fill.className = 'feedback-reason-fill'; fill.style.width = `${Math.min(100, count / max * 100)}%`; track.appendChild(fill);
+                const total = document.createElement('span'); total.className = 'feedback-reason-count'; total.textContent = count.toLocaleString();
+                row.append(label, track, total); root.appendChild(row);
+            });
+        }
+        renderReasons('feedbackLikeReasons', data?.reasons?.like, 'like');
+        renderReasons('feedbackDislikeReasons', data?.reasons?.dislike, 'dislike');
+
+        const svg = document.getElementById('feedbackTrendChart');
+        const NS = 'http://www.w3.org/2000/svg';
+        const makeSvg = (tag, attrs = {}) => { const el = document.createElementNS(NS, tag); for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, String(value)); return el; };
+        svg.replaceChildren();
+        const trend = Array.isArray(data?.trend) ? data.trend.slice(-30) : [];
+        const W = 720, H = 220, left = 36, right = 14, top = 14, bottom = 34;
+        const max = Math.max(1, ...trend.flatMap((point) => [Number(point.like) || 0, Number(point.dislike) || 0]));
+        for (let i = 0; i <= 4; i++) {
+            const y = top + (H - top - bottom) * i / 4;
+            const value = Math.round(max * (4 - i) / 4);
+            svg.appendChild(makeSvg('line', { x1: left, y1: y, x2: W - right, y2: y, stroke: 'rgba(148,163,184,.24)', 'stroke-width': 1 }));
+            const label = makeSvg('text', { x: left - 7, y: y + 3, 'text-anchor': 'end' }); label.textContent = String(value); svg.appendChild(label);
+        }
+        if (!trend.length) {
+            const empty = makeSvg('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle' }); empty.textContent = 'No feedback yet'; svg.appendChild(empty);
+        } else {
+            const xAt = (index) => left + (trend.length < 2 ? 0 : index / (trend.length - 1) * (W - left - right));
+            const yAt = (value) => top + (H - top - bottom) * (1 - (Number(value) || 0) / max);
+            for (const [field, color] of [['like', 'var(--cyan)'], ['dislike', '#ff718f']]) {
+                const points = trend.map((point, index) => `${xAt(index)},${yAt(point[field])}`);
+                svg.appendChild(makeSvg('polyline', { points: points.join(' '), fill: 'none', stroke: color, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+            }
+            [0, Math.floor((trend.length - 1) / 2), trend.length - 1].filter((index, pos, list) => list.indexOf(index) === pos).forEach((index) => {
+                const label = makeSvg('text', { x: xAt(index), y: H - 8, 'text-anchor': index === 0 ? 'start' : index === trend.length - 1 ? 'end' : 'middle' });
+                label.textContent = String(trend[index].day || '').slice(5); svg.appendChild(label);
+            });
+        }
+
     }
 
     // On a device that's actually yours, an unlock is remembered (localStorage) across
@@ -7101,7 +7271,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         });
 
         // Keep Tab inside whichever dialog/menu is open, and return focus when it closes
-        const overlays = ['appDialog', 'ownerModal', 'hamburgerPanel', 'studyOverlay', 'limitOverlay'];
+        const overlays = ['feedbackDashboard', 'appDialog', 'ownerModal', 'hamburgerPanel', 'studyOverlay', 'limitOverlay'];
         const lastFocus = {};
         overlays.forEach(id => {
             const el = document.getElementById(id);
@@ -7121,7 +7291,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             }).observe(el, { attributes: true, attributeFilter: ['class'] });
         });
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { if (document.getElementById('limitOverlay')?.classList.contains('open')) closeLimit(); else if (study) closeStudy(); else menuEscape(); }
+            if (e.key === 'Escape') { if (document.getElementById('feedbackDashboard')?.classList.contains('open')) closeFeedbackDashboard(); else if (document.getElementById('limitOverlay')?.classList.contains('open')) closeLimit(); else if (study) closeStudy(); else menuEscape(); }
             if (e.key !== 'Tab') return;
             const open = overlays.map(id => document.getElementById(id)).find(el => el?.classList.contains('open'));
             if (!open) return;
@@ -7220,7 +7390,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
     }
 
     // Reply tools (regenerate, thumbs, copy) and follow-up chips, on the latest answer only.
-    function clearReplyTools() { document.querySelectorAll('#chat-box .reply-tools, #chat-box .reply-enhancements, #chat-box .followups').forEach((n) => n.remove()); }
+    function clearReplyTools() { document.querySelectorAll('#chat-box .reply-tools, #chat-box .reply-feedback-panel, #chat-box .reply-enhancements, #chat-box .followups').forEach((n) => n.remove()); }
     let followSeq = 0;
     function addReplyTools(bubble, question, reply, hadFiles) {
         clearReplyTools();
@@ -7233,18 +7403,14 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
             b.addEventListener('click', () => fn(b));
             return b;
         };
-        const rate = (b, up) => {
-            const was = b.classList.contains('on');
-            row.querySelectorAll('.rate').forEach((x) => x.classList.remove('on'));
-            if (!was) {
-                b.classList.add('on');
-                const fb = kwStore.get('knowura_feedback', { up: 0, down: 0 });   // kept on this device only
-                fb[up ? 'up' : 'down']++; kwStore.set('knowura_feedback', fb);
-                kwSay(up ? 'Glad that helped!' : 'Thanks, noted. Try Regenerate for another go.');
-            }
-            haptic('select');
-        };
-        const up = mk('Good answer', 'thumb-up', (b) => rate(b, true)), down = mk('Not helpful', 'thumb-down', (b) => rate(b, false));
+        let up, down;
+        const feedback = window.KnowuraFeedback?.createPanel({ onSuccess: (sentiment) => {
+            up?.classList.toggle('on', sentiment === 'like'); down?.classList.toggle('on', sentiment === 'dislike');
+            if (up) up.disabled = true; if (down) down.disabled = true;
+            haptic('select'); kwSay('Thanks for the feedback.');
+        } });
+        up = mk('Good answer', 'thumb-up', () => feedback?.open('like'));
+        down = mk('Not helpful', 'thumb-down', () => feedback?.open('dislike'));
         up.classList.add('rate'); down.classList.add('rate');
         const copy = mk('Copy answer', 'copy', (b) => {
             navigator.clipboard?.writeText(reply).then(() => { b.classList.add('on'); kwSay('Copied'); setTimeout(() => b.classList.remove('on'), 1200); }).catch(() => kwSay("Couldn't copy"));
@@ -7252,6 +7418,7 @@ Return ONLY a JSON array of short fact strings like ["User studies biology", "Us
         row.append(up, down, copy);
         if (!hadFiles) row.append(mk('Regenerate', 'refresh', regenerateLast));
         bubble.after(row);
+        if (feedback) row.after(feedback.element);
         const enhancements = document.createElement('div');
         enhancements.className = 'reply-enhancements';
         enhancements.setAttribute('role', 'group');

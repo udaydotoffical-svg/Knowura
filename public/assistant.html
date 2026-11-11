@@ -204,6 +204,7 @@
     <link rel="stylesheet" href="/assets/ui/theme-term.css">
     <link rel="stylesheet" href="/assets/ui/live-avatar.css">
     <script src="/assets/ui/live-avatar.js" defer></script>
+    <script src="/assets/ui/feedback.js" defer></script>
 </head>
 <body>
 <div class="scrim" id="scrim"></div>
@@ -633,7 +634,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         else copyText(text).then((ok) => ok && toast('Sharing isn\'t available here, so it was copied'));
     }
     function addReplyActions(bubble) {
-        $('chat-box').querySelectorAll('.msg-actions').forEach((n) => n.remove());
+        $('chat-box').querySelectorAll('.msg-actions, .reply-feedback-panel').forEach((n) => n.remove());
         const row = document.createElement('div'); row.className = 'msg-actions';
         const mk = (label, svg, fn) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', label); b.title = label; b.innerHTML = svg; b.onclick = () => fn(b); return b; };
         const S = (id) => '<svg class="icon"><use href="#icon-' + id + '"/></svg>';
@@ -642,23 +643,23 @@ function showAlert(message) { window.__note && window.__note(message); }
             mk('Share', S('share'), () => shareText(lastReplyText)),
             mk('Read aloud', S('volume'), (b) => { if (speakingAudio) { stopSpeaking(); b.classList.remove('on'); } else { b.classList.add('on'); speak(lastReplyText).finally(() => b.classList.remove('on')); } })
         );
+        let up, down;
+        const feedback = window.KnowuraFeedback?.createPanel({ onSuccess: (sentiment) => {
+            up?.classList.toggle('on', sentiment === 'like'); down?.classList.toggle('on', sentiment === 'dislike');
+            if (up) up.disabled = true; if (down) down.disabled = true;
+            haptic('tick'); toast('Thanks for the feedback.');
+        } });
         row.append(
-            mk('Good answer', S('thumb-up'), (b) => rate(row, b, true)),
-            mk('Not helpful', S('thumb-down'), (b) => rate(row, b, false))
+            up = mk('Good answer', S('thumb-up'), () => feedback?.open('like')),
+            down = mk('Not helpful', S('thumb-down'), () => feedback?.open('dislike'))
         );
         row.querySelectorAll('button').forEach((b, i) => { if (i >= 3) b.classList.add('rate'); });
         if (!/att-row/.test((chat.messages[chat.messages.length - 2] || {}).text || '')) row.append(mk('Regenerate', S('refresh'), regenerate));
-        bubble.after(row); scrollChat();
+        bubble.after(row); if (feedback) row.after(feedback.element); scrollChat();
         loadFollowups(row, lastQuestion, lastReplyText);
     }
-    // thumbs stay on this device; regenerate re-asks the last question; follow-up chips come from a quiet helper call
+    // Regenerate re-asks the last question; follow-up chips come from a quiet helper call.
     let lastQuestion = '', followSeq = 0;
-    function rate(row, b, up) {
-        const was = b.classList.contains('on');
-        row.querySelectorAll('.rate').forEach((x) => x.classList.remove('on'));
-        if (!was) { b.classList.add('on'); const fb = load('knowura_feedback') || { up: 0, down: 0 }; fb[up ? 'up' : 'down']++; store('knowura_feedback', fb); toast(up ? 'Glad that helped!' : 'Thanks, noted. Try Regenerate.'); }
-        haptic('tick');
-    }
     function regenerate() {
         if (busy) return;
         const ms = chat.messages, n = ms.length;
@@ -666,7 +667,7 @@ function showAlert(message) { window.__note && window.__note(message); }
         const text = toText(ms[n - 2].text.replace(/<br\s*\/?>/gi, '\n')).trim();
         if (!text) return;
         const box = $('chat-box');
-        box.querySelectorAll('.msg-actions, .followups').forEach((x) => x.remove());
+        box.querySelectorAll('.msg-actions, .reply-feedback-panel, .followups').forEach((x) => x.remove());
         [...box.querySelectorAll('.msg.ai')].pop()?.remove(); [...box.querySelectorAll('.msg.user')].pop()?.remove();
         ms.splice(n - 2, 2); msgs.splice(-2, 2); persist();
         $('userInput').value = text; sendText();

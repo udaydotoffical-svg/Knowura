@@ -1,0 +1,19 @@
+{
+  "totals": {
+    "like": 214,
+    "dislike": 39,
+    "like:clear": 78,
+    "like:accurate": 58,
+    "like:example": 40,
+    "like:relevant": 30,
+    "like:other": 8,
+    "dislike:incorrect": 12,
+    "dislike:unclear": 9,
+    "dislike:too_short": 7,
+    "dislike:too_long": 5,
+    "dislike:off_topic": 4,
+    "dislike:other": 2
+  },
+  "likes": [2, 3, 2, 4, 5, 3, 4, 6, 5, 4, 7, 5, 6, 8, 7, 6, 9, 8, 6, 7, 8, 9, 8, 10, 9, 11, 10, 8, 12, 9],
+  "dislikes": [0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 1, 0, 2, 1, 2, 1, 2, 2, 2]
+}

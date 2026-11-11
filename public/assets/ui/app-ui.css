@@ -78,6 +78,19 @@
         .reply-tools button.on::before { border-color: var(--cyan); background: rgba(34, 229, 255, 0.16); }
         .reply-tools button:focus-visible, .reply-enhancements button:focus-visible, .followups button:focus-visible, .feature-close:focus-visible, .visual-step button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         .reply-tools .icon { width: 16px; height: 16px; }
+        .reply-feedback-panel { display: grid; gap: 7px; width: min(520px, calc(100% - 42px)); margin: -2px 0 8px 34px; padding: 9px 10px; border: 1px solid var(--ink); border-radius: 10px; background: var(--panel-strong); box-shadow: var(--shadow-sm); }
+        .reply-feedback-panel[hidden] { display: none !important; }
+        .reply-feedback-title { font-size: 12px; font-weight: 700; color: var(--text); }
+        .reply-feedback-options { display: flex; flex-wrap: wrap; gap: 5px; }
+        .reply-feedback-reason { padding: 5px 8px; border: 1px solid var(--ink); border-radius: 999px; background: transparent; color: var(--text-dim); font: 600 11px var(--font); cursor: pointer; }
+        .reply-feedback-reason[aria-pressed="true"] { border-color: var(--cyan); background: rgba(34, 229, 255, 0.14); color: var(--text); }
+        .reply-feedback-reason:disabled { opacity: .65; cursor: default; }
+        .reply-feedback-other { width: 100%; min-height: 46px; padding: 7px 9px; border: 1px solid var(--ink); border-radius: 8px; background: var(--panel); color: var(--text); font: 500 12px/1.4 var(--font); resize: vertical; }
+        .reply-feedback-controls { display: flex; align-items: center; gap: 8px; }
+        .reply-feedback-status { margin-right: auto; color: var(--text-dim); font-size: 11px; }
+        .reply-feedback-controls button { padding: 5px 9px; border: 1px solid var(--ink); border-radius: 7px; background: transparent; color: var(--text-dim); font: 600 11px var(--font); cursor: pointer; }
+        .reply-feedback-controls .reply-feedback-send { background: var(--cyan); color: #001018; }
+        .reply-feedback-controls button:disabled { opacity: .55; cursor: default; }
         .followups { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px 34px; align-self: flex-start; max-width: 80%; }
         .followups button { position: relative; isolation: isolate; min-height: 44px; padding: 0 10px; border: 0; border-radius: 0; background: transparent; color: var(--text); font-size: 11px; line-height: 1.1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; box-shadow: none; }
         .followups button::before { content: ''; position: absolute; z-index: -1; inset: 11px 0; border: 1px solid var(--ink); border-radius: 999px; background: var(--panel-strong); box-shadow: none; pointer-events: none; }

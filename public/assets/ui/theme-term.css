@@ -16,6 +16,7 @@ html.term .chat-topic-hero-edit-input { background: rgba(2, 9, 4, 0.8); }
 html.term .chat-topic-hero p { color: rgb(184, 249, 200); }
 html.term .ai { background: rgba(7, 27, 14, 0.75); }
 html.term .reply-tools button.on::before { background: rgba(24, 135, 61, 0.16); }
+html.term .reply-feedback-reason[aria-pressed="true"] { background: rgba(24, 135, 61, 0.14); }
 html.term .reply-enhancements button:hover::before { background: rgba(25, 141, 64, 0.16); }
 html.term .teachback-card, html.term .visual-card { background: rgba(4, 20, 10, 0.42); }
 html.term .feature-close:hover::before { background: rgba(25, 141, 64, 0.16); }
@@ -102,6 +103,9 @@ html.term .msg-editor-actions button { color: #c9ffd6; }
 html.term .menu-item:hover { background: rgba(25, 141, 64, 0.15); }
 html.term input[type="range"].glass-slider { background: linear-gradient(90deg, rgba(24, 135, 61, 0.4), rgba(25, 141, 64, 0.15)); }
 html.term .owner-modal { background: rgba(2, 7, 3, 0.5); }
+html.term .feedback-chart-legend .dislike-dot { background: rgb(30, 172, 78); }
+html.term .feedback-reason-track { background: rgba(55, 128, 79, 0.2); }
+html.term .feedback-reason-card.dislike .feedback-reason-fill { background: rgb(30, 172, 78); }
 html.term .owner-modal-divider::before, html.term .owner-modal-divider::after { background: rgba(55, 128, 79, 0.25); }
 html.term #startup { background: rgba(2, 7, 3, 0.68); }
 html.term #startup .glass-card.login-card { background: linear-gradient(145deg, rgba(7, 26, 13, 0.82), var(--panel-strong)); }
